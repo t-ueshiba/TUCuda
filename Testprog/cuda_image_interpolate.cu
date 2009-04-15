@@ -1,5 +1,5 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.1 2009-04-15 00:32:26 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.2 2009-04-15 23:49:39 ueshiba Exp $
  */
 #include "TU/CudaDeviceMemory.h"
 #include "TU/Image++.h"
@@ -25,14 +25,11 @@ interpolate(const Array2<ImageLine<RGBA> >& image0,
     CUT_SAFE_CALL(cutCreateTimer(&timer));
     CUT_SAFE_CALL(cutStartTimer(timer));
 
-  // allocate device memory
-    CudaDeviceMemory2<uchar4>	d_image[3];
-    for (int i = 0; i < 3; ++i)
-	d_image[i].resize(image0.nrow(), image0.ncol());
-
-  // copy host memory to device
-    d_image[0].readFrom(image0);
-    d_image[1].readFrom(image1);
+  // allocate device memory and copy host memory to them
+    CudaDeviceMemory2<uchar4>	d_image0, d_image1, d_image2;
+    d_image0.readFrom(image0);
+    d_image1.readFrom(image1);
+    d_image2.resize(image0.nrow(), image0.ncol());
 
   // setup execution parameters
     dim3  blocks(32, 32, 1);
@@ -41,18 +38,18 @@ interpolate(const Array2<ImageLine<RGBA> >& image0,
   // execute the kernel
     cerr << "Let's go!" << endl;
     for (int i = 0; i < 1000; ++i)
-	interpolate_kernel<<<blocks, threads>>>((const uchar4*)d_image[0],
-						(const uchar4*)d_image[1],
-						(      uchar4*)d_image[2],
-						d_image[0].ncol(),
-						d_image[0].nrow(), 0.5f);
+	interpolate_kernel<<<blocks, threads>>>((const uchar4*)d_image0,
+						(const uchar4*)d_image1,
+						(      uchar4*)d_image2,
+						d_image2.ncol(),
+						d_image2.nrow(), 0.5f);
     cerr << "Returned!" << endl;
     
   // check if kernel execution generated and error
     CUT_CHECK_ERROR("Kernel execution failed");
 
   // copy result from device to host
-    d_image[2].writeTo(image2);
+    d_image2.writeTo(image2);
 
   // time
     CUT_SAFE_CALL(cutStopTimer(timer));

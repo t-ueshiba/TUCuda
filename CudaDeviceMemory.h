@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaDeviceMemory.h,v 1.1 2009-04-15 00:32:05 ueshiba Exp $
+ *  $Id: CudaDeviceMemory.h,v 1.2 2009-04-15 23:49:22 ueshiba Exp $
  */
 #ifndef __TUCudaDeviceMemory_h
 #define __TUCudaDeviceMemory_h
@@ -66,9 +66,7 @@ CudaDeviceMemory<T>::readFrom(const Array<T2, B2>& a)
     if (sizeof(T) != sizeof(T2))
 	throw logic_error(
 	    "CudaDeviceMemory<T>::readFrom: mismatched element sizes!!");
-    if (dim() != a.dim())
-	throw invalid_argument(
-	    "CudaDeviceMemory<T>::readFrom: mismatched dimensions!!");
+    resize(a.dim());
     CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), (const T2*)a, 
 			      dim() * sizeof(T), cudaMemcpyHostToDevice));
     return *this;
@@ -184,7 +182,7 @@ template <class T, class R>
 template <class T2, class B2, class R2> CudaDeviceMemory2<T, R>&
 CudaDeviceMemory2<T, R>::readFrom(const Array2<T2, B2, R2>& a)
 {
-    check_dim(a.nrow());
+    resize(a.nrow(), a.ncol());
     for (int i = 0; i < nrow(); ++i)
 	(*this)[i].readFrom(a[i]);
     return *this;

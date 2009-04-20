@@ -25,7 +25,7 @@
  *  The copyright holder or the creator are not responsible for any
  *  damages caused by using this program.
  *
- *  $Id: CudaDeviceMemory.h,v 1.3 2009-04-20 01:16:22 ueshiba Exp $
+ *  $Id: CudaDeviceMemory.h,v 1.4 2009-04-20 23:33:31 ueshiba Exp $
  */
 #ifndef __TUCudaDeviceMemory_h
 #define __TUCudaDeviceMemory_h
@@ -49,8 +49,8 @@ class CudaBuf : private Buf<T>
 {
   public:
     explicit CudaBuf(u_int siz=0)				;
-    CudaBuf(const CudaBuf& m)					;
-    CudaBuf&		operator =(const CudaBuf& m)		;
+    CudaBuf(const CudaBuf& b)					;
+    CudaBuf&		operator =(const CudaBuf& b)		;
     ~CudaBuf()							;
 
     using		Buf<T>::operator T*;
@@ -79,19 +79,19 @@ CudaBuf<T>::CudaBuf(u_int siz)
 
 //! コピーコンストラクタ
 template <class T> inline
-CudaBuf<T>::CudaBuf(const CudaBuf& m)
-    :Buf<T>(memalloc(m.size()), m.size())
+CudaBuf<T>::CudaBuf(const CudaBuf& b)
+    :Buf<T>(memalloc(b.size()), b.size())
 {
-    CUDA_SAFE_CALL(cudaMemcpy((T*)*this, (const T*)m,
+    CUDA_SAFE_CALL(cudaMemcpy((T*)*this, (const T*)b,
 			      size()*sizeof(T), cudaMemcpyDeviceToDevice));
 }
     
 //! 標準代入演算子
 template <class T> inline CudaBuf<T>&
-CudaBuf<T>::operator =(const CudaBuf& m)
+CudaBuf<T>::operator =(const CudaBuf& b)
 {
-    resize(m.size());
-    CUDA_SAFE_CALL(cudaMemcpy((T*)*this, (const T*)m,
+    resize(b.size());
+    CUDA_SAFE_CALL(cudaMemcpy((T*)*this, (const T*)b,
 			      size()*sizeof(T), cudaMemcpyDeviceToDevice));
     return *this;
 }
@@ -274,7 +274,9 @@ class CudaDeviceMemory2
   public:
     CudaDeviceMemory2()							;
     CudaDeviceMemory2(u_int r, u_int c)					;
-
+    CudaDeviceMemory2(const CudaDeviceMemory2& m)			;
+    CudaDeviceMemory2&	operator =(const CudaDeviceMemory2& m)		;
+    
     using	super::operator pointer;
     using	super::operator const_pointer;
     using	super::operator [];
@@ -310,6 +312,40 @@ CudaDeviceMemory2<T, R>::CudaDeviceMemory2(u_int r, u_int c)
 {
 }
 
+//! コピーコンストラクタ
+template <class T, class R> inline
+CudaDeviceMemory2<T, R>::CudaDeviceMemory2(const CudaDeviceMemory2& m)
+    :super(m.nrow(), m.ncol())
+{
+    if ((nrow() > 1) &&
+	(pointer((*this)[1]) - pointer((*this)[0]) == ncol()) &&
+	(const_pointer(m[1]) - const_pointer(m[0]) == ncol()))
+	CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
+				  nrow()*ncol()*sizeof(T),
+				  cudaMemcpyDeviceToDevice));
+    else
+	super::operator =(m);
+}
+    
+//! 標準代入演算子
+template <class T, class R> inline CudaDeviceMemory2<T, R>&
+CudaDeviceMemory2<T, R>::operator =(const CudaDeviceMemory2& m)
+{
+    if (this != &m)
+    {
+	resize(m.nrow(), m.ncol());
+	if ((nrow() > 1) &&
+	    (pointer((*this)[1]) - pointer((*this)[0]) == ncol()) &&
+	    (const_pointer(m[1]) - const_pointer(m[0]) == ncol()))
+	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
+				      nrow()*ncol()*sizeof(T),
+				      cudaMemcpyDeviceToDevice));
+	else
+	    super::operator =(m);
+    }
+    return *this;
+}
+    
 //! ホスト側の配列をこのデバイス側メモリ領域に読み込む．
 /*!
   \param a	コピー元の配列

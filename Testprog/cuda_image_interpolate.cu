@@ -1,5 +1,5 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.2 2009-04-15 23:49:39 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.3 2009-04-20 01:16:37 ueshiba Exp $
  */
 #include "TU/CudaDeviceMemory.h"
 #include "TU/Image++.h"
@@ -30,11 +30,12 @@ interpolate(const Array2<ImageLine<RGBA> >& image0,
     d_image0.readFrom(image0);
     d_image1.readFrom(image1);
     d_image2.resize(image0.nrow(), image0.ncol());
-
+    
   // setup execution parameters
-    dim3  blocks(32, 32, 1);
     dim3  threads(16, 16, 1);
-
+    dim3  blocks(image0.ncol()/threads.x, image0.nrow()/threads.y, 1);
+    cerr << blocks.x << 'x' << blocks.y << " blocks..." << endl;
+    
   // execute the kernel
     cerr << "Let's go!" << endl;
     for (int i = 0; i < 1000; ++i)

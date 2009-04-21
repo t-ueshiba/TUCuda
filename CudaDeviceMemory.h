@@ -25,7 +25,7 @@
  *  The copyright holder or the creator are not responsible for any
  *  damages caused by using this program.
  *
- *  $Id: CudaDeviceMemory.h,v 1.4 2009-04-20 23:33:31 ueshiba Exp $
+ *  $Id: CudaDeviceMemory.h,v 1.5 2009-04-21 23:30:35 ueshiba Exp $
  */
 #ifndef __TUCudaDeviceMemory_h
 #define __TUCudaDeviceMemory_h
@@ -40,7 +40,7 @@ namespace TU
 ************************************************************************/
 //! CUDAにおいてデバイス側に確保される可変長バッファクラス
 /*!
-  単独で使用することはなく，#TU::CudaDeviceMemory<T, B>または#TU::Array2<T, B, R>の
+  単独で使用することはなく，#TU::CudaDeviceMemoryまたは#TU::Array2の
   第2テンプレート引数に指定することによって，それらの基底クラスとして使う．
   \param T	要素の型
 */
@@ -169,6 +169,7 @@ class CudaDeviceMemory : private Array<T, B>
 {
   public:
     typedef T			value_type;	  //!< 要素の型
+    typedef ptrdiff_t		difference_type;  //!< ポインタ間の差
     typedef value_type*		pointer;	  //!< 要素へのポインタ
     typedef const value_type*	const_pointer;	  //!< 定数要素へのポインタ
     
@@ -266,8 +267,6 @@ class CudaDeviceMemory2
     typedef CudaBuf<T>			buffer_type;	//!< バッファの型
     typedef T				value_type;	//!< 要素の型
     typedef ptrdiff_t			difference_type;//!< ポインタ間の差
-    typedef value_type&			reference;	//!< 要素への参照
-    typedef const value_type&		const_reference;//!< 定数要素への参照
     typedef value_type*			pointer;	//!< 要素へのポインタ
     typedef const value_type*		const_pointer;	//!< 定数要素へのポインタ
 

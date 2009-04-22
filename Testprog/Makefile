@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.2 2009-04-20 01:16:37 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2009-04-22 23:32:08 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -11,8 +11,8 @@ PROGRAM		= cuda_image_interpolate
 LIBS		= -lTUTools++ -lTUCuda++ -lcutil
 
 CPPFLAGS	=
-CFLAGS		= -g
-NVCCFLAGS	= -g
+CFLAGS		= -g -O
+NVCCFLAGS	= -g -O
 ifeq ($(CCC), icpc)
   CFLAGS	= -O3
   NVCCFLAGS	= -O # -O2以上にするとコンパイルエラーになる．
@@ -50,7 +50,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

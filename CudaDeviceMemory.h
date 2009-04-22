@@ -25,7 +25,7 @@
  *  The copyright holder or the creator are not responsible for any
  *  damages caused by using this program.
  *
- *  $Id: CudaDeviceMemory.h,v 1.5 2009-04-21 23:30:35 ueshiba Exp $
+ *  $Id: CudaDeviceMemory.h,v 1.6 2009-04-22 23:31:56 ueshiba Exp $
  */
 #ifndef __TUCudaDeviceMemory_h
 #define __TUCudaDeviceMemory_h
@@ -42,6 +42,7 @@ namespace TU
 /*!
   単独で使用することはなく，#TU::CudaDeviceMemoryまたは#TU::Array2の
   第2テンプレート引数に指定することによって，それらの基底クラスとして使う．
+  外部に確保した記憶領域を割り当てることはできない．
   \param T	要素の型
 */
 template <class T>
@@ -105,8 +106,6 @@ CudaBuf<T>::~CudaBuf()
     
 //! バッファの要素数を変更する．
 /*!
-  ただし，他のオブジェクトと記憶領域を共有しているバッファの要素数を
-  変更することはできない．
   \param siz			新しい要素数
   \return			sizが元の要素数と等しければtrue，そうでなければ
 				false
@@ -316,14 +315,18 @@ template <class T, class R> inline
 CudaDeviceMemory2<T, R>::CudaDeviceMemory2(const CudaDeviceMemory2& m)
     :super(m.nrow(), m.ncol())
 {
-    if ((nrow() > 1) &&
-	(pointer((*this)[1]) - pointer((*this)[0]) == ncol()) &&
-	(const_pointer(m[1]) - const_pointer(m[0]) == ncol()))
-	CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
-				  nrow()*ncol()*sizeof(T),
-				  cudaMemcpyDeviceToDevice));
-    else
-	super::operator =(m);
+    if (nrow() > 1)
+    {
+	const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	if (const_pointer(m[1]) - const_pointer(m[0]) == stride)
+	{
+	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
+				      nrow()*stride*sizeof(T),
+				      cudaMemcpyDeviceToDevice));
+	    return;
+	}
+    }
+    super::operator =(m);
 }
     
 //! 標準代入演算子
@@ -333,14 +336,18 @@ CudaDeviceMemory2<T, R>::operator =(const CudaDeviceMemory2& m)
     if (this != &m)
     {
 	resize(m.nrow(), m.ncol());
-	if ((nrow() > 1) &&
-	    (pointer((*this)[1]) - pointer((*this)[0]) == ncol()) &&
-	    (const_pointer(m[1]) - const_pointer(m[0]) == ncol()))
-	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
-				      nrow()*ncol()*sizeof(T),
-				      cudaMemcpyDeviceToDevice));
-	else
-	    super::operator =(m);
+	if (nrow() > 1)
+	{
+	    const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	    if (const_pointer(m[1]) - const_pointer(m[0]) == stride)
+	    {
+		CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
+					  nrow()*stride*sizeof(T),
+					  cudaMemcpyDeviceToDevice));
+		return *this;
+	    }
+	}
+	super::operator =(m);
     }
     return *this;
 }
@@ -357,15 +364,19 @@ CudaDeviceMemory2<T, R>::readFrom(const Array2<T2, B2, R2>& a)
     typedef typename Array2<T2, B2, R2>::const_pointer	const_pointer2;
     
     resize(a.nrow(), a.ncol());
-    if ((nrow() > 1) &&
-	(pointer((*this)[1]) - pointer((*this)[0]) == ncol()) &&
-	(const_pointer2(a[1]) - const_pointer2(a[0]) == ncol()))
-	CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer2(a),
-				  nrow()*ncol()*sizeof(T),
-				  cudaMemcpyHostToDevice));
-    else
-	for (int i = 0; i < nrow(); ++i)
-	    (*this)[i].readFrom(a[i]);
+    if (nrow() > 1)
+    {
+	const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	if (const_pointer2(a[1]) - const_pointer2(a[0]) == stride)
+	{
+	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer2(a),
+				      nrow()*stride*sizeof(T),
+				      cudaMemcpyHostToDevice));
+	    return *this;
+	}
+    }
+    for (int i = 0; i < nrow(); ++i)
+	(*this)[i].readFrom(a[i]);
     return *this;
 }
 
@@ -381,15 +392,20 @@ CudaDeviceMemory2<T, R>::writeTo(Array2<T2, B2, R2>& a) const
     typedef typename Array2<T2, B2, R2>::pointer	pointer2;
     
     a.resize(nrow(), ncol());
-    if ((nrow() > 1) &&
-	(const_pointer((*this)[1]) - const_pointer((*this)[0]) == ncol()) &&
-	(pointer2(a[1]) - pointer2(a[0]) == ncol()))
-	CUDA_SAFE_CALL(cudaMemcpy(pointer2(a), const_pointer(*this),
-				  nrow()*ncol()*sizeof(T),
-				  cudaMemcpyDeviceToHost));
-    else
-	for (int i = 0; i < nrow(); ++i)
-	    (*this)[i].writeTo(a[i]);
+    if (nrow() > 1)
+    {
+	const int	stride = const_pointer((*this)[1])
+			       - const_pointer((*this)[0]);
+	if (pointer2(a[1]) - pointer2(a[0]) == stride)
+	{
+	    CUDA_SAFE_CALL(cudaMemcpy(pointer2(a), const_pointer(*this),
+				      nrow()*stride*sizeof(T),
+				      cudaMemcpyDeviceToHost));
+	    return *this;
+	}
+    }
+    for (int i = 0; i < nrow(); ++i)
+	(*this)[i].writeTo(a[i]);
     return *this;
 }
 

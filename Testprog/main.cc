@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.1 2009-04-15 00:32:26 ueshiba Exp $
+ *  $Id: main.cc,v 1.2 2009-05-10 23:36:49 ueshiba Exp $
  */
 #include <fstream>
 #include <stdexcept>
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
 	interpolate(images[0], images[1], images[2]);
 
       // Save the obtained results.
-	images[2].save(cout, ImageBase::RGB_24);
+	images[2].save(cout);
     }
     catch (exception& err)
     {

@@ -1,12 +1,12 @@
 #
-#  $Id: Makefile,v 1.2 2009-07-08 01:10:18 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2009-07-08 04:02:38 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
 INCDIR		= $(PREFIX)/include/TU
-INCDIRS		= -I. -I$(PREFIX)/include
+INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDASDK)/common/inc
 
 NAME		= $(shell basename $(PWD))
 
@@ -42,7 +42,7 @@ OBJS		= Cuda.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

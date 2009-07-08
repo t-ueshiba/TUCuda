@@ -1,5 +1,5 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.1 2009-04-20 01:17:39 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.2 2009-07-08 01:10:18 ueshiba Exp $
  */
 #include "TU/CudaDeviceMemory.h"
 #include "TU/Image++.h"
@@ -10,7 +10,7 @@ namespace TU
 {
 /*
  *  本当は引数の型を (const) Image<RGBA>& としたいところであるが，
- *  CUDA-2.1の nvcc でコンパイルしたC++関数は仮想メンバ関数を持つ
+ *  CUDA-2.[12]の nvcc でコンパイルしたC++関数は仮想メンバ関数を持つ
  *  クラスのオブジェクトを正しく扱えないようである．
  */ 
 void

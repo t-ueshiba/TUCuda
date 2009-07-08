@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.2 2009-05-10 23:37:02 ueshiba Exp $
+ *  $Id: main.cc,v 1.3 2009-07-08 01:10:18 ueshiba Exp $
  */
 #include <stdlib.h>
 #include <signal.h>
@@ -96,9 +96,9 @@ doJob(const Ieee1394CameraArray& cameras)
 	for (int i = 0; i < cameras.dim(); ++i)
 	    cameras[i]->snap();				// ª£±∆
 	for (int i = 0; i < cameras.dim(); ++i)
-	    *cameras[i] >> images[i];			// ≤Ë¡¸ŒŒ∞Ë§ÿ§Œ≈æ¡˜
+	    *cameras[i] >> images[i];			// ºÁµ≠≤±§ÿ§Œ≈æ¡˜
 
-	interpolate(images[0], images[1], images[2]);
+	interpolate(images[0], images[1], images[2]);	// CUDA§À§Ë§Î ‰¥÷
 
 	for (int i = 0; i < images.dim(); ++i)
 	    if (!images[i].saveData(cout))		// stdout§ÿ§ŒΩ–Œœ
@@ -122,9 +122,6 @@ main(int argc, char *argv[])
     
     initializeCUDA(argc, argv);
 
-    using namespace	std;
-    using namespace	TU;
-    
     string		configDirs = DEFAULT_CONFIG_DIRS;
     string		cameraName = DEFAULT_CAMERA_NAME;
     bool		i1394b	   = false;

@@ -1,11 +1,11 @@
 #
-#  $Id: Makefile,v 1.2 2009-04-22 23:32:13 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2009-07-09 04:58:26 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
-DEST		= $(BINDIR)
-INCDIRS		= -I$(HOME)/include -I$(CUDASDK)/common/inc -I$(CUDAHOME)/include
+DEST		= $(PREFIX)/bin
+INCDIRS		= -I$(PREFIX)/include -I$(CUDASDK)/common/inc -I$(CUDAHOME)/include
 
 PROGRAM		= test1394cuda
 LIBS		= -lTUIeee1394++ -lTUTools++ -lTUCuda++ -lcutil -lraw1394
@@ -33,15 +33,16 @@ LINKER		= $(NVCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
-EXTHDRS		= /home/ueshiba/include/TU/Array++.h \
-		/home/ueshiba/include/TU/Cuda++.h \
-		/home/ueshiba/include/TU/CudaDeviceMemory.h \
-		/home/ueshiba/include/TU/Geometry++.h \
-		/home/ueshiba/include/TU/Ieee1394++.h \
-		/home/ueshiba/include/TU/Image++.h \
-		/home/ueshiba/include/TU/Normalize.h \
-		/home/ueshiba/include/TU/Vector++.h \
-		/home/ueshiba/include/TU/types.h
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Cuda++.h \
+		/usr/local/include/TU/CudaDeviceMemory.h \
+		/usr/local/include/TU/Geometry++.h \
+		/usr/local/include/TU/Ieee1394++.h \
+		/usr/local/include/TU/Ieee1394CameraArray.h \
+		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Normalize.h \
+		/usr/local/include/TU/Vector++.h \
+		/usr/local/include/TU/types.h
 HDRS		= cuda_image_interpolate_kernel.h
 SRCS		= cuda_image_interpolate.cu \
 		main.cc
@@ -51,7 +52,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -63,16 +64,14 @@ REV		= $(shell echo $Revision: 1.2 $	|		\
 include $(PROJECT)/lib/p.mk
 
 ###
-cuda_image_interpolate.o: /home/ueshiba/include/TU/CudaDeviceMemory.h \
-	/home/ueshiba/include/TU/Array++.h /home/ueshiba/include/TU/types.h \
-	/home/ueshiba/include/TU/Image++.h \
-	/home/ueshiba/include/TU/Geometry++.h \
-	/home/ueshiba/include/TU/Vector++.h \
-	/home/ueshiba/include/TU/Normalize.h cuda_image_interpolate_kernel.h
-main.o: /home/ueshiba/include/TU/Cuda++.h \
-	/home/ueshiba/include/TU/Ieee1394++.h \
-	/home/ueshiba/include/TU/Image++.h \
-	/home/ueshiba/include/TU/Geometry++.h \
-	/home/ueshiba/include/TU/Vector++.h \
-	/home/ueshiba/include/TU/Array++.h /home/ueshiba/include/TU/types.h \
-	/home/ueshiba/include/TU/Normalize.h
+cuda_image_interpolate.o: /usr/local/include/TU/CudaDeviceMemory.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Normalize.h \
+	cuda_image_interpolate_kernel.h
+main.o: /usr/local/include/TU/Cuda++.h \
+	/usr/local/include/TU/Ieee1394CameraArray.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/Ieee1394++.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Normalize.h

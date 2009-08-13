@@ -25,7 +25,7 @@
  *  The copyright holder or the creator are not responsible for any
  *  damages caused by using this program.
  *
- *  $Id: CudaDeviceMemory.h,v 1.6 2009-04-22 23:31:56 ueshiba Exp $
+ *  $Id: CudaDeviceMemory.h,v 1.7 2009-08-13 23:00:37 ueshiba Exp $
  */
 #ifndef __TUCudaDeviceMemory_h
 #define __TUCudaDeviceMemory_h
@@ -317,7 +317,7 @@ CudaDeviceMemory2<T, R>::CudaDeviceMemory2(const CudaDeviceMemory2& m)
 {
     if (nrow() > 1)
     {
-	const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	const u_int	stride = pointer((*this)[1]) - pointer((*this)[0]);
 	if (const_pointer(m[1]) - const_pointer(m[0]) == stride)
 	{
 	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
@@ -338,7 +338,7 @@ CudaDeviceMemory2<T, R>::operator =(const CudaDeviceMemory2& m)
 	resize(m.nrow(), m.ncol());
 	if (nrow() > 1)
 	{
-	    const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	    const u_int	stride = pointer((*this)[1]) - pointer((*this)[0]);
 	    if (const_pointer(m[1]) - const_pointer(m[0]) == stride)
 	    {
 		CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer(m),
@@ -366,7 +366,7 @@ CudaDeviceMemory2<T, R>::readFrom(const Array2<T2, B2, R2>& a)
     resize(a.nrow(), a.ncol());
     if (nrow() > 1)
     {
-	const int	stride = pointer((*this)[1]) - pointer((*this)[0]);
+	const u_int	stride = pointer((*this)[1]) - pointer((*this)[0]);
 	if (const_pointer2(a[1]) - const_pointer2(a[0]) == stride)
 	{
 	    CUDA_SAFE_CALL(cudaMemcpy(pointer(*this), const_pointer2(a),
@@ -375,7 +375,7 @@ CudaDeviceMemory2<T, R>::readFrom(const Array2<T2, B2, R2>& a)
 	    return *this;
 	}
     }
-    for (int i = 0; i < nrow(); ++i)
+    for (u_int i = 0; i < nrow(); ++i)
 	(*this)[i].readFrom(a[i]);
     return *this;
 }
@@ -394,7 +394,7 @@ CudaDeviceMemory2<T, R>::writeTo(Array2<T2, B2, R2>& a) const
     a.resize(nrow(), ncol());
     if (nrow() > 1)
     {
-	const int	stride = const_pointer((*this)[1])
+	const u_int	stride = const_pointer((*this)[1])
 			       - const_pointer((*this)[0]);
 	if (pointer2(a[1]) - pointer2(a[0]) == stride)
 	{
@@ -404,7 +404,7 @@ CudaDeviceMemory2<T, R>::writeTo(Array2<T2, B2, R2>& a) const
 	    return *this;
 	}
     }
-    for (int i = 0; i < nrow(); ++i)
+    for (u_int i = 0; i < nrow(); ++i)
 	(*this)[i].writeTo(a[i]);
     return *this;
 }

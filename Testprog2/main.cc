@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.3 2009-07-08 01:10:18 ueshiba Exp $
+ *  $Id: main.cc,v 1.4 2009-09-10 06:53:03 ueshiba Exp $
  */
 #include <stdlib.h>
 #include <signal.h>
@@ -66,7 +66,7 @@ doJob(const Ieee1394CameraArray& cameras)
 
   // 1フレームあたりの画像数とそのフォーマットを出力．
     Array<Image<T> >	images(cameras.dim() + 1);
-    cout << images.dim() << endl;
+    cout << 'M' << images.dim() << endl;
     for (int i = 0; i < images.dim(); ++i)
     {
 	images[i].resize(cameras[0]->height(), cameras[0]->width());

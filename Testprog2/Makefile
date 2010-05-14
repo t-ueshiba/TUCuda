@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.4 2010-05-14 00:38:24 ueshiba Exp $
+#  $Id: Makefile,v 1.5 2010-05-14 00:45:54 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -13,7 +13,7 @@ ARCH		= $(shell uname -m)
 ifeq ($(ARCH), x86_64)
   LIBS	       += -lcutil_x86_64
 else
-  LIBS	       += -lcutil_x86_i386
+  LIBS	       += -lcutil_i386
 endif
 
 CPPFLAGS	= -DHAVE_LIBTUTOOLS__
@@ -58,7 +58,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.4 $	|		\
+REV		= $(shell echo $Revision: 1.5 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

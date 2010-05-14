@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.4 2009-07-09 04:58:26 ueshiba Exp $
+#  $Id: Makefile,v 1.5 2010-05-14 00:38:19 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -8,7 +8,13 @@ DEST		= $(PREFIX)/bin
 INCDIRS		= -I$(PREFIX)/include -I$(CUDASDK)/common/inc -I$(CUDAHOME)/include
 
 PROGRAM		= cuda_image_interpolate
-LIBS		= -lTUTools++ -lTUCuda++ -lcutil
+LIBS		= -lTUTools++ -lTUCuda++
+ARCH		= $(shell uname -m)
+ifeq ($(ARCH), x86_64)
+  LIBS	       += -lcutil_x86_64
+else
+  LIBS	       += -lcutil_i386
+endif
 
 CPPFLAGS	=
 CFLAGS		= -g -O
@@ -21,7 +27,7 @@ ifeq ($(CCC), icpc)
     CFLAGS     += -axP
   else
     CPPFLAGS   += -DSSSE3
-    CFLAGS     += -xN
+#    CFLAGS     += -xN
   endif
 endif
 CCFLAGS		= $(CFLAGS)
@@ -50,7 +56,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.4 $	|		\
+REV		= $(shell echo $Revision: 1.5 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

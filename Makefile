@@ -1,11 +1,11 @@
 #
-#  $Id: Makefile,v 1.5 2010-05-14 00:38:06 ueshiba Exp $
+#  $Id: Makefile,v 1.6 2011-04-11 08:05:54 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
-INCDIR		= $(PREFIX)/include/TU
+INCDIR		= $(CUDAHOME)/include/TU
 INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDASDK)/common/inc
 
 NAME		= $(shell basename $(PWD))
@@ -33,16 +33,16 @@ LINKER		= $(CCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
-EXTHDRS		= TU/Cuda++.h
-HDRS		= Cuda++.h \
-		CudaDeviceMemory.h
-SRCS		= Cuda.cu
-OBJS		= Cuda.o
+EXTHDRS		=
+HDRS		= CudaArray++.h \
+		CudaFilter.h
+SRCS		=
+OBJS		=
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.5 $	|		\
+REV		= $(shell echo $Revision: 1.6 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -53,4 +53,3 @@ REV		= $(shell echo $Revision: 1.5 $	|		\
 
 include $(PROJECT)/lib/l.mk
 ###
-Cuda.o: TU/Cuda++.h

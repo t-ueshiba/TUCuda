@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.4 2009-09-10 06:53:03 ueshiba Exp $
+ *  $Id: main.cc,v 1.5 2011-04-11 08:06:06 ueshiba Exp $
  */
 #include <stdlib.h>
 #include <signal.h>
@@ -8,7 +8,6 @@
 #include <string>
 #include <fstream>
 #include <stdexcept>
-#include "TU/Cuda++.h"
 #include "TU/Ieee1394CameraArray.h"
 
 #define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"
@@ -16,34 +15,13 @@
 
 namespace TU
 {
-void	interpolate(const Array2<ImageLine<RGBA> >& image0,
-		    const Array2<ImageLine<RGBA> >& image1,
-			  Array2<ImageLine<RGBA> >& image2);
+void	interpolate(const Image<RGBA>& image0,
+		    const Image<RGBA>& image1,
+			  Image<RGBA>& image2);
 
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-static std::string
-openFile(std::ifstream& in, const std::string& dirs, const std::string& name)
-{
-    using namespace		std;
-
-    string::const_iterator	p = dirs.begin();
-    do
-    {
-	string::const_iterator	q = find(p, dirs.end(), ':');
-	string			fullName = string(p, q) + '/' + name;
-	in.open(fullName.c_str());
-	if (in)
-	    return fullName;
-	p = q;
-    } while (p++ != dirs.end());
-
-    throw runtime_error("Cannot open input file \"" + name +
-			"\" in \"" + dirs + "\"!!");
-    return string();
-}
-
 static bool	active = true;
 
 static void
@@ -120,10 +98,8 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
     
-    initializeCUDA(argc, argv);
-
-    string		configDirs = DEFAULT_CONFIG_DIRS;
-    string		cameraName = DEFAULT_CAMERA_NAME;
+    const char*		configDirs = DEFAULT_CONFIG_DIRS;
+    const char*		cameraName = DEFAULT_CAMERA_NAME;
     bool		i1394b	   = false;
     int			ncameras   = 2;
     extern char*	optarg;
@@ -147,9 +123,10 @@ main(int argc, char *argv[])
     try
     {
       // IEEE1394カメラのオープン．
-	ifstream		in;
-	openFile(in, configDirs, cameraName + ".conf");
-	Ieee1394CameraArray	cameras(in, i1394b, ncameras);
+	Ieee1394CameraArray	cameras(cameraName, configDirs,
+					i1394b, ncameras);
+	if (cameras.dim() == 0)
+	    return 0;
 
 	for (int i = 0; i < cameras.dim(); ++i)
 	    cerr << "camera " << i << ": uniqId = "

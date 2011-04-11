@@ -1,16 +1,15 @@
 /*
- *  $Id: main.cc,v 1.2 2009-05-10 23:36:49 ueshiba Exp $
+ *  $Id: main.cc,v 1.3 2011-04-11 08:06:15 ueshiba Exp $
  */
 #include <fstream>
 #include <stdexcept>
-#include "TU/Cuda++.h"
 #include "TU/Image++.h"
 
 namespace TU
 {
-void	interpolate(const Array2<ImageLine<RGBA> >& image0,
-		    const Array2<ImageLine<RGBA> >& image1,
-			  Array2<ImageLine<RGBA> >& image2);
+void	interpolate(const Image<RGBA>& image0,
+		    const Image<RGBA>& image1,
+			  Image<RGBA>& image2);
 }
 
 /************************************************************************
@@ -22,8 +21,6 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
     
-    initializeCUDA(argc, argv);
-
     try
     {
 	Image<RGBA>	images[3];

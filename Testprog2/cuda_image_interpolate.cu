@@ -1,10 +1,10 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.3 2011-04-11 08:06:06 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.4 2011-04-14 08:39:47 ueshiba Exp $
  */
 #include "TU/CudaArray++.h"
 #include "TU/Image++.h"
-#include "cuda_image_interpolate_kernel.h"
 #include <cutil.h>
+#include "cuda_image_interpolate_kernel.h"
 
 namespace TU
 {
@@ -15,6 +15,8 @@ interpolate(const Image<RGBA>& image0,
 {
     using namespace	std;
 
+    static CudaArray2<RGBA>	d_image0, d_image1, d_image2;
+    
 #ifdef PROFILE
   // timer
     u_int	timer = 0;
@@ -22,10 +24,9 @@ interpolate(const Image<RGBA>& image0,
     CUT_SAFE_CALL(cutStartTimer(timer));
 #endif
   // allocate device memory and copy host memory to them
-    static CudaArray2<RGBA>	d_image0, d_image1,
-				d_image2(image0.height(), image0.width());
     d_image0 = image0;
     d_image1 = image1;
+    d_image2.resize(image0.height(), image0.width());
     
   // setup execution parameters
     dim3  threads(16, 16, 1);

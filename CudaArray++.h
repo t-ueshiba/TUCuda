@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.1 2011-04-11 08:05:54 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.2 2011-04-14 08:39:34 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -42,6 +42,7 @@
   
   <b>フィルタリング
   - #TU::CudaFilter2
+  - #TU::CudaGaussianConvolver2
 
   <b>デバイス側のコンスタントメモリ領域へのコピー</b>
   - #TU::cudaCopyToConstantMemory
@@ -111,8 +112,7 @@ class CudaBuf
   private:
     u_int	_size;		// the number of elements in the buffer
     pointer	_p;		// pointer to the buffer area
-    u_int	_shared	  :  1;	// buffer area is shared with other object
-    u_int	_capacity : 31;	// buffer capacity (unit: element, >= _size)
+    bool	_shared;	// buffer area is shared with other object
 };
     
 //! 指定した要素数のバッファを生成する．
@@ -121,7 +121,7 @@ class CudaBuf
 */
 template <class T> inline
 CudaBuf<T>::CudaBuf(u_int siz)
-    :_size(siz), _p(memalloc(_size)), _shared(0), _capacity(_size)
+    :_size(siz), _p(memalloc(_size)), _shared(false)
 {
 }
 
@@ -132,14 +132,14 @@ CudaBuf<T>::CudaBuf(u_int siz)
 */
 template <class T> inline
 CudaBuf<T>::CudaBuf(pointer p, u_int siz)
-    :_size(siz), _p(p), _shared(1), _capacity(_size)
+    :_size(siz), _p(p), _shared(true)
 {
 }
     
 //! コピーコンストラクタ
 template <class T> inline
 CudaBuf<T>::CudaBuf(const CudaBuf<T>& b)
-    :_size(b._size), _p(memalloc(_size)), _shared(0), _capacity(_size)
+    :_size(b._size), _p(memalloc(_size)), _shared(false)
 {
     thrust::copy(b.ptr(), b.ptr() + b.size(), ptr());
 }
@@ -161,7 +161,7 @@ template <class T> inline
 CudaBuf<T>::~CudaBuf()
 {
     if (!_shared)
-	memfree(_p, _capacity);
+	memfree(_p, _size);
 }
     
 //! バッファが使用する内部記憶領域へのポインタを返す．
@@ -204,14 +204,11 @@ CudaBuf<T>::resize(u_int siz)
     if (_shared)
 	throw std::logic_error("CudaBuf<T>::resize: cannot change size of shared buffer!");
 
+    memfree(_p, _size);
     const u_int	old_size = _size;
     _size = siz;
-    if (_capacity < _size)
-    {
-	memfree(_p, _capacity);
-	_p = memalloc(_size);
-	_capacity = _size;
-    }
+    _p = memalloc(_size);
+
     return _size > old_size;
 }
 
@@ -223,12 +220,11 @@ CudaBuf<T>::resize(u_int siz)
 template <class T> inline void
 CudaBuf<T>::resize(pointer p, u_int siz)
 {
-    _size = siz;
     if (!_shared)
-	memfree(_p, _capacity);
+	memfree(_p, _size);
+    _size = siz;
     _p = p;
-    _shared = 1;
-    _capacity = _size;
+    _shared = true;
 }
 
 //! 指定された要素数を持つ記憶領域を確保するために実際に必要な要素数を返す．
@@ -302,7 +298,14 @@ CudaBuf<T>::put(std::ostream& out) const
 template <class T> inline typename CudaBuf<T>::pointer
 CudaBuf<T>::memalloc(u_int siz)
 {
-    return (siz > 0 ? thrust::device_new<T>(siz) : pointer((T*)0));
+    if (siz > 0)
+    {
+	pointer	p = thrust::device_new<T>(siz);
+	cudaMemset(p.get(), 0, sizeof(T) * siz);
+	return p;
+    }
+    else
+	return pointer((T*)0);
 }
     
 template <class T> inline void
@@ -584,7 +587,7 @@ template <class T2, class B2, class R2> inline CudaArray2<T>&
 CudaArray2<T>::operator =(const Array2<T2, B2, R2>& a)
 {
     resize(a.nrow(), a.ncol());
-    if (stride() == a.stride())
+    if (a.nrow() > 0 && a.stride() == stride())
     {
 	thrust::copy(a[0].begin(), a[a.nrow()-1].end(), (*this)[0].begin());
     }
@@ -606,7 +609,7 @@ template <class T2, class B2, class R2> inline const CudaArray2<T>&
 CudaArray2<T>::write(Array2<T2, B2, R2>& a) const
 {
     a.resize(nrow(), ncol());
-    if (a.stride() == stride())
+    if (nrow() > 0 && stride() == a.stride())
     {
 	thrust::copy((*this)[0].begin(),
 		     (*this)[nrow()-1].end(), a[0].begin());
@@ -627,7 +630,8 @@ CudaArray2<T>::write(Array2<T2, B2, R2>& a) const
 template <class T> inline CudaArray2<T>&
 CudaArray2<T>::operator =(const value_type& c)
 {
-    super::operator =(c);
+    if (nrow() > 0)
+	thrust::fill((*this)[0].begin(), (*this)[nrow()-1].end(), c);
     return *this;
 }
 

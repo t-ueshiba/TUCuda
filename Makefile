@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.8 2011-04-15 05:18:52 ueshiba Exp $
+#  $Id: Makefile,v 1.9 2011-04-15 07:02:06 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -10,23 +10,16 @@ INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
 
-CPPFLAGS	= -D_DEBUG #-DNO_BORDER
-CFLAGS		= -g -O
-NVCCFLAGS	= -g
-ifeq ($(CCC), icpc)
-  CFLAGS	= -O3
-  NVCCFLAGS	= -O	# -O2以上にするとコンパイルエラーになる．
-  ifeq ($(OSTYPE), darwin)
-    CPPFLAGS   += -DSSE3
-    CFLAGS     += -xSSE3
-  else
-    CPPFLAGS   += -DSSE3 
-    CFLAGS     += -xSSE3
-  endif
+ifeq ($(OSTYPE), darwin)
+    CCC		= g++
 endif
-CCFLAGS		= $(CFLAGS)
 
-LINKER		= $(CCC)
+CPPFLAGS	= -D_DEBUG #-DNO_BORDER
+CFLAGS		= -O
+CCFLAGS		= $(CFLAGS)
+NVCCFLAGS	= -O
+
+LINKER		= $(NVCC)
 
 #########################
 #  Macros set by mkmf	#
@@ -43,17 +36,15 @@ HDRS		= CudaArray++.h \
 		CudaGaussianConvolver.h
 SRCS		= CudaFilter.cu \
 		CudaGaussianConvolver.cc \
-		CudaGaussianConvolver.cu \
 		cudaSubsample.cu
 OBJS		= CudaFilter.o \
-		CudaGaussianConvolver.o \
 		CudaGaussianConvolver.o \
 		cudaSubsample.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.8 $	|		\
+REV		= $(shell echo $Revision: 1.9 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -66,9 +57,6 @@ include $(PROJECT)/lib/l.mk
 ###
 CudaFilter.o: TU/CudaFilter.h TU/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
-CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
-	TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/types.h
 CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 	TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/types.h

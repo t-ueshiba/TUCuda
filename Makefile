@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.7 2011-04-14 08:39:34 ueshiba Exp $
+#  $Id: Makefile,v 1.8 2011-04-15 05:18:52 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -42,14 +42,18 @@ HDRS		= CudaArray++.h \
 		CudaFilter.h \
 		CudaGaussianConvolver.h
 SRCS		= CudaFilter.cu \
-		CudaGaussianConvolver.cc
+		CudaGaussianConvolver.cc \
+		CudaGaussianConvolver.cu \
+		cudaSubsample.cu
 OBJS		= CudaFilter.o \
-		CudaGaussianConvolver.o
+		CudaGaussianConvolver.o \
+		CudaGaussianConvolver.o \
+		cudaSubsample.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.7 $	|		\
+REV		= $(shell echo $Revision: 1.8 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -64,4 +68,9 @@ CudaFilter.o: TU/CudaFilter.h TU/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
 CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 	TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/types.h
+CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
+	TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/types.h
+cudaSubsample.o: TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/types.h

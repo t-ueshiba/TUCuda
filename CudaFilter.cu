@@ -1,5 +1,5 @@
 /*
- * $Id: CudaFilter.cu,v 1.1 2011-04-14 08:40:28 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.2 2011-04-15 05:18:52 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 
@@ -8,16 +8,16 @@ namespace TU
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const uint	BlockDimX = 32;
-static const uint	BlockDimY = 16;
+static const uint		BlockDimX = 32;
+static const uint		BlockDimY = 16;
     
-__constant__ float	_lobeH[CudaFilter2::LOBE_SIZE_MAX];
-__constant__ float	_lobeV[CudaFilter2::LOBE_SIZE_MAX];
+static __constant__ float	_lobeH[CudaFilter2::LOBE_SIZE_MAX];
+static __constant__ float	_lobeV[CudaFilter2::LOBE_SIZE_MAX];
 
 /************************************************************************
 *  device functions							*
 ************************************************************************/
-template <uint D, class S, class T> __global__ void
+template <uint D, class S, class T> static __global__ void
 filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 {
     extern __shared__ float	in_s[];
@@ -151,6 +151,9 @@ filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
     }
 }
 
+/************************************************************************
+*  static functions							*
+************************************************************************/
 template <uint D, class S, class T> inline static void
 convolve_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
@@ -166,30 +169,30 @@ convolve_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 #ifndef NO_BORDER
   // 左端と右端
     const uint	lobeSize = (D >> 1) & ~0x1;	// 中心点を含まないローブ長
-    uint	offset = (1 + blocks.x) * threads.x - lobeSize;
-    blocks.x  = threads.x / lobeSize - 1;
+    uint	offset = (1 + blocks.x)*threads.x - lobeSize;
+    blocks.x  = threads.x/lobeSize - 1;
     threads.x = lobeSize;
     filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in, (T*)out,
 						   in.stride(),
 						   out.stride());
-    filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in + offset,
-						   (T*)out + offset,
+    filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in  + offset,
+						   (	  T*)out + offset,
 						   in.stride(),
 						   out.stride());
 
     if (D & 0x1)	// 垂直方向にフィルタリング
     {
       // 上端と下端
-	offset = (1 + blocks.y) * threads.y - lobeSize;
-	blocks.x = in.ncol()/threads.x - 2;
-	blocks.y = threads.y / lobeSize - 1;
+	offset	  = (1 + blocks.y)*threads.y - lobeSize;
+	blocks.x  = in.ncol()/threads.x - 2;
+	blocks.y  = threads.y/lobeSize  - 1;
 	threads.y = lobeSize;
 	filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in, (T*)out,
 						       in.stride(),
 						       out.stride());
 	filter_kernel<D><<<blocks, threads, shmsize>>>(
-	    (const S*)in + offset * in.stride(),
-	    (T*)out + offset * out.stride(),
+	    (const S*)in  + offset*in.stride(),
+	    (	   T*)out + offset*out.stride(),
 	    in.stride(), out.stride());
     }
 #endif

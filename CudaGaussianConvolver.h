@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaGaussianConvolver.h,v 1.1 2011-04-14 08:39:34 ueshiba Exp $
+ *  $Id: CudaGaussianConvolver.h,v 1.2 2011-04-15 05:18:52 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 
@@ -28,6 +28,10 @@ class CudaGaussianConvolver2 : public CudaFilter2
 	diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
     template <class S, class T> CudaGaussianConvolver2&
 	diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+    template <class S> CudaGaussianConvolver2&
+	laplacian(const CudaArray2<S>& in, CudaArray2<float>& out)	;
+    template <class S> CudaGaussianConvolver2&
+	det(const CudaArray2<S>& in, CudaArray2<float>& out)		;
     
   private:
     Array<float>	_lobe0;		//!< スムージングのためのローブ

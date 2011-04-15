@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.2 2011-04-14 08:39:34 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.3 2011-04-15 05:18:52 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -44,8 +44,9 @@
   - #TU::CudaFilter2
   - #TU::CudaGaussianConvolver2
 
-  <b>デバイス側のコンスタントメモリ領域へのコピー</b>
+  <b>ユティリティ</b>
   - #TU::cudaCopyToConstantMemory
+  - #TU::cudaSubsample
 
   \file		CudaArray++.h
   \brief	基本的なデータ型をグローバルな名前空間に追加
@@ -90,24 +91,24 @@ class CudaBuf
     typedef thrust::device_ptr<const value_type>	const_pointer;
     
   public:
-    explicit CudaBuf(u_int siz=0)				;
-    CudaBuf(pointer p, u_int siz)				;
-    CudaBuf(const CudaBuf& b)					;
-    CudaBuf&		operator =(const CudaBuf& b)		;
-    ~CudaBuf()							;
+    explicit CudaBuf(u_int siz=0)					;
+    CudaBuf(pointer p, u_int siz)					;
+    CudaBuf(const CudaBuf& b)						;
+    CudaBuf&		operator =(const CudaBuf& b)			;
+    ~CudaBuf()								;
 
-    pointer		ptr()					;
-    const_pointer	ptr()				const	;
-    size_t		size()				const	;
-    bool		resize(u_int siz)			;
-    void		resize(pointer p, u_int siz)		;
-    static u_int	stride(u_int siz)			;
-    std::istream&	get(std::istream& in, u_int m=0)	;
-    std::ostream&	put(std::ostream& out)		const	;
+    pointer		ptr()						;
+    const_pointer	ptr()					const	;
+    size_t		size()					const	;
+    bool		resize(u_int siz)				;
+    void		resize(pointer p, u_int siz)			;
+    static u_int	stride(u_int siz)				;
+    std::istream&	get(std::istream& in, u_int m=0)		;
+    std::ostream&	put(std::ostream& out)			const	;
     
   private:
-    static pointer	memalloc(u_int siz)			;
-    static void		memfree(pointer p, u_int siz)		;
+    static pointer	memalloc(u_int siz)				;
+    static void		memfree(pointer p, u_int siz)			;
 
   private:
     u_int	_size;		// the number of elements in the buffer
@@ -115,7 +116,7 @@ class CudaBuf
     bool	_shared;	// buffer area is shared with other object
 };
     
-//! 指定した要素数のバッファを生成する．
+//! 指定した要素数のバッファを作る．
 /*!
   \param siz	要素数
 */
@@ -125,7 +126,7 @@ CudaBuf<T>::CudaBuf(u_int siz)
 {
 }
 
-//! 外部の領域と要素数を指定してバッファを生成する．
+//! 外部の領域と要素数を指定してバッファを作る．
 /*!
   \param p	外部領域へのポインタ
   \param siz	要素数
@@ -358,18 +359,20 @@ class CudaArray : public Array<T, CudaBuf<T> >
     typedef const value_type*			const_raw_pointer;
     
   public:
-    CudaArray()							;
-    explicit CudaArray(u_int d)					;
+    CudaArray()								;
+    explicit CudaArray(u_int d)						;
+    CudaArray(pointer p, u_int d)					;
+    CudaArray(CudaArray& a, u_int i, u_int d)				;
     template <class B>
-    CudaArray(const Array<T, B>& a)				;
+    CudaArray(const Array<T, B>& a)					;
     template <class B>
-    CudaArray&	operator =(const Array<T, B>& a)		;
+    CudaArray&	operator =(const Array<T, B>& a)			;
     template <class B> const CudaArray&
-		write(Array<T, B>& a)			const	;
-    CudaArray&	operator =(const value_type& c)			;
+		write(Array<T, B>& a)				const	;
+    CudaArray&	operator =(const value_type& c)				;
 
-		operator raw_pointer()				;
-		operator const_raw_pointer()		const	;
+		operator raw_pointer()					;
+		operator const_raw_pointer()			const	;
     
     using	super::begin;
     using	super::end;
@@ -380,20 +383,43 @@ class CudaArray : public Array<T, CudaBuf<T> >
     using	super::resize;
 };
 
-//! CUDA配列を生成する．
+//! CUDA配列を作る．
 template <class T> inline
 CudaArray<T>::CudaArray()
     :super()
 {
 }
 
-//! 指定した要素数のCUDA配列を生成する．
+//! 指定した要素数のCUDA配列を作る．
 /*!
   \param d	配列の要素数
 */
 template <class T> inline
 CudaArray<T>::CudaArray(u_int d)
     :super(d)
+{
+}
+
+//! 外部の領域と要素数を指定してCUDA配列を作る．
+/*!
+  \param p	外部領域へのポインタ
+  \param d	配列の要素数
+*/
+template <class T> inline
+CudaArray<T>::CudaArray(pointer p, u_int d)
+    :super(p, d)
+{
+}
+
+//! 記憶領域を元の配列と共有した部分CUDA配列を作る．
+/*!
+  \param a	配列
+  \param i	部分配列の第0要素を指定するindex
+  \param d	部分配列の次元(要素数)
+*/
+template <class T> inline
+CudaArray<T>::CudaArray(CudaArray<T>& a, u_int i, u_int d)
+    :super(a, i, d)
 {
 }
 
@@ -448,7 +474,7 @@ CudaArray<T>::operator =(const value_type& c)
     return *this;
 }
 
-//! 配列の内部記憶領域へのポインタを返す．
+//! このCUDA配列の内部記憶領域へのポインタを返す．
 /*!
   \return	内部記憶領域へのポインタ
 */
@@ -458,7 +484,7 @@ CudaArray<T>::operator raw_pointer()
     return super::operator pointer().get();
 }
 		    
-//! 配列の内部記憶領域へのポインタを返す．
+//! このCUDA配列の内部記憶領域へのポインタを返す．
 /*!
   \return	内部記憶領域へのポインタ
 */
@@ -524,17 +550,19 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
     typedef const value_type*			const_raw_pointer;
 
   public:
-    CudaArray2()						;
-    CudaArray2(u_int r, u_int c)				;
+    CudaArray2()							;
+    CudaArray2(u_int r, u_int c)					;
+    CudaArray2(pointer p, u_int r, u_int c)				;
+    CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)	;
     template <class T2, class B2, class R2>
-    CudaArray2(const Array2<T2, B2, R2>& a)			;
+    CudaArray2(const Array2<T2, B2, R2>& a)				;
     template <class T2, class B2, class R2>
-    CudaArray2&	operator =(const Array2<T2, B2, R2>& a)		;
+    CudaArray2&	operator =(const Array2<T2, B2, R2>& a)			;
     template <class T2, class B2, class R2> const CudaArray2&
-		write(Array2<T2, B2, R2>& a)		const	;
-    CudaArray2&	operator =(const value_type& c)			;
-		operator raw_pointer()				;
-		operator const_raw_pointer()		const	;
+		write(Array2<T2, B2, R2>& a)			const	;
+    CudaArray2&	operator =(const value_type& c)				;
+		operator raw_pointer()					;
+		operator const_raw_pointer()			const	;
 
     using	super::begin;
     using	super::end;
@@ -545,14 +573,14 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
     using	super::stride;
 };
 
-//! 2次元CUDA配列を生成する．
+//! 2次元CUDA配列を作る．
 template <class T> inline
 CudaArray2<T>::CudaArray2()
     :super()
 {
 }
 
-//! 行数と列数を指定して2次元CUDA配列を生成する．
+//! 行数と列数を指定して2次元CUDA配列を作る．
 /*!
   \param r	行数
   \param c	列数
@@ -563,7 +591,33 @@ CudaArray2<T>::CudaArray2(u_int r, u_int c)
 {
 }
 
-//! 他の配列と同一要素を持つCUDA配列を作る（コピーコンストラクタの拡張）
+//! 外部の領域と行数および列数を指定して2次元CUDA配列を作る．
+/*!
+  \param p	外部領域へのポインタ
+  \param r	行数
+  \param c	列数
+*/
+template <class T> inline
+CudaArray2<T>::CudaArray2(pointer p, u_int r, u_int c)
+    :super(p, r, c)
+{
+}
+
+//! 記憶領域を元の配列と共有した2次元部分CUDA配列を作る
+/*!
+  \param a	配列
+  \param i	部分配列の左上隅要素の行を指定するindex
+  \param j	部分配列の左上隅要素の列を指定するindex
+  \param r	部分配列の行数
+  \param c	部分配列の列数
+*/
+template <class T> inline
+CudaArray2<T>::CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)
+    :super(a, i, j, r, c)
+{
+}    
+
+//! 他の2次元配列と同一要素を持つ2次元CUDA配列を作る（コピーコンストラクタの拡張）
 /*!
   コピーコンストラクタは別途自動的に生成される．
   \param a	コピー元の配列
@@ -576,7 +630,7 @@ CudaArray2<T>::CudaArray2(const Array2<T2, B2, R2>& a)
     operator =(a);
 }
 
-//! 他の配列を自分に代入する（標準代入演算子の拡張）
+//! 他の2次元配列を自分に代入する（標準代入演算子の拡張）
 /*!
   標準代入演算子は別途自動的に生成される．
   \param a	コピー元の配列
@@ -599,7 +653,7 @@ CudaArray2<T>::operator =(const Array2<T2, B2, R2>& a)
     return *this;
 }
 
-//! このCUDA配列の内容を他の配列に書き出す．
+//! この2次元CUDA配列の内容を他の2次元配列に書き出す．
 /*!
   \param a	コピー先の配列
   \return	この配列
@@ -635,7 +689,7 @@ CudaArray2<T>::operator =(const value_type& c)
     return *this;
 }
 
-//! 配列の内部記憶領域へのポインタを返す．
+//! この2次元CUDA配列の内部記憶領域へのポインタを返す．
 /*!
   
   \return	内部記憶領域へのポインタ
@@ -646,7 +700,7 @@ CudaArray2<T>::operator raw_pointer()
     return super::operator pointer().get();
 }
 		    
-//! 配列の内部記憶領域へのポインタを返す．
+//! この2次元CUDA配列の内部記憶領域へのポインタを返す．
 /*!
   \return	内部記憶領域へのポインタ
 */
@@ -668,12 +722,13 @@ CudaArray2<T>::operator const_raw_pointer() const
 template <class Iterator, class T> inline void
 cudaCopyToConstantMemory(Iterator begin, Iterator end, T* dst)
 {
-    typedef typename std::iterator_traits<Iterator>	iterator_traits;
-
     if (begin < end)
 	cudaMemcpyToSymbol((const char*)dst, &(*begin),
 			   (end - begin)*sizeof(T));
 }
 
+template <class T> void	cudaSubsample(const CudaArray2<T>& in,
+					    CudaArray2<T>& out)		;
+    
 }
 #endif	/* !__TUCudaArrayPP_h */

@@ -1,7 +1,8 @@
 /*
- * $Id: CudaFilter.cu,v 1.2 2011-04-15 05:18:52 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.3 2011-04-18 08:16:55 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
+#include "TU/CudaUtility.h"
 
 namespace TU
 {

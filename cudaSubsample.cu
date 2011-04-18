@@ -1,7 +1,7 @@
 /*
- * $Id: cudaSubsample.cu,v 1.1 2011-04-15 05:25:49 ueshiba Exp $
+ * $Id: cudaSubsample.cu,v 1.2 2011-04-18 08:16:55 ueshiba Exp $
  */
-#include "TU/CudaArray++.h"
+#include "TU/CudaUtility.h"
 
 namespace TU
 {

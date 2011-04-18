@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.3 2011-04-15 05:18:52 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.4 2011-04-18 08:16:55 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -710,25 +710,5 @@ CudaArray2<T>::operator const_raw_pointer() const
     return super::operator const_pointer().get();
 }
 
-/************************************************************************
-*  utilities								*
-************************************************************************/
-//! CUDAの定数メモリ領域にデータをコピーする．
-/*!
-  \param begin	コピー元データの先頭を指す反復子
-  \param end	コピー元データの末尾の次を指す反復子
-  \param dst	コピー先の定数メモリ領域を指すポインタ
-*/
-template <class Iterator, class T> inline void
-cudaCopyToConstantMemory(Iterator begin, Iterator end, T* dst)
-{
-    if (begin < end)
-	cudaMemcpyToSymbol((const char*)dst, &(*begin),
-			   (end - begin)*sizeof(T));
-}
-
-template <class T> void	cudaSubsample(const CudaArray2<T>& in,
-					    CudaArray2<T>& out)		;
-    
 }
 #endif	/* !__TUCudaArrayPP_h */

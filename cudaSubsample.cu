@@ -1,5 +1,5 @@
 /*
- * $Id: cudaSubsample.cu,v 1.2 2011-04-18 08:16:55 ueshiba Exp $
+ * $Id: cudaSubsample.cu,v 1.3 2011-04-19 04:00:25 ueshiba Exp $
  */
 #include "TU/CudaUtility.h"
 
@@ -8,8 +8,8 @@ namespace TU
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const uint	BlockDimX = 32;
-static const uint	BlockDimY = 16;
+static const u_int	BlockDimX = 32;
+static const u_int	BlockDimY = 16;
     
 /************************************************************************
 *  device functions							*
@@ -17,12 +17,12 @@ static const uint	BlockDimY = 16;
 template <class T> static __global__ void
 subsample_kernel(const T* in, T* out, uint stride_i, uint stride_o)
 {
-    const uint	tx = threadIdx.x,
+    const int	tx = threadIdx.x,
 		ty = threadIdx.y;
-    const uint	bw = blockDim.x;
-    const uint	x0 = blockIdx.x*bw,
+    const int	bw = blockDim.x;
+    const int	x0 = blockIdx.x*bw,
 		y  = blockIdx.y*blockDim.y + ty;
-    const uint	xy = 2*(y*stride_i + x0)   + tx;
+    const int	xy = 2*(y*stride_i + x0)   + tx;
     
   // 原画像の2x2ブロックを1行おきに共有メモリにコピー
     __shared__ T	in_s[BlockDimY][2*BlockDimX+1];

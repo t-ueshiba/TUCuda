@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.4 2011-04-18 08:16:55 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.5 2011-04-19 04:00:25 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -238,7 +238,7 @@ CudaBuf<T>::resize(pointer p, u_int siz)
 template <class T> inline u_int
 CudaBuf<T>::stride(u_int siz)
 {
-    const u_int	ALIGN = ((sizeof(T) == 8) || (sizeof(T) == 16) ? 16 : 32);
+    const u_int	ALIGN = (sizeof(T) % 8 != 0 ? 32 : 16);
 	
     return (siz > 0 ? ALIGN * ((siz - 1) / ALIGN + 1) : 0);
 }

@@ -1,5 +1,5 @@
 /*
- * $Id: CudaFilter.cu,v 1.3 2011-04-18 08:16:55 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.4 2011-04-19 04:00:25 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 #include "TU/CudaUtility.h"
@@ -9,8 +9,8 @@ namespace TU
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const uint		BlockDimX = 32;
-static const uint		BlockDimY = 16;
+static const u_int		BlockDimX = 32;
+static const u_int		BlockDimY = 16;
     
 static __constant__ float	_lobeH[CudaFilter2::LOBE_SIZE_MAX];
 static __constant__ float	_lobeV[CudaFilter2::LOBE_SIZE_MAX];

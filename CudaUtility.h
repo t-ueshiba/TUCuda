@@ -1,10 +1,11 @@
 /*
- *  $Id: CudaUtility.h,v 1.1 2011-04-18 08:16:55 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.2 2011-04-19 04:00:25 ueshiba Exp $
  */
 #ifndef __TUCudaUtility_h
 #define __TUCudaUtility_h
 
 #include "TU/CudaArray++.h"
+#include <cmath>
 
 namespace TU
 {
@@ -74,6 +75,17 @@ template <class T> struct sobelV3x3
     }
 };
     
+template <class T> struct sobelAbs3x3
+{
+    __host__ __device__ T
+    operator ()(const T* p, const T* c, const T* n)
+    {
+	using namespace	std;
+	
+	return abs(sobelH3x3<T>()(p, c, n)) + abs(sobelV3x3<T>()(p, c, n));
+    }
+};
+    
 template <class T> struct laplacian3x3
 {
     __host__ __device__ T
@@ -88,10 +100,9 @@ template <class T> struct det3x3
     __host__ __device__ T
     operator ()(const T* p, const T* c, const T* n)
     {
-	const T	dxy = diffHV3x3<float>()(p, c, n);
+	const T	dxy = diffHV3x3<T>()(p, c, n);
 	
-	return diffHH3x3<float>()(p, c, n) * diffVV3x3<float>()(p, c, n)
-	     - dxy * dxy;
+	return diffHH3x3<T>()(p, c, n) * diffVV3x3<T>()(p, c, n) - dxy * dxy;
     }
 };
     

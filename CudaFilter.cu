@@ -1,5 +1,5 @@
 /*
- * $Id: CudaFilter.cu,v 1.4 2011-04-19 04:00:25 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.5 2011-04-20 08:15:07 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 #include "TU/CudaUtility.h"
@@ -25,8 +25,8 @@ filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
     int				xy, dxy, xy_s, dxy_s, xy_o;
     const float*		lobe;
     
-  // D = 2*ローブ長 (水平方向）または D = 2*ローブ長 + 1（垂直方向）
-    if (D & 0x1)	// 垂直方向にフィルタリング
+  // D = 2*ローブ長 (横方向）または D = 2*ローブ長 + 1（縦方向）
+    if (D & 0x1)	// 縦方向にフィルタリング
     {
 	int	x = (blockIdx.x + 1)*blockDim.x + threadIdx.x,
 		y = (blockIdx.y + 1)*blockDim.y + threadIdx.y;
@@ -43,7 +43,7 @@ filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 
 	lobe = _lobeV;
     }
-    else		// 水平方向にフィルタリング
+    else		// 横方向にフィルタリング
     {
 	int	x = (blockIdx.x + 1)*blockDim.x + threadIdx.x,
 		y = blockIdx.y	    *blockDim.y + threadIdx.y;
@@ -181,7 +181,7 @@ convolve_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 						   in.stride(),
 						   out.stride());
 
-    if (D & 0x1)	// 垂直方向にフィルタリング
+    if (D & 0x1)	// 縦方向にフィルタリング
     {
       // 上端と下端
 	offset	  = (1 + blocks.y)*threads.y - lobeSize;
@@ -215,8 +215,8 @@ CudaFilter2::CudaFilter2()
 /*!
   与えるローブの長さは，畳み込みカーネルが偶関数の場合2^n + 1, 奇関数の場合2^n
   (n = 1, 2, 3, 4)でなければならない．
-  \param lobeH	水平方向ローブ
-  \param lobeV	垂直方向ローブ
+  \param lobeH	横方向ローブ
+  \param lobeV	縦方向ローブ
   \return	この2次元フィルタ
 */
 CudaFilter2&
@@ -250,7 +250,7 @@ CudaFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
     return *this;
 }
     
-//! 与えられた2次元配列とこのフィルタを水平方向に畳み込む
+//! 与えられた2次元配列とこのフィルタを横方向に畳み込む
 /*!
   \param in	入力2次元配列
   \param out	出力2次元配列
@@ -296,7 +296,7 @@ CudaFilter2::convolveH(const CudaArray2<S>& in, CudaArray2<T>& out) const
     return *this;
 }
 
-//! 与えられた2次元配列とこのフィルタを垂直方向に畳み込む
+//! 与えられた2次元配列とこのフィルタを縦方向に畳み込む
 /*!
   \param in	入力2次元配列
   \param out	出力2次元配列

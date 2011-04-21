@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaUtility.h,v 1.3 2011-04-20 08:15:07 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.4 2011-04-21 07:00:25 ueshiba Exp $
  */
 #ifndef __TUCudaUtility_h
 #define __TUCudaUtility_h
@@ -119,27 +119,47 @@ template <class S, class T> struct det3x3
 };
 
 //! 極大点検出オペレータを表す関数オブジェクト
-template <class S, class T> struct maximal3x3
+template <class T> class maximal3x3
 {
+  public:
+    typedef T	value_type;
+
+    __host__ __device__
+    maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
+    
     __host__ __device__ T
-    operator ()(const S* p, const S* c, const S* n)
+    operator ()(const T* p, const T* c, const T* n) const
     {
-	return T((c[1] > p[0]) & (c[1] > p[1]) & (c[1] > p[2]) &
-		 (c[1] > c[0])		       & (c[1] > c[2]) &
-		 (c[1] > n[0]) & (c[1] > n[1]) & (c[1] > n[2]));
+	return ((c[1] > p[0]) & (c[1] > p[1]) & (c[1] > p[2]) &
+		(c[1] > c[0])		      & (c[1] > c[2]) &
+		(c[1] > n[0]) & (c[1] > n[1]) & (c[1] > n[2]) ?
+		c[1] : _nonMaximal);
     }
+
+  private:
+    const T	_nonMaximal;
 };
 
 //! 極小点検出オペレータを表す関数オブジェクト
-template <class S, class T> struct minimal3x3
+template <class T> class minimal3x3
 {
+  public:
+    typedef T	value_type;
+
+    __host__ __device__
+    minimal3x3(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}
+    
     __host__ __device__ T
-    operator ()(const S* p, const S* c, const S* n)
+    operator ()(const T* p, const T* c, const T* n) const
     {
-	return T((c[1] < p[0]) & (c[1] < p[1]) & (c[1] < p[2]) &
-		 (c[1] < c[0])		       & (c[1] < c[2]) &
-		 (c[1] < n[0]) & (c[1] < n[1]) & (c[1] < n[2]));
+	return ((c[1] < p[0]) & (c[1] < p[1]) & (c[1] < p[2]) &
+		(c[1] < c[0])		      & (c[1] < c[2]) &
+		(c[1] < n[0]) & (c[1] < n[1]) & (c[1] < n[2]) ?
+		c[1] : _nonMinimal);
     }
+
+  private:
+    const T	_nonMinimal;
 };
 
 /************************************************************************

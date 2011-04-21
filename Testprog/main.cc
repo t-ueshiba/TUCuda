@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.4 2011-04-21 04:34:08 ueshiba Exp $
+ *  $Id: main.cc,v 1.5 2011-04-21 07:01:44 ueshiba Exp $
  */
 #include <fstream>
 #include <stdexcept>
@@ -7,9 +7,8 @@
 
 namespace TU
 {
-template <class T> void	interpolate(const Image<T>& image0,
-				    const Image<T>& image1,
-					  Image<T>& image2);
+template <class T> void
+interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2);
 }
 
 /************************************************************************

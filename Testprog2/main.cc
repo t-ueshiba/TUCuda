@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.5 2011-04-11 08:06:06 ueshiba Exp $
+ *  $Id: main.cc,v 1.6 2011-04-21 04:33:07 ueshiba Exp $
  */
 #include <stdlib.h>
 #include <signal.h>
@@ -15,9 +15,8 @@
 
 namespace TU
 {
-void	interpolate(const Image<RGBA>& image0,
-		    const Image<RGBA>& image1,
-			  Image<RGBA>& image2);
+template <class T> void
+interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2);
 
 /************************************************************************
 *  static functions							*
@@ -134,7 +133,7 @@ main(int argc, char *argv[])
 		 << cameras[i]->globalUniqueId() << dec << endl;
 
       // 画像のキャプチャと出力．
-	doJob<RGBA>(cameras);
+	doJob<u_char>(cameras);
     }
     catch (exception& err)
     {

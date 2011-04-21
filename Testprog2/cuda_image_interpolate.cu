@@ -1,21 +1,45 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.4 2011-04-14 08:39:47 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.5 2011-04-21 04:33:07 ueshiba Exp $
  */
 #include "TU/CudaArray++.h"
 #include "TU/Image++.h"
 #include <cutil.h>
-#include "cuda_image_interpolate_kernel.h"
 
 namespace TU
 {
-void
-interpolate(const Image<RGBA>& image0,
-	    const Image<RGBA>& image1,
-		  Image<RGBA>& image2)
+template <class T> __device__ T
+interpolate_pixel(T s0, T s1, float r0, float r1)
+{
+    return s0 * r0 + s1 * r1;
+}
+    
+template <> __device__ RGBA
+interpolate_pixel(RGBA s0, RGBA s1, float r0, float r1)
+{
+    RGBA	val;
+    val.r = s0.r * r0 + s1.r * r1;
+    val.g = s0.g * r0 + s1.g * r1;
+    val.b = s0.b * r0 + s1.b * r1;
+    
+    return val;
+}
+    
+template <class T> __global__ void
+interpolate_kernel(const T* src0, const T* src1, T* dst,
+		   u_int stride, float ratio)
+{
+    const u_int	xy = (blockIdx.y * blockDim.y + threadIdx.y) * stride
+		   +  blockIdx.x * blockDim.x + threadIdx.x;
+
+    dst[xy] = interpolate_pixel(src0[xy], src1[xy], ratio, 1.0f - ratio);
+}
+    
+template <class T> void
+interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
 {
     using namespace	std;
 
-    static CudaArray2<RGBA>	d_image0, d_image1, d_image2;
+    static CudaArray2<T>	d_image0, d_image1, d_image2;
     
 #ifdef PROFILE
   // timer
@@ -33,9 +57,9 @@ interpolate(const Image<RGBA>& image0,
     dim3  blocks(image0.ncol()/threads.x, image0.nrow()/threads.y, 1);
     
   // execute the kernel
-    interpolate_kernel<<<blocks, threads>>>((const RGBA*)d_image0,
-					    (const RGBA*)d_image1,
-					    (      RGBA*)d_image2,
+    interpolate_kernel<<<blocks, threads>>>((const T*)d_image0,
+					    (const T*)d_image1,
+					    (      T*)d_image2,
 					    d_image2.stride(), 0.5f);
     
   // check if kernel execution generated and error
@@ -52,4 +76,10 @@ interpolate(const Image<RGBA>& image0,
 #endif
 }
 
+template void	interpolate(const Image<u_char>& image0,
+			    const Image<u_char>& image1,
+				  Image<u_char>& image2)	;
+template void	interpolate(const Image<RGBA>&   image0,
+			    const Image<RGBA>&   image1,
+				  Image<RGBA>&   image2)	;
 }

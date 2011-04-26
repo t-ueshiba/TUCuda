@@ -1,5 +1,5 @@
 /*
- * $Id: CudaFilter.cu,v 1.5 2011-04-20 08:15:07 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.6 2011-04-26 04:53:39 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 #include "TU/CudaUtility.h"
@@ -18,23 +18,28 @@ static __constant__ float	_lobeV[CudaFilter2::LOBE_SIZE_MAX];
 /************************************************************************
 *  device functions							*
 ************************************************************************/
-template <uint D, class S, class T> static __global__ void
+template <bool HOR, u_int L, class S, class T> static __global__ void
 filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 {
-    extern __shared__ float	in_s[];
-    int				xy, dxy, xy_s, dxy_s, xy_o;
-    const float*		lobe;
+    const int		x  = blockIdx.x*blockDim.x + threadIdx.x,
+			y  = blockIdx.y*blockDim.y + threadIdx.y;
+    int			xy = y*stride_i + x;
+    int			dxy, xy_s, dxy_s;
+    const float*	lobe;
     
-  // D = 2*ローブ長 (横方向）または D = 2*ローブ長 + 1（縦方向）
-    if (D & 0x1)	// 縦方向にフィルタリング
+    if (HOR)	// 横方向にフィルタリング
     {
-	int	x = (blockIdx.x + 1)*blockDim.x + threadIdx.x,
-		y = (blockIdx.y + 1)*blockDim.y + threadIdx.y;
+	dxy = blockDim.x;
 
-	xy    = y*stride_i + x;
-	dxy   = blockDim.y*stride_i;
-	
-	xy_o  = y*stride_o + x;
+      // in_s[]を縦:blockDim.y, 横:3*blockDim.x の2次元配列として扱う．
+    	xy_s  = threadIdx.y*(3*blockDim.x) + blockDim.x + threadIdx.x;
+	dxy_s = blockDim.x;
+
+	lobe = _lobeH;
+    }
+    else	// 縦方向にフィルタリング
+    {
+	dxy = blockDim.y*stride_i;
 	
       // bank conflictを防ぐため，in_s[]を縦:blockDim.x, 横:3*blockDim.y + 1 の
       // 2次元配列として扱う．
@@ -43,111 +48,97 @@ filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 
 	lobe = _lobeV;
     }
-    else		// 横方向にフィルタリング
-    {
-	int	x = (blockIdx.x + 1)*blockDim.x + threadIdx.x,
-		y = blockIdx.y	    *blockDim.y + threadIdx.y;
-
-	xy    = y*stride_i + x;
-	dxy   = blockDim.x;
-
-	xy_o  = y*stride_o + x;
-
-      // in_s[]を縦:blockDim.y, 横:3*blockDim.x の2次元配列として扱う．
-    	xy_s  = threadIdx.y*(3*blockDim.x) + blockDim.x + threadIdx.x;
-	dxy_s = blockDim.x;
-
-	lobe = _lobeH;
-    }
     
   // 原画像の3つのタイル(スレッドブロックに対応)を共有メモリにコピー
+    __shared__ float	in_s[BlockDimX * (3*BlockDimY + 1)];
     in_s[xy_s - dxy_s] = in[xy - dxy];
     in_s[xy_s	     ] = in[xy	    ];
     in_s[xy_s + dxy_s] = in[xy + dxy];
     __syncthreads();
     
   // 積和演算
-    switch (D >> 1)
+    xy = y*stride_o + x;
+    switch (L)
     {
       case 17:	// ローブ長が17画素の偶関数畳み込みカーネル
-	out[xy_o] = lobe[ 0] * (in_s[xy_s - 16] + in_s[xy_s + 16])
-		  + lobe[ 1] * (in_s[xy_s - 15] + in_s[xy_s + 15])
-		  + lobe[ 2] * (in_s[xy_s - 14] + in_s[xy_s + 14])
-		  + lobe[ 3] * (in_s[xy_s - 13] + in_s[xy_s + 13])
-		  + lobe[ 4] * (in_s[xy_s - 12] + in_s[xy_s + 12])
-		  + lobe[ 5] * (in_s[xy_s - 11] + in_s[xy_s + 11])
-		  + lobe[ 6] * (in_s[xy_s - 10] + in_s[xy_s + 10])
-		  + lobe[ 7] * (in_s[xy_s -  9] + in_s[xy_s +  9])
-		  + lobe[ 8] * (in_s[xy_s -  8] + in_s[xy_s +  8])
-		  + lobe[ 9] * (in_s[xy_s -  7] + in_s[xy_s +  7])
-		  + lobe[10] * (in_s[xy_s -  6] + in_s[xy_s +  6])
-		  + lobe[11] * (in_s[xy_s -  5] + in_s[xy_s +  5])
-		  + lobe[12] * (in_s[xy_s -  4] + in_s[xy_s +  4])
-		  + lobe[13] * (in_s[xy_s -  3] + in_s[xy_s +  3])
-		  + lobe[14] * (in_s[xy_s -  2] + in_s[xy_s +  2])
-		  + lobe[15] * (in_s[xy_s -  1] + in_s[xy_s +  1])
-		  + lobe[16] *  in_s[xy_s     ];
+	out[xy] = lobe[ 0] * (in_s[xy_s - 16] + in_s[xy_s + 16])
+		+ lobe[ 1] * (in_s[xy_s - 15] + in_s[xy_s + 15])
+		+ lobe[ 2] * (in_s[xy_s - 14] + in_s[xy_s + 14])
+		+ lobe[ 3] * (in_s[xy_s - 13] + in_s[xy_s + 13])
+		+ lobe[ 4] * (in_s[xy_s - 12] + in_s[xy_s + 12])
+		+ lobe[ 5] * (in_s[xy_s - 11] + in_s[xy_s + 11])
+		+ lobe[ 6] * (in_s[xy_s - 10] + in_s[xy_s + 10])
+		+ lobe[ 7] * (in_s[xy_s -  9] + in_s[xy_s +  9])
+		+ lobe[ 8] * (in_s[xy_s -  8] + in_s[xy_s +  8])
+		+ lobe[ 9] * (in_s[xy_s -  7] + in_s[xy_s +  7])
+		+ lobe[10] * (in_s[xy_s -  6] + in_s[xy_s +  6])
+		+ lobe[11] * (in_s[xy_s -  5] + in_s[xy_s +  5])
+		+ lobe[12] * (in_s[xy_s -  4] + in_s[xy_s +  4])
+		+ lobe[13] * (in_s[xy_s -  3] + in_s[xy_s +  3])
+		+ lobe[14] * (in_s[xy_s -  2] + in_s[xy_s +  2])
+		+ lobe[15] * (in_s[xy_s -  1] + in_s[xy_s +  1])
+		+ lobe[16] *  in_s[xy_s     ];
 	break;
       case 16:	// ローブ長が16画素の奇関数畳み込みカーネル
-	out[xy_o] = lobe[ 0] * (in_s[xy_s - 16] - in_s[xy_s + 16])
-		  + lobe[ 1] * (in_s[xy_s - 15] - in_s[xy_s + 15])
-		  + lobe[ 2] * (in_s[xy_s - 14] - in_s[xy_s + 14])
-		  + lobe[ 3] * (in_s[xy_s - 13] - in_s[xy_s + 13])
-		  + lobe[ 4] * (in_s[xy_s - 12] - in_s[xy_s + 12])
-		  + lobe[ 5] * (in_s[xy_s - 11] - in_s[xy_s + 11])
-		  + lobe[ 6] * (in_s[xy_s - 10] - in_s[xy_s + 10])
-		  + lobe[ 7] * (in_s[xy_s -  9] - in_s[xy_s +  9])
-		  + lobe[ 8] * (in_s[xy_s -  8] - in_s[xy_s +  8])
-		  + lobe[ 9] * (in_s[xy_s -  7] - in_s[xy_s +  7])
-		  + lobe[10] * (in_s[xy_s -  6] - in_s[xy_s +  6])
-		  + lobe[11] * (in_s[xy_s -  5] - in_s[xy_s +  5])
-		  + lobe[12] * (in_s[xy_s -  4] - in_s[xy_s +  4])
-		  + lobe[13] * (in_s[xy_s -  3] - in_s[xy_s +  3])
-		  + lobe[14] * (in_s[xy_s -  2] - in_s[xy_s +  2])
-		  + lobe[15] * (in_s[xy_s -  1] - in_s[xy_s +  1]);
+	out[xy] = lobe[ 0] * (in_s[xy_s - 16] - in_s[xy_s + 16])
+		+ lobe[ 1] * (in_s[xy_s - 15] - in_s[xy_s + 15])
+		+ lobe[ 2] * (in_s[xy_s - 14] - in_s[xy_s + 14])
+		+ lobe[ 3] * (in_s[xy_s - 13] - in_s[xy_s + 13])
+		+ lobe[ 4] * (in_s[xy_s - 12] - in_s[xy_s + 12])
+		+ lobe[ 5] * (in_s[xy_s - 11] - in_s[xy_s + 11])
+		+ lobe[ 6] * (in_s[xy_s - 10] - in_s[xy_s + 10])
+		+ lobe[ 7] * (in_s[xy_s -  9] - in_s[xy_s +  9])
+		+ lobe[ 8] * (in_s[xy_s -  8] - in_s[xy_s +  8])
+		+ lobe[ 9] * (in_s[xy_s -  7] - in_s[xy_s +  7])
+		+ lobe[10] * (in_s[xy_s -  6] - in_s[xy_s +  6])
+		+ lobe[11] * (in_s[xy_s -  5] - in_s[xy_s +  5])
+		+ lobe[12] * (in_s[xy_s -  4] - in_s[xy_s +  4])
+		+ lobe[13] * (in_s[xy_s -  3] - in_s[xy_s +  3])
+		+ lobe[14] * (in_s[xy_s -  2] - in_s[xy_s +  2])
+		+ lobe[15] * (in_s[xy_s -  1] - in_s[xy_s +  1]);
 	break;
       case  9:	// ローブ長が9画素の偶関数畳み込みカーネル
-	out[xy_o] = lobe[ 0] * (in_s[xy_s -  8] + in_s[xy_s +  8])
-		  + lobe[ 1] * (in_s[xy_s -  7] + in_s[xy_s +  7])
-		  + lobe[ 2] * (in_s[xy_s -  6] + in_s[xy_s +  6])
-		  + lobe[ 3] * (in_s[xy_s -  5] + in_s[xy_s +  5])
-		  + lobe[ 4] * (in_s[xy_s -  4] + in_s[xy_s +  4])
-		  + lobe[ 5] * (in_s[xy_s -  3] + in_s[xy_s +  3])
-		  + lobe[ 6] * (in_s[xy_s -  2] + in_s[xy_s +  2])
-		  + lobe[ 7] * (in_s[xy_s -  1] + in_s[xy_s +  1])
-		  + lobe[ 8] *  in_s[xy_s     ];
+	out[xy] = lobe[0] * (in_s[xy_s - 8] + in_s[xy_s + 8])
+		+ lobe[1] * (in_s[xy_s - 7] + in_s[xy_s + 7])
+		+ lobe[2] * (in_s[xy_s - 6] + in_s[xy_s + 6])
+		+ lobe[3] * (in_s[xy_s - 5] + in_s[xy_s + 5])
+		+ lobe[4] * (in_s[xy_s - 4] + in_s[xy_s + 4])
+		+ lobe[5] * (in_s[xy_s - 3] + in_s[xy_s + 3])
+		+ lobe[6] * (in_s[xy_s - 2] + in_s[xy_s + 2])
+		+ lobe[7] * (in_s[xy_s - 1] + in_s[xy_s + 1])
+		+ lobe[8] *  in_s[xy_s    ];
 	break;
       case  8:	// ローブ長が8画素の奇関数畳み込みカーネル
-	out[xy_o] = lobe[ 0] * (in_s[xy_s -  8] - in_s[xy_s +  8])
-		  + lobe[ 1] * (in_s[xy_s -  7] - in_s[xy_s +  7])
-		  + lobe[ 2] * (in_s[xy_s -  6] - in_s[xy_s +  6])
-		  + lobe[ 3] * (in_s[xy_s -  5] - in_s[xy_s +  5])
-		  + lobe[ 4] * (in_s[xy_s -  4] - in_s[xy_s +  4])
-		  + lobe[ 5] * (in_s[xy_s -  3] - in_s[xy_s +  3])
-		  + lobe[ 6] * (in_s[xy_s -  2] - in_s[xy_s +  2])
-		  + lobe[ 7] * (in_s[xy_s -  1] - in_s[xy_s +  1]);
+	out[xy] = lobe[0] * (in_s[xy_s - 8] - in_s[xy_s + 8])
+		+ lobe[1] * (in_s[xy_s - 7] - in_s[xy_s + 7])
+		+ lobe[2] * (in_s[xy_s - 6] - in_s[xy_s + 6])
+		+ lobe[3] * (in_s[xy_s - 5] - in_s[xy_s + 5])
+		+ lobe[4] * (in_s[xy_s - 4] - in_s[xy_s + 4])
+		+ lobe[5] * (in_s[xy_s - 3] - in_s[xy_s + 3])
+		+ lobe[6] * (in_s[xy_s - 2] - in_s[xy_s + 2])
+		+ lobe[7] * (in_s[xy_s - 1] - in_s[xy_s + 1]);
 	break;
       case  5:	// ローブ長が5画素の偶関数畳み込みカーネル
-	out[xy_o] = lobe[0] * (in_s[xy_s - 4] + in_s[xy_s + 4])
-		  + lobe[1] * (in_s[xy_s - 3] + in_s[xy_s + 3])
-		  + lobe[2] * (in_s[xy_s - 2] + in_s[xy_s + 2])
-		  + lobe[3] * (in_s[xy_s - 1] + in_s[xy_s + 1])
-		  + lobe[4] *  in_s[xy_s    ];
+	out[xy] = lobe[0] * (in_s[xy_s - 4] + in_s[xy_s + 4])
+		+ lobe[1] * (in_s[xy_s - 3] + in_s[xy_s + 3])
+		+ lobe[2] * (in_s[xy_s - 2] + in_s[xy_s + 2])
+		+ lobe[3] * (in_s[xy_s - 1] + in_s[xy_s + 1])
+		+ lobe[4] *  in_s[xy_s    ];
 	break;
       case  4:	// ローブ長が4画素の奇関数畳み込みカーネル
-	out[xy_o] = lobe[0] * (in_s[xy_s - 4] - in_s[xy_s + 4])
-		  + lobe[1] * (in_s[xy_s - 3] - in_s[xy_s + 3])
-		  + lobe[2] * (in_s[xy_s - 2] - in_s[xy_s + 2])
-		  + lobe[3] * (in_s[xy_s - 1] - in_s[xy_s + 1]);
+	out[xy] = lobe[0] * (in_s[xy_s - 4] - in_s[xy_s + 4])
+		+ lobe[1] * (in_s[xy_s - 3] - in_s[xy_s + 3])
+		+ lobe[2] * (in_s[xy_s - 2] - in_s[xy_s + 2])
+		+ lobe[3] * (in_s[xy_s - 1] - in_s[xy_s + 1]);
 	break;
       case  3:	// ローブ長が2画素の偶関数畳み込みカーネル
-	out[xy_o] = lobe[0] * (in_s[xy_s - 2] + in_s[xy_s + 2])
-		  + lobe[1] * (in_s[xy_s - 1] + in_s[xy_s + 1])
-		  + lobe[2] *  in_s[xy_s    ];
+	out[xy] = lobe[0] * (in_s[xy_s - 2] + in_s[xy_s + 2])
+		+ lobe[1] * (in_s[xy_s - 1] + in_s[xy_s + 1])
+		+ lobe[2] *  in_s[xy_s    ];
 	break;
       case  2:	// ローブ長が2画素の奇関数畳み込みカーネル
-	out[xy_o] = lobe[0] * (in_s[xy_s - 2] - in_s[xy_s + 2])
-		  + lobe[1] * (in_s[xy_s - 1] - in_s[xy_s + 1]);
+	out[xy] = lobe[0] * (in_s[xy_s - 2] - in_s[xy_s + 2])
+		+ lobe[1] * (in_s[xy_s - 1] - in_s[xy_s + 1]);
 	break;
     }
 }
@@ -155,48 +146,88 @@ filter_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-template <uint D, class S, class T> inline static void
-convolve_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <u_int L, class S, class T> inline static void
+convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    dim3	threads(BlockDimX, BlockDimY);
-    dim3	blocks(in.ncol()/threads.x - 2,
-		       in.nrow()/threads.y - 2*(D & 0x1));
-    uint	shmsize = threads.x*(3*threads.y + (D & 0x1))*sizeof(float);
+    const u_int	lobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
-  // 中心部
-    filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in, (T*)out,
-						   in.stride(),
-						   out.stride());
-#ifndef NO_BORDER
-  // 左端と右端
-    const uint	lobeSize = (D >> 1) & ~0x1;	// 中心点を含まないローブ長
-    uint	offset = (1 + blocks.x)*threads.x - lobeSize;
-    blocks.x  = threads.x/lobeSize - 1;
+  // 左上
+    int		xs = lobeSize;
+    dim3	threads(lobeSize, BlockDimY);
+    dim3	blocks((BlockDimX - xs) / threads.x, out.nrow() / threads.y);
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
+						(      T*)out[0] + xs,
+						in.stride(), out.stride());
+    xs += blocks.x * threads.x;
+
+  // 中央上
+    threads.x = BlockDimX;
+    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
+						(      T*)out[0] + xs,
+						in.stride(), out.stride());
+    xs += blocks.x * threads.x;
+    
+  // 右上
     threads.x = lobeSize;
-    filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in, (T*)out,
-						   in.stride(),
-						   out.stride());
-    filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in  + offset,
-						   (	  T*)out + offset,
-						   in.stride(),
-						   out.stride());
+    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
+						(      T*)out[0] + xs,
+						in.stride(), out.stride());
 
-    if (D & 0x1)	// 縦方向にフィルタリング
-    {
-      // 上端と下端
-	offset	  = (1 + blocks.y)*threads.y - lobeSize;
-	blocks.x  = in.ncol()/threads.x - 2;
-	blocks.y  = threads.y/lobeSize  - 1;
-	threads.y = lobeSize;
-	filter_kernel<D><<<blocks, threads, shmsize>>>((const S*)in, (T*)out,
-						       in.stride(),
-						       out.stride());
-	filter_kernel<D><<<blocks, threads, shmsize>>>(
-	    (const S*)in  + offset*in.stride(),
-	    (	   T*)out + offset*out.stride(),
-	    in.stride(), out.stride());
-    }
-#endif
+  // 左下
+    xs	     = lobeSize;
+    blocks.x = (BlockDimX - xs) / threads.x;
+    const int	ys = blocks.y * threads.y;
+    threads.y = out.nrow() - ys;
+    blocks.y  = 1;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
+						(      T*)out[ys] + xs,
+						in.stride(), out.stride());
+    xs += blocks.x * threads.x;
+
+  // 中央下
+    threads.x = BlockDimX;
+    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
+						(      T*)out[ys] + xs,
+						in.stride(), out.stride());
+    xs += blocks.x * threads.x;
+    
+  // 右下
+    threads.x = lobeSize;
+    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
+						(      T*)out[ys] + xs,
+						in.stride(), out.stride());
+}
+    
+template <u_int L, class S, class T> inline static void
+convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
+{
+    const u_int	lobeSize = L & ~0x1;	// 中心点を含まないローブ長
+
+  // 最初のBlockDimY行（最初のlobeSize行は不定）
+    int		ys = lobeSize;
+    dim3	threads(BlockDimX, lobeSize);
+    dim3	blocks(out.stride() / threads.x, (BlockDimY - ys) / threads.y);
+    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+						 in.stride(), out.stride());
+    ys += blocks.y * threads.y;
+
+  // BlockDimY行以上が残るように縦方向スレッド数をBlockDimYにして処理
+    threads.y = BlockDimY;
+    blocks.y  = (out.nrow() - ys) / threads.y - 1;
+    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+						 in.stride(), out.stride());
+    ys += blocks.y * threads.y;
+
+  // 残りは縦方向スレッド数をlobeSizeにして処理（最後のlobeSize行は不定）
+    threads.y = lobeSize;
+    blocks.y  = (out.nrow() - ys - 1) / threads.y;
+    ys = out.nrow() - (1 + blocks.y) * threads.y;
+    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+						 in.stride(), out.stride());
 }
     
 /************************************************************************
@@ -244,99 +275,72 @@ CudaFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
 template <class S, class T> const CudaFilter2&
 CudaFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 {
-    convolveH(in, _buf);
-    convolveV(_buf, out);
-
-    return *this;
-}
-    
-//! 与えられた2次元配列とこのフィルタを横方向に畳み込む
-/*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このフィルタ自身
-*/
-template <class S, class T> const CudaFilter2&
-CudaFilter2::convolveH(const CudaArray2<S>& in, CudaArray2<T>& out) const
-{
     using namespace	std;
-    
-    out.resize(in.nrow(), in.ncol());
+
+  // 横方向に畳み込む．
+    _buf.resize(in.nrow(), in.ncol());
 
     switch (_lobeSizeH)
     {
       case 17:
-	convolve_dispatch<34>(in, out);
+	convolveH_dispatch<17>(in, _buf);
 	break;
       case 16:
-	convolve_dispatch<32>(in, out);
+	convolveH_dispatch<16>(in, _buf);
 	break;
       case  9:
-	convolve_dispatch<18>(in, out);
+	convolveH_dispatch< 9>(in, _buf);
 	break;
       case  8:
-	convolve_dispatch<16>(in, out);
+	convolveH_dispatch< 9>(in, _buf);
 	break;
       case  5:
-	convolve_dispatch<10>(in, out);
+	convolveH_dispatch< 5>(in, _buf);
 	break;
       case  4:
-	convolve_dispatch< 8>(in, out);
+	convolveH_dispatch< 4>(in, _buf);
 	break;
       case  3:
-	convolve_dispatch< 6>(in, out);
+	convolveH_dispatch< 3>(in, _buf);
 	break;
       case  2:
-	convolve_dispatch< 4>(in, out);
+	convolveH_dispatch< 2>(in, _buf);
 	break;
       default:
-	throw runtime_error("CudaFilter2::convolveH: unsupported horizontal lobe size!");
+	throw runtime_error("CudaFilter2::convolve: unsupported horizontal lobe size!");
     }
 
-    return *this;
-}
-
-//! 与えられた2次元配列とこのフィルタを縦方向に畳み込む
-/*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このフィルタ自身
-*/
-template <class S, class T> const CudaFilter2&
-CudaFilter2::convolveV(const CudaArray2<S>& in, CudaArray2<T>& out) const
-{
-    using namespace	std;
-    
-    out.resize(in.nrow(), in.ncol());
+  // 縦方向に畳み込む．
+    out.resize(_buf.nrow(), _buf.ncol());
     
     switch (_lobeSizeV)
     {
       case 17:
-	convolve_dispatch<35>(in, out);
+	convolveV_dispatch<17>(_buf, out);
 	break;
       case 16:
-	convolve_dispatch<33>(in, out);
+	convolveV_dispatch<16>(_buf, out);
 	break;
       case  9:
-	convolve_dispatch<19>(in, out);
+	convolveV_dispatch< 9>(_buf, out);
 	break;
       case  8:
-	convolve_dispatch<17>(in, out);
+	convolveV_dispatch< 8>(_buf, out);
 	break;
       case  5:
-	convolve_dispatch<11>(in, out);
+	convolveV_dispatch< 5>(_buf, out);
 	break;
       case  4:
-	convolve_dispatch< 9>(in, out);
+	convolveV_dispatch< 4>(_buf, out);
 	break;
       case  3:
-	convolve_dispatch< 7>(in, out);
+	convolveV_dispatch< 3>(_buf, out);
 	break;
       case  2:
-	convolve_dispatch< 5>(in, out);
+	convolveV_dispatch< 2>(_buf, out);
 	break;
       default:
-	throw runtime_error("CudaFilter2::convolveV: unsupported vertical lobe size!");
+	throw runtime_error("CudaFilter2::convolve: unsupported vertical lobe size!");
     }
 
     return *this;

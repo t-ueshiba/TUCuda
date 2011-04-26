@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.1 2011-04-21 07:01:00 ueshiba Exp $
+#  $Id: Makefile,v 1.2 2011-04-26 04:53:44 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -16,9 +16,10 @@ else
   LIBS	       += -lcutil_$(shell uname -m)
 endif
 
+CCC		= g++
 CPPFLAGS	=
-CFLAGS		= -O
-NVCCFLAGS	= -O
+CFLAGS		= -g #-O
+NVCCFLAGS	= -g #-O
 ifeq ($(CCC), icpc)
   CFLAGS	= -O3
   CPPFLAGS     += -DSSSE3
@@ -58,7 +59,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.1 $	|		\
+REV		= $(shell echo $Revision: 1.2 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

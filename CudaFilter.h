@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaFilter.h,v 1.2 2011-04-14 08:39:34 ueshiba Exp $
+ *  $Id: CudaFilter.h,v 1.3 2011-04-26 04:53:39 ueshiba Exp $
  */
 #ifndef __TUCudaFilter_h
 #define __TUCudaFilter_h
@@ -25,12 +25,6 @@ class CudaFilter2
     template <class S, class T>
     const CudaFilter2&	convolve(const CudaArray2<S>& in,
 				       CudaArray2<T>& out)	const	;
-    template <class S, class T>
-    const CudaFilter2&	convolveH(const CudaArray2<S>& in,
-					CudaArray2<T>& out)	const	;
-    template <class S, class T>
-    const CudaFilter2&	convolveV(const CudaArray2<S>& in,
-					CudaArray2<T>& out)	const	;
 
   private:
     cudaDeviceProp		_prop;		//!< デバイスの特性

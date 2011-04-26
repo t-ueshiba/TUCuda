@@ -1,5 +1,5 @@
 /*
- *  $Id: cudaOp3x3.cu,v 1.4 2011-04-21 07:00:25 ueshiba Exp $
+ *  $Id: cudaOp3x3.cu,v 1.5 2011-04-26 04:53:39 ueshiba Exp $
  */
 #include "TU/CudaUtility.h"
 
@@ -54,10 +54,10 @@ op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
     __syncthreads();
 
   // 共有メモリに保存した原画像データから現在画素に対するフィルタ出力を計算
-    int	xy_o = (blockIdx.y * blk + threadIdx.y) * stride_o
-	     +  blockIdx.x * blk + threadIdx.x;
+    xy = (blockIdx.y * blk + threadIdx.y) * stride_o
+       +  blockIdx.x * blk + threadIdx.x;
     --x_s;
-    out[xy_o] = op(in_s[y_s-1] + x_s, in_s[y_s] + x_s, in_s[y_s+1] + x_s);
+    out[xy] = op(in_s[y_s-1] + x_s, in_s[y_s] + x_s, in_s[y_s+1] + x_s);
 }
 
 /************************************************************************

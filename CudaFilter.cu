@@ -1,5 +1,5 @@
 /*
- * $Id: CudaFilter.cu,v 1.6 2011-04-26 04:53:39 ueshiba Exp $
+ * $Id: CudaFilter.cu,v 1.7 2011-04-26 06:39:19 ueshiba Exp $
  */
 #include "TU/CudaFilter.h"
 #include "TU/CudaUtility.h"
@@ -154,46 +154,37 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
   // 左上
     int		xs = lobeSize;
     dim3	threads(lobeSize, BlockDimY);
-    dim3	blocks((BlockDimX - xs) / threads.x, out.nrow() / threads.y);
+    dim3	blocks((BlockDimX - xs) / threads.x, 1);
     filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
 						(      T*)out[0] + xs,
 						in.stride(), out.stride());
     xs += blocks.x * threads.x;
 
-  // 中央上
-    threads.x = BlockDimX;
-    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
-						(      T*)out[0] + xs,
-						in.stride(), out.stride());
-    xs += blocks.x * threads.x;
-    
   // 右上
-    threads.x = lobeSize;
-    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
+    threads.x = BlockDimX;
+    blocks.x  = (out.stride() - xs) / threads.x;
     filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
 						(      T*)out[0] + xs,
 						in.stride(), out.stride());
 
+  // 中央
+    int		ys = blocks.y * threads.y;
+    blocks.x = out.stride() / threads.x;
+    blocks.y = (out.nrow() - ys) / threads.y;
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
+						(      T*)out[ys] + xs,
+						in.stride(), out.stride());
+    ys += blocks.y * threads.y;
+    
   // 左下
-    xs	     = lobeSize;
-    blocks.x = (BlockDimX - xs) / threads.x;
-    const int	ys = blocks.y * threads.y;
+    blocks.x  = (out.stride() - lobeSize) / threads.x;
     threads.y = out.nrow() - ys;
     blocks.y  = 1;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
-						(      T*)out[ys] + xs,
+    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys],
+						(      T*)out[ys],
 						in.stride(), out.stride());
-    xs += blocks.x * threads.x;
+    xs = blocks.x * threads.x;
 
-  // 中央下
-    threads.x = BlockDimX;
-    blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
-						(      T*)out[ys] + xs,
-						in.stride(), out.stride());
-    xs += blocks.x * threads.x;
-    
   // 右下
     threads.x = lobeSize;
     blocks.x  = (out.stride() - lobeSize - xs) / threads.x;

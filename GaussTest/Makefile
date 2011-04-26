@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.2 2011-04-26 04:53:44 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2011-04-26 06:39:30 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -35,9 +35,10 @@ LINKER		= $(NVCC)
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
 EXTHDRS		= ../FilterTest/filterImageGold.h \
+		../TU/CudaFilter.h \
 		../TU/CudaGaussianConvolver.h \
-		../TU/TU/CudaFilter.h \
-		../TU/TU/TU/CudaArray++.h \
+		../TU/CudaUtility.h \
+		../TU/TU/CudaArray++.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -53,13 +54,15 @@ EXTHDRS		= ../FilterTest/filterImageGold.h \
 		/usr/local/include/TU/types.h \
 		/usr/local/include/TU/utility.h
 HDRS		=
-SRCS		= main.cc
-OBJS		= main.o
+SRCS		= CudaFilter.cu \
+		main.cc
+OBJS		= CudaFilter.o \
+		main.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -71,6 +74,9 @@ REV		= $(shell echo $Revision: 1.2 $	|		\
 include $(PROJECT)/lib/p.mk
 
 ###
+CudaFilter.o: ../TU/CudaFilter.h ../TU/TU/CudaArray++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	../TU/CudaUtility.h
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
@@ -81,4 +87,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/Thread++.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	../FilterTest/filterImageGold.h ../TU/CudaGaussianConvolver.h \
-	../TU/TU/CudaFilter.h ../TU/TU/TU/CudaArray++.h
+	../TU/CudaFilter.h ../TU/TU/CudaArray++.h

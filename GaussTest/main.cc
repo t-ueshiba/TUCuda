@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.2 2011-04-26 04:53:44 ueshiba Exp $
+ *  $Id: main.cc,v 1.3 2011-04-28 07:59:16 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -82,10 +82,9 @@ main(int argc, char *argv[])
     
     try
     {
-	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
 	Image<in_t>	in;
 	in.restore(cin);				// 原画像を読み込む
-	in.save(cout);				// 原画像をセーブ
+	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
 	CudaGaussianConvolver2	cudaFilter(sigma);
@@ -116,6 +115,7 @@ main(int argc, char *argv[])
 	Profiler	profiler(1);
 	Image<out_t>	outGold;
 #if 0
+	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);

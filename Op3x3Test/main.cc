@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.1 2011-04-21 07:01:13 ueshiba Exp $
+ *  $Id: main.cc,v 1.2 2011-04-28 07:59:22 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -13,8 +13,8 @@
 //#define OP	det3x3
 //#define OP	laplacian3x3
 //#define OP	sobelAbs3x3
-//#define OP	maximal3x3
-#define OP	minimal3x3
+#define OP	maximal3x3
+//#define OP	minimal3x3
 
 /************************************************************************
 *  Global fucntions							*

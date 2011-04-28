@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.3 2011-04-26 06:39:30 ueshiba Exp $
+#  $Id: Makefile,v 1.4 2011-04-28 07:59:16 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -16,10 +16,10 @@ else
   LIBS	       += -lcutil_$(shell uname -m)
 endif
 
-CCC		= g++
+#CCC		= g++
 CPPFLAGS	=
-CFLAGS		= -g #-O
-NVCCFLAGS	= -g #-O
+CFLAGS		= -O
+NVCCFLAGS	= -O
 ifeq ($(CCC), icpc)
   CFLAGS	= -O3
   CPPFLAGS     += -DSSSE3
@@ -35,10 +35,9 @@ LINKER		= $(NVCC)
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
 EXTHDRS		= ../FilterTest/filterImageGold.h \
-		../TU/CudaFilter.h \
 		../TU/CudaGaussianConvolver.h \
-		../TU/CudaUtility.h \
-		../TU/TU/CudaArray++.h \
+		../TU/TU/CudaFilter.h \
+		../TU/TU/TU/CudaArray++.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -54,15 +53,13 @@ EXTHDRS		= ../FilterTest/filterImageGold.h \
 		/usr/local/include/TU/types.h \
 		/usr/local/include/TU/utility.h
 HDRS		=
-SRCS		= CudaFilter.cu \
-		main.cc
-OBJS		= CudaFilter.o \
-		main.o
+SRCS		= main.cc
+OBJS		= main.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.3 $	|		\
+REV		= $(shell echo $Revision: 1.4 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -74,9 +71,6 @@ REV		= $(shell echo $Revision: 1.3 $	|		\
 include $(PROJECT)/lib/p.mk
 
 ###
-CudaFilter.o: ../TU/CudaFilter.h ../TU/TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	../TU/CudaUtility.h
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
@@ -87,4 +81,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/Thread++.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	../FilterTest/filterImageGold.h ../TU/CudaGaussianConvolver.h \
-	../TU/CudaFilter.h ../TU/TU/CudaArray++.h
+	../TU/TU/CudaFilter.h ../TU/TU/TU/CudaArray++.h

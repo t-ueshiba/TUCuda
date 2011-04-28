@@ -1,5 +1,5 @@
 /*
- *  $Id: cudaOp3x3.cu,v 1.5 2011-04-26 04:53:39 ueshiba Exp $
+ *  $Id: cudaOp3x3.cu,v 1.6 2011-04-28 07:59:04 ueshiba Exp $
  */
 #include "TU/CudaUtility.h"
 
@@ -17,27 +17,25 @@ template <class S, class T, class OP> static __global__ void
 op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
 {
   // このカーネルはブロック境界処理のために blockDim.x == blockDim.y を仮定
-    int	blk = blockDim.x;		// u_intにするとダメ．CUDAのバグ？
-    int	lft = (blockIdx.y * blk + threadIdx.y) * stride_i 
-	    +  blockIdx.x * blk,			// 現在位置から見て左端
-	xy  = lft + threadIdx.x;			// 現在位置
-    int	x_s = threadIdx.x + 1,
-	y_s = threadIdx.y + 1;
+    const int	blk = blockDim.x;	// u_intにするとダメ．CUDAのバグ？
+    int		xy  = (blockIdx.y * blk + threadIdx.y) * stride_i 
+		    +  blockIdx.x * blk + threadIdx.x;	// 現在位置
+    int		x_s = threadIdx.x + 1;
+    const int	y_s = threadIdx.y + 1;
 
   // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
     __shared__ S	in_s[BlockDim+2][BlockDim+2];
-
     in_s[y_s][x_s] = in[xy];				// 内部
 
     if (threadIdx.y == 0)	// ブロックの上端?
     {
 
-	int	top = xy - stride_i;			// 現在位置の直上
-	int	bot = xy + blk * stride_i;		// 現在位置から見て下端
+	const int	top = xy - stride_i;		// 現在位置の直上
+	const int	bot = xy + blk * stride_i;	// 現在位置の下端
 	in_s[	   0][x_s] = in[top];			// 上枠
 	in_s[blk + 1][x_s] = in[bot];			// 下枠
 
-	lft += threadIdx.x * stride_i;
+	const int	lft = xy + threadIdx.x * (stride_i - 1);
 	in_s[x_s][	0] = in[lft - 1];		// 左枠
 	in_s[x_s][blk + 1] = in[lft + blk];		// 右枠
 

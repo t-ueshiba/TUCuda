@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.11 2011-04-26 04:53:39 ueshiba Exp $
+#  $Id: Makefile,v 1.12 2011-04-28 07:59:04 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -35,20 +35,23 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 HDRS		= CudaArray++.h \
 		CudaFilter.h \
 		CudaGaussianConvolver.h \
+		CudaTexture.h \
 		CudaUtility.h
 SRCS		= CudaFilter.cu \
 		CudaGaussianConvolver.cc \
 		cudaOp3x3.cu \
-		cudaSubsample.cu
+		cudaSubsample.cu \
+		cudaSuppressNonExtrema3x3.cu
 OBJS		= CudaFilter.o \
 		CudaGaussianConvolver.o \
 		cudaOp3x3.o \
-		cudaSubsample.o
+		cudaSubsample.o \
+		cudaSuppressNonExtrema3x3.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.11 $	|		\
+REV		= $(shell echo $Revision: 1.12 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -68,4 +71,6 @@ CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 cudaOp3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
 cudaSubsample.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
+cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h

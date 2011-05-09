@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.5 2011-04-19 04:00:25 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.6 2011-05-09 00:35:49 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -39,15 +39,20 @@
   <b>デバイス側のグローバルメモリ領域にとられる1次元および2次元配列</b>
   - #TU::CudaArray
   - #TU::CudaArray2
+
+  <b>デバイス側のテクスチャメモリ</b>
+  - #TU::CudaTexture
   
-  <b>フィルタリング
+  <b>フィルタリング</b>
   - #TU::CudaFilter2
   - #TU::CudaGaussianConvolver2
 
   <b>ユティリティ</b>
-  - #TU::cudaCopyToConstantMemory
-  - #TU::cudaSubsample
-
+  - #void TU::cudaCopyToConstantMemory(Iterator, Iterator, T*)
+  - #void TU::cudaSubsample(const CudaArray2<T>&, CudaArray2<T>&)
+  - #void TU::cudaOp3x3(const CudaArray2<S>&, CudaArray2<T>&, OP op)
+  - #void TU::cudaSuppressNonExtrema3x3(const CudaArray2<T>&, CudaArray2<T>&, OP op, T)
+  
   \file		CudaArray++.h
   \brief	基本的なデータ型をグローバルな名前空間に追加
 */

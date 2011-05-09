@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.2 2011-04-26 04:53:44 ueshiba Exp $
+ *  $Id: main.cc,v 1.3 2011-05-09 00:35:58 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -96,7 +96,7 @@ main(int argc, char *argv[])
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
 	cudaFilter.convolve(in_d, out_d);		// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if 0
+#if 1
 	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	for (u_int n = 0; n < NITER; ++n)

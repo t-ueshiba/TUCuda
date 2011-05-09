@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaUtility.h,v 1.5 2011-04-28 07:59:04 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.6 2011-05-09 00:35:49 ueshiba Exp $
  */
 #ifndef __TUCudaUtility_h
 #define __TUCudaUtility_h
@@ -185,8 +185,8 @@ cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)		;
 template <class S, class T, class OP> void
 cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)		;
     
-template <class S, class T, class OP> void
-cudaSuppressNonExtrema3x3(const CudaArray2<S>& in, CudaArray2<T>& out,
+template <class T, class OP> void
+cudaSuppressNonExtrema3x3(const CudaArray2<T>& in, CudaArray2<T>& out,
 			  OP op, T nulval=0)				;
 }
 

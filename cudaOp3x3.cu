@@ -1,5 +1,5 @@
 /*
- *  $Id: cudaOp3x3.cu,v 1.6 2011-04-28 07:59:04 ueshiba Exp $
+ *  $Id: cudaOp3x3.cu,v 1.7 2011-05-09 00:35:49 ueshiba Exp $
  */
 #include "TU/CudaUtility.h"
 
@@ -20,24 +20,23 @@ op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
     const int	blk = blockDim.x;	// u_intにするとダメ．CUDAのバグ？
     int		xy  = (blockIdx.y * blk + threadIdx.y) * stride_i 
 		    +  blockIdx.x * blk + threadIdx.x;	// 現在位置
-    int		x_s = threadIdx.x + 1;
-    const int	y_s = threadIdx.y + 1;
+    int		x   = 1 + threadIdx.x;
+    const int	y   = 1 + threadIdx.y;
 
   // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
     __shared__ S	in_s[BlockDim+2][BlockDim+2];
-    in_s[y_s][x_s] = in[xy];				// 内部
+    in_s[y][x] = in[xy];				// 内部
 
     if (threadIdx.y == 0)	// ブロックの上端?
     {
-
 	const int	top = xy - stride_i;		// 現在位置の直上
 	const int	bot = xy + blk * stride_i;	// 現在位置の下端
-	in_s[	   0][x_s] = in[top];			// 上枠
-	in_s[blk + 1][x_s] = in[bot];			// 下枠
+	in_s[	   0][x] = in[top];			// 上枠
+	in_s[blk + 1][x] = in[bot];			// 下枠
 
 	const int	lft = xy + threadIdx.x * (stride_i - 1);
-	in_s[x_s][	0] = in[lft - 1];		// 左枠
-	in_s[x_s][blk + 1] = in[lft + blk];		// 右枠
+	in_s[x][      0] = in[lft -   1];		// 左枠
+	in_s[x][blk + 1] = in[lft + blk];		// 右枠
 
 	if (threadIdx.x == 0)	// ブロックの左上隅?
 	{
@@ -46,7 +45,7 @@ op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
 	    if ((blockIdx.x != gridDim.x - 1) || (blockIdx.y != gridDim.y - 1))
 		in_s[blk + 1][blk + 1] = in[bot + blk];	// 右下隅
 	    in_s[0][blk + 1] = in[top + blk];		// 右上隅
-	    in_s[blk + 1][0] = in[bot - 1];		// 左下隅
+	    in_s[blk + 1][0] = in[bot -   1];		// 左下隅
 	}
     }
     __syncthreads();
@@ -54,8 +53,8 @@ op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
   // 共有メモリに保存した原画像データから現在画素に対するフィルタ出力を計算
     xy = (blockIdx.y * blk + threadIdx.y) * stride_o
        +  blockIdx.x * blk + threadIdx.x;
-    --x_s;
-    out[xy] = op(in_s[y_s-1] + x_s, in_s[y_s] + x_s, in_s[y_s+1] + x_s);
+    --x;
+    out[xy] = op(in_s[y - 1] + x, in_s[y] + x, in_s[y + 1] + x);
 }
 
 /************************************************************************

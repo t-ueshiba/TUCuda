@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.1 2011-04-28 08:00:42 ueshiba Exp $
+ *  $Id: main.cc,v 1.2 2011-05-09 00:35:55 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
 	cudaSuppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());	// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-
+#if 1
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
@@ -64,7 +64,7 @@ main(int argc, char *argv[])
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
 	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
-
+#endif
 	Image<out_t>	out;
 	out_d.write(out);
 	out.save(cout);					// 結果画像をセーブ
@@ -85,8 +85,11 @@ main(int argc, char *argv[])
       // 結果を比較する．
 	const int	V = 160;
 	for (u_int u = 0; u < out.width(); ++u)
-	    cerr << ' ' << (out[V][u] - outGold[V][u]);
+	    if (out[V][u] != outGold[V][u])
+		cerr << ' ' << u << ":(" << out[V][u] << ',' << outGold[V][u]
+		     << ')';
 	cerr <<  endl;
+	cerr << Image<in_t>(in, 598, V-1, 3, 3);
 #endif
     }
     catch (exception& err)

@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.7 2011-06-09 01:27:43 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.8 2011-06-09 03:13:42 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -113,7 +113,7 @@ class CudaBuf
     
   private:
     static pointer	memalloc(u_int siz)				;
-    static void		memfree(pointer p, u_int siz)			;
+    static void		memfree(pointer p)				;
 
   private:
     u_int	_size;		// the number of elements in the buffer
@@ -167,7 +167,7 @@ template <class T> inline
 CudaBuf<T>::~CudaBuf()
 {
     if (!_shared)
-	memfree(_p, _size);
+	memfree(_p);
 }
     
 //! バッファが使用する内部記憶領域へのポインタを返す．
@@ -210,7 +210,7 @@ CudaBuf<T>::resize(u_int siz)
     if (_shared)
 	throw std::logic_error("CudaBuf<T>::resize: cannot change size of shared buffer!");
 
-    memfree(_p, _size);
+    memfree(_p);
     const u_int	old_size = _size;
     _size = siz;
     _p = memalloc(_size);
@@ -227,7 +227,7 @@ template <class T> inline void
 CudaBuf<T>::resize(pointer p, u_int siz)
 {
     if (!_shared)
-	memfree(_p, _size);
+	memfree(_p);
     _size = siz;
     _p = p;
     _shared = true;
@@ -315,7 +315,7 @@ CudaBuf<T>::memalloc(u_int siz)
 }
     
 template <class T> inline void
-CudaBuf<T>::memfree(pointer p, u_int siz)
+CudaBuf<T>::memfree(pointer p)
 {
     if (p.get() != 0)
 	thrust::device_free(p);

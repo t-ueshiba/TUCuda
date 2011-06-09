@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.6 2011-05-09 00:35:49 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.7 2011-06-09 01:27:43 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
@@ -59,8 +59,8 @@
 #ifndef __TUCudaArrayPP_h
 #define __TUCudaArrayPP_h
 
-#include <thrust/device_new.h>
-#include <thrust/device_delete.h>
+#include <thrust/device_malloc.h>
+#include <thrust/device_free.h>
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 #include "TU/Array++.h"
@@ -306,7 +306,7 @@ CudaBuf<T>::memalloc(u_int siz)
 {
     if (siz > 0)
     {
-	pointer	p = thrust::device_new<T>(siz);
+	pointer	p = thrust::device_malloc<T>(siz);
 	cudaMemset(p.get(), 0, sizeof(T) * siz);
 	return p;
     }
@@ -318,7 +318,7 @@ template <class T> inline void
 CudaBuf<T>::memfree(pointer p, u_int siz)
 {
     if (p.get() != 0)
-	thrust::device_delete(p, siz);
+	thrust::device_free(p);
 }
     
 /************************************************************************

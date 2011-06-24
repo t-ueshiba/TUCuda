@@ -1,11 +1,11 @@
 #
-#  $Id: Makefile,v 1.12 2011-04-28 07:59:04 ueshiba Exp $
+#  $Id: Makefile,v 1.13 2011-06-24 07:11:52 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
-INCDIR		= $(CUDAHOME)/include/TU
+INCDIR		= $(PREFIX)/include/TU
 INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
@@ -51,7 +51,7 @@ OBJS		= CudaFilter.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.12 $	|		\
+REV		= $(shell echo $Revision: 1.13 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -73,4 +73,4 @@ cudaOp3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
 cudaSubsample.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
 cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
+/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h

@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.2 2011-04-26 04:53:44 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2011-06-24 07:11:59 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -34,9 +34,8 @@ LINKER		= $(NVCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
-EXTHDRS		= /usr/local/cuda/include/TU/CudaArray++.h \
-		/usr/local/cuda/include/TU/CudaFilter.h \
-		/usr/local/include/TU/Array++.h \
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/CudaArray++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/IIRFilter.h \
@@ -49,7 +48,8 @@ EXTHDRS		= /usr/local/cuda/include/TU/CudaArray++.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/mmInstructions.h \
 		/usr/local/include/TU/types.h \
-		/usr/local/include/TU/utility.h
+		/usr/local/include/TU/utility.h \
+		TU/CudaFilter.h
 HDRS		= filterImageGold.h
 SRCS		= main.cc
 OBJS		= main.o
@@ -57,7 +57,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -78,5 +78,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/mmInstructions.h \
 	/usr/local/include/TU/Thread++.h \
 	/usr/local/include/TU/GaussianConvolver.h filterImageGold.h \
-	/usr/local/cuda/include/TU/CudaFilter.h \
-	/usr/local/cuda/include/TU/CudaArray++.h
+	TU/CudaFilter.h /usr/local/include/TU/CudaArray++.h

@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.3 2011-06-24 07:11:59 ueshiba Exp $
+#  $Id: Makefile,v 1.4 2011-07-21 23:41:13 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -42,7 +42,6 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/IIRFilterMT.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
-		/usr/local/include/TU/Normalize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Thread++.h \
 		/usr/local/include/TU/Vector++.h \
@@ -57,7 +56,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.3 $	|		\
+REV		= $(shell echo $Revision: 1.4 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -72,9 +71,8 @@ include $(PROJECT)/lib/p.mk
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Normalize.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/Profiler.h /usr/local/include/TU/IIRFilterMT.h \
-	/usr/local/include/TU/IIRFilter.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
+	/usr/local/include/TU/IIRFilterMT.h /usr/local/include/TU/IIRFilter.h \
 	/usr/local/include/TU/mmInstructions.h \
 	/usr/local/include/TU/Thread++.h \
 	/usr/local/include/TU/GaussianConvolver.h filterImageGold.h \

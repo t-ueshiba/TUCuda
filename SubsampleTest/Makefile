@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.2 2011-06-24 07:12:12 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2011-07-21 23:41:13 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -39,7 +39,6 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
-		/usr/local/include/TU/Normalize.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/types.h \
 		/usr/local/include/TU/utility.h
@@ -50,7 +49,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.2 $	|		\
+REV		= $(shell echo $Revision: 1.3 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -65,6 +64,5 @@ include $(PROJECT)/lib/p.mk
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Normalize.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/CudaUtility.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/CudaUtility.h \
 	/usr/local/include/TU/CudaArray++.h

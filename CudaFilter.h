@@ -1,6 +1,10 @@
 /*
- *  $Id: CudaFilter.h,v 1.3 2011-04-26 04:53:39 ueshiba Exp $
+ *  $Id: CudaFilter.h,v 1.4 2011-08-22 00:07:13 ueshiba Exp $
  */
+/*!
+  \file		CudaFilter.h
+  \brief	フィルタの定義と実装
+*/ 
 #ifndef __TUCudaFilter_h
 #define __TUCudaFilter_h
 

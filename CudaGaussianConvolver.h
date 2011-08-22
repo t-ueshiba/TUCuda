@@ -1,6 +1,10 @@
 /*
- *  $Id: CudaGaussianConvolver.h,v 1.4 2011-04-20 08:15:07 ueshiba Exp $
+ *  $Id: CudaGaussianConvolver.h,v 1.5 2011-08-22 00:07:13 ueshiba Exp $
  */
+/*!
+  \file		CudaGaussianConvolver.h
+  \brief	Gauss核による畳み込みに関連するクラスの定義と実装
+*/ 
 #include "TU/CudaFilter.h"
 
 namespace TU

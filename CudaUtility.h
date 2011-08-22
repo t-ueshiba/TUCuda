@@ -1,6 +1,10 @@
 /*
- *  $Id: CudaUtility.h,v 1.6 2011-05-09 00:35:49 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.7 2011-08-22 00:07:13 ueshiba Exp $
  */
+/*!
+  \file		CudaUtility.h
+  \brief	各種オペレータの定義と実装
+*/ 
 #ifndef __TUCudaUtility_h
 #define __TUCudaUtility_h
 

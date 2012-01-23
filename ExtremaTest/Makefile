@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.3 2012-01-23 06:09:36 ueshiba Exp $
+#  $Id: Makefile,v 1.4 2012-01-23 06:13:43 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -46,15 +46,13 @@ EXTHDRS		= ../TU/CudaUtility.h \
 		/usr/local/include/TU/types.h \
 		/usr/local/include/TU/utility.h
 HDRS		=
-SRCS		= cudaSuppressNonExtrema3x3.cu \
-		main.cc
-OBJS		= cudaSuppressNonExtrema3x3.o \
-		main.o
+SRCS		= main.cc
+OBJS		= main.o
 
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.3 $	|		\
+REV		= $(shell echo $Revision: 1.4 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -66,8 +64,6 @@ REV		= $(shell echo $Revision: 1.3 $	|		\
 include $(PROJECT)/lib/p.mk
 
 ###
-cudaSuppressNonExtrema3x3.o: ../TU/CudaUtility.h ../TU/TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \

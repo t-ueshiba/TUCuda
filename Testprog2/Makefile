@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.7 2011-04-21 04:33:07 ueshiba Exp $
+#  $Id: Makefile,v 1.8 2012-01-23 00:22:37 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -42,7 +42,6 @@ EXTHDRS		= ../TU/CudaArray++.h \
 		/usr/local/include/TU/Ieee1394CameraArray.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
-		/usr/local/include/TU/Normalize.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/io.h \
 		/usr/local/include/TU/types.h \
@@ -56,7 +55,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.7 $	|		\
+REV		= $(shell echo $Revision: 1.8 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -72,10 +71,10 @@ cuda_image_interpolate.o: ../TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Normalize.h /usr/local/include/TU/Minimize.h
+	/usr/local/include/TU/Minimize.h
 main.o: /usr/local/include/TU/Ieee1394CameraArray.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Ieee1394++.h /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/utility.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Normalize.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/io.h
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/io.h

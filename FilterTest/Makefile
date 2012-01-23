@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.4 2011-07-21 23:41:13 ueshiba Exp $
+#  $Id: Makefile,v 1.5 2012-01-23 00:22:19 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -8,7 +8,7 @@ DEST		= $(PREFIX)/bin
 INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
 
 PROGRAM		= filterImage
-LIBS		= -lTUThread++ -lTUTools++ -lTUCuda++
+LIBS		= -lTUThread++ -lTUTools++ -lTUCuda++ -ltbb
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64
   CCC		= g++
@@ -17,7 +17,7 @@ else
 endif
 
 #CCC		= g++
-CPPFLAGS	=
+CPPFLAGS	= #-DUSE_TBB
 CFLAGS		= -O
 NVCCFLAGS	= -O
 ifeq ($(CCC), icpc)
@@ -56,7 +56,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.4 $	|		\
+REV		= $(shell echo $Revision: 1.5 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

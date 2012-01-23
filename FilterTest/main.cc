@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.3 2011-05-09 00:35:58 ueshiba Exp $
+ *  $Id: main.cc,v 1.4 2012-01-23 00:22:19 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -122,8 +122,7 @@ main(int argc, char *argv[])
 	    profiler.stop().nextFrame();
 	}
 #else
-	GaussianConvolver2<>	convolver(sigma);
-      //GaussianConvolver2<BilateralIIRFilterThreadArray<4u, Image<float>, Array2<Array<float> > >, BilateralIIRFilterThreadArray<4u, Array2<Array<float> >, Image<float> > >	convolver(sigma, 8);
+	GaussianConvolver2	convolver(sigma);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);

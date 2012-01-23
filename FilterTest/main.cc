@@ -1,10 +1,9 @@
 /*
- *  $Id: main.cc,v 1.4 2012-01-23 00:22:19 ueshiba Exp $
+ *  $Id: main.cc,v 1.5 2012-01-23 05:34:45 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/IIRFilterMT.h"
 #include "TU/GaussianConvolver.h"
 #include "filterImageGold.h"
 #include "TU/CudaFilter.h"

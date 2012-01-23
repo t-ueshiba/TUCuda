@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.5 2012-01-23 00:22:19 ueshiba Exp $
+#  $Id: Makefile,v 1.6 2012-01-23 05:34:45 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -17,7 +17,7 @@ else
 endif
 
 #CCC		= g++
-CPPFLAGS	= #-DUSE_TBB
+CPPFLAGS	= -DUSE_TBB
 CFLAGS		= -O
 NVCCFLAGS	= -O
 ifeq ($(CCC), icpc)
@@ -39,11 +39,9 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/IIRFilter.h \
-		/usr/local/include/TU/IIRFilterMT.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
-		/usr/local/include/TU/Thread++.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/mmInstructions.h \
 		/usr/local/include/TU/types.h \
@@ -56,7 +54,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.5 $	|		\
+REV		= $(shell echo $Revision: 1.6 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\
@@ -72,8 +70,7 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
-	/usr/local/include/TU/IIRFilterMT.h /usr/local/include/TU/IIRFilter.h \
-	/usr/local/include/TU/mmInstructions.h \
-	/usr/local/include/TU/Thread++.h \
-	/usr/local/include/TU/GaussianConvolver.h filterImageGold.h \
+	/usr/local/include/TU/GaussianConvolver.h \
+	/usr/local/include/TU/IIRFilter.h \
+	/usr/local/include/TU/mmInstructions.h filterImageGold.h \
 	TU/CudaFilter.h /usr/local/include/TU/CudaArray++.h

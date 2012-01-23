@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.3 2011-07-21 23:41:13 ueshiba Exp $
+#  $Id: Makefile,v 1.4 2012-01-23 06:09:37 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -11,7 +11,7 @@ PROGRAM		= filterImage
 LIBS		= -lTUTools++ -lTUCuda++
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64
-  CCC		= g++
+#  CCC		= g++
 else
   LIBS	       += -lcutil_$(shell uname -m)
 endif
@@ -49,7 +49,7 @@ OBJS		= main.o
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.3 $	|		\
+REV		= $(shell echo $Revision: 1.4 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

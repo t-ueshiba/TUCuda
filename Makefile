@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.14 2011-07-21 23:41:05 ueshiba Exp $
+#  $Id: Makefile,v 1.15 2012-01-23 06:09:36 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -10,9 +10,9 @@ INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
 
-ifeq ($(OSTYPE), darwin)
-    CCC		= g++
-endif
+#ifeq ($(OSTYPE), darwin)
+#    CCC		= g++
+#endif
 
 CPPFLAGS	= #-D_DEBUG #-DNO_BORDER
 CFLAGS		= -O
@@ -51,7 +51,7 @@ OBJS		= CudaFilter.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.14 $	|		\
+REV		= $(shell echo $Revision: 1.15 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

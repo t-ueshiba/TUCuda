@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaGaussianConvolver.cc,v 1.1 2011-04-14 08:39:34 ueshiba Exp $
+ *  $Id: CudaGaussianConvolver.cc,v 1.2 2012-08-29 21:17:00 ueshiba Exp $
  */
 #include "TU/CudaGaussianConvolver.h"
 #include <cmath>
@@ -15,19 +15,19 @@ lobeSize(const float lobe[], bool even)
     using namespace	std;
     
     const u_int	sizMax  = CudaFilter2::LOBE_SIZE_MAX;
-    const float	epsilon = 0.01;			// ÂÇ¤ÁÀÚ¤ê¤Î¤·¤­¤¤ÃÍ¤ÎÈæÎ¨
+    const float	epsilon = 0.01;			// æ‰“ã¡åˆ‡ã‚Šã®ã—ãã„å€¤ã®æ¯”ç‡
 
-  // ÂÇ¤ÁÀÚ¤ê¤Î¤·¤­¤¤ÃÍ¤òµá¤á¤ë¡¥
+  // æ‰“ã¡åˆ‡ã‚Šã®ã—ãã„å€¤ã‚’æ±‚ã‚ã‚‹ï¼
     float	th = 0;
     for (u_int i = sizMax; i-- > 0; )
 	if (abs(lobe[i]) >= th)
 	    th = abs(lobe[i]);
     th *= epsilon;
 
-  // ¤·¤­¤¤ÃÍ¤ò±Û¤¨¤ëºÇÂç¤Î¥í¡¼¥ÖÄ¹¤òµá¤á¤ë¡¥
+  // ã—ãã„å€¤ã‚’è¶Šãˆã‚‹æœ€å¤§ã®ãƒ­ãƒ¼ãƒ–é•·ã‚’æ±‚ã‚ã‚‹ï¼
     u_int	siz;
-    for (siz = sizMax; siz-- > 0; )		// ¥í¡¼¥ÖÄ¹¤ò½Ì¤á¤ë
-	if (abs(lobe[siz]) > th)		// ¤·¤­¤¤ÃÍ¤ò±Û¤¨¤ë¤Ş¤Ç
+    for (siz = sizMax; siz-- > 0; )		// ãƒ­ãƒ¼ãƒ–é•·ã‚’ç¸®ã‚ã‚‹
+	if (abs(lobe[siz]) > th)		// ã—ãã„å€¤ã‚’è¶Šãˆã‚‹ã¾ã§
 	{
 	    ++siz;
 	    break;
@@ -60,17 +60,17 @@ lobeSize(const float lobe[], bool even)
 /************************************************************************
 *  class CudaGaussianConvolver2						*
 ************************************************************************/
-//! Gauss³Ë¤ò½é´ü²½¤¹¤ë
+//! Gaussæ ¸ã‚’åˆæœŸåŒ–ã™ã‚‹
 /*!
-  \param sigma	Gauss³Ë¤Î¥¹¥±¡¼¥ë
-  \return	¤³¤ÎGauss³Ë
+  \param sigma	Gaussæ ¸ã®ã‚¹ã‚±ãƒ¼ãƒ«
+  \return	ã“ã®Gaussæ ¸
 */
 CudaGaussianConvolver2&
 CudaGaussianConvolver2::initialize(float sigma)
 {
     using namespace	std;
 
-  // 0/1/2³¬ÈùÊ¬¤Î¤¿¤á¤Î¥í¡¼¥Ö¤ò·×»»¤¹¤ë¡¥
+  // 0/1/2éšå¾®åˆ†ã®ãŸã‚ã®ãƒ­ãƒ¼ãƒ–ã‚’è¨ˆç®—ã™ã‚‹ï¼
     const u_int	sizMax = CudaFilter2::LOBE_SIZE_MAX;
     float	lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
     for (u_int i = 0; i < sizMax; ++i)
@@ -82,7 +82,7 @@ CudaGaussianConvolver2::initialize(float sigma)
 	lobe2[i] = (dxdx - 1.0f) * lobe0[i];
     }
 
-  // 0³¬ÈùÊ¬ÍÑ¤Î¥í¡¼¥Ö¤òÀµµ¬²½¤·¤Æ³ÊÇ¼¤¹¤ë¡¥
+  // 0éšå¾®åˆ†ç”¨ã®ãƒ­ãƒ¼ãƒ–ã‚’æ­£è¦åŒ–ã—ã¦æ ¼ç´ã™ã‚‹ï¼
     _lobe0.resize(lobeSize(lobe0, true));
     float	sum = lobe0[0];
     for (u_int i = 1; i < _lobe0.size(); ++i)
@@ -90,7 +90,7 @@ CudaGaussianConvolver2::initialize(float sigma)
     for (u_int i = 0; i < _lobe0.size(); ++i)
 	_lobe0[i] = lobe0[_lobe0.size() - 1 - i] / abs(sum);
 
-  // 1³¬ÈùÊ¬ÍÑ¤Î¥í¡¼¥Ö¤òÀµµ¬²½¤·¤Æ³ÊÇ¼¤¹¤ë¡¥
+  // 1éšå¾®åˆ†ç”¨ã®ãƒ­ãƒ¼ãƒ–ã‚’æ­£è¦åŒ–ã—ã¦æ ¼ç´ã™ã‚‹ï¼
     _lobe1.resize(lobeSize(lobe1, false));
     sum = 0.0f;
     for (u_int i = 0; i < _lobe1.size(); ++i)
@@ -98,7 +98,7 @@ CudaGaussianConvolver2::initialize(float sigma)
     for (u_int i = 0; i < _lobe1.size(); ++i)
 	_lobe1[i] = lobe1[_lobe1.size() - i] / abs(sum);
 
-  // 2³¬ÈùÊ¬ÍÑ¤Î¥í¡¼¥Ö¤òÀµµ¬²½¤·¤Æ³ÊÇ¼¤¹¤ë¡¥
+  // 2éšå¾®åˆ†ç”¨ã®ãƒ­ãƒ¼ãƒ–ã‚’æ­£è¦åŒ–ã—ã¦æ ¼ç´ã™ã‚‹ï¼
     _lobe2.resize(lobeSize(lobe2, true));
     sum = 0.0f;
     for (u_int i = 1; i < _lobe2.size(); ++i)

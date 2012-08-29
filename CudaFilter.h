@@ -1,9 +1,9 @@
 /*
- *  $Id: CudaFilter.h,v 1.4 2011-08-22 00:07:13 ueshiba Exp $
+ *  $Id: CudaFilter.h,v 1.5 2012-08-29 21:17:00 ueshiba Exp $
  */
 /*!
   \file		CudaFilter.h
-  \brief	¥Õ¥£¥ë¥¿¤ÎÄêµÁ¤È¼ÂÁõ
+  \brief	ãƒ•ã‚£ãƒ«ã‚¿ã®å®šç¾©ã¨å®Ÿè£…
 */ 
 #ifndef __TUCudaFilter_h
 #define __TUCudaFilter_h
@@ -15,7 +15,7 @@ namespace TU
 /************************************************************************
 *  class CudaFilter2							*
 ************************************************************************/
-//! CUDA¤Ë¤è¤ëseparable¤Ê2¼¡¸µ¥Õ¥£¥ë¥¿¤òÉ½¤¹¥¯¥é¥¹
+//! CUDAã«ã‚ˆã‚‹separableãª2æ¬¡å…ƒãƒ•ã‚£ãƒ«ã‚¿ã‚’è¡¨ã™ã‚¯ãƒ©ã‚¹
 class CudaFilter2
 {
   public:
@@ -31,10 +31,10 @@ class CudaFilter2
 				       CudaArray2<T>& out)	const	;
 
   private:
-    cudaDeviceProp		_prop;		//!< ¥Ç¥Ğ¥¤¥¹¤ÎÆÃÀ­
-    u_int			_lobeSizeH;	//!< ¿åÊ¿Êı¸ş¥Õ¥£¥ë¥¿¤Î¥í¡¼¥ÖÄ¹
-    u_int			_lobeSizeV;	//!< ¿âÄ¾Êı¸ş¥Õ¥£¥ë¥¿¤Î¥í¡¼¥ÖÄ¹
-    mutable CudaArray2<float>	_buf;		//!< Ãæ´Ö·ë²ÌÍÑ¤Î¥Ğ¥Ã¥Õ¥¡
+    cudaDeviceProp		_prop;		//!< ãƒ‡ãƒã‚¤ã‚¹ã®ç‰¹æ€§
+    u_int			_lobeSizeH;	//!< æ°´å¹³æ–¹å‘ãƒ•ã‚£ãƒ«ã‚¿ã®ãƒ­ãƒ¼ãƒ–é•·
+    u_int			_lobeSizeV;	//!< å‚ç›´æ–¹å‘ãƒ•ã‚£ãƒ«ã‚¿ã®ãƒ­ãƒ¼ãƒ–é•·
+    mutable CudaArray2<float>	_buf;		//!< ä¸­é–“çµæœç”¨ã®ãƒãƒƒãƒ•ã‚¡
 };
     
 }

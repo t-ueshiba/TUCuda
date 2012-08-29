@@ -1,22 +1,22 @@
 /*
- *  $Id: CudaArray++.h,v 1.9 2011-08-22 00:07:13 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.10 2012-08-29 21:17:00 ueshiba Exp $
  */
 /*!
-  \mainpage	libTUCuda++ - NVIDIAĞ‚ÌCUDA‚ğ—˜—p‚·‚é‚½‚ß‚Ìƒ†ƒeƒBƒŠƒeƒBƒ‰ƒCƒuƒ‰ƒŠ
+  \mainpage	libTUCuda++ - NVIDIAç¤¾ã®CUDAã‚’åˆ©ç”¨ã™ã‚‹ãŸã‚ã®ãƒ¦ãƒ†ã‚£ãƒªãƒ†ã‚£ãƒ©ã‚¤ãƒ–ãƒ©ãƒª
   \anchor	libTUCuda
 
-  \section copyright ’˜ìŒ 
-  •½¬14-23”Ni“ÆjY‹Æ‹Zp‘‡Œ¤‹†Š ’˜ìŒ Š—L
+  \section copyright è‘—ä½œæ¨©
+  å¹³æˆ14-23å¹´ï¼ˆç‹¬ï¼‰ç”£æ¥­æŠ€è¡“ç·åˆç ”ç©¶æ‰€ è‘—ä½œæ¨©æ‰€æœ‰
 
-  ‘nìÒFAÅr•v
+  å‰µä½œè€…ï¼šæ¤èŠä¿Šå¤«
 
-  –{ƒvƒƒOƒ‰ƒ€‚Íi“ÆjY‹Æ‹Zp‘‡Œ¤‹†Š‚ÌEˆõ‚Å‚ ‚éAÅr•v‚ª‘nì‚µC
-  i“ÆjY‹Æ‹Zp‘‡Œ¤‹†Š‚ª’˜ìŒ ‚ğŠ—L‚·‚é”é–§î•ñ‚Å‚·D’˜ìŒ Š—L
-  Ò‚É‚æ‚é‹–‰Â‚È‚µ‚É–{ƒvƒƒOƒ‰ƒ€‚ğg—pC•¡»C‰ü•ÏC‘æOÒ‚ÖŠJ¦‚·‚é
-  “™‚Ìsˆ×‚ğ‹Ö~‚µ‚Ü‚·D
+  æœ¬ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã¯ï¼ˆç‹¬ï¼‰ç”£æ¥­æŠ€è¡“ç·åˆç ”ç©¶æ‰€ã®è·å“¡ã§ã‚ã‚‹æ¤èŠä¿Šå¤«ãŒå‰µä½œã—ï¼Œ
+  ï¼ˆç‹¬ï¼‰ç”£æ¥­æŠ€è¡“ç·åˆç ”ç©¶æ‰€ãŒè‘—ä½œæ¨©ã‚’æ‰€æœ‰ã™ã‚‹ç§˜å¯†æƒ…å ±ã§ã™ï¼è‘—ä½œæ¨©æ‰€æœ‰
+  è€…ã«ã‚ˆã‚‹è¨±å¯ãªã—ã«æœ¬ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ä½¿ç”¨ï¼Œè¤‡è£½ï¼Œæ”¹å¤‰ï¼Œç¬¬ä¸‰è€…ã¸é–‹ç¤ºã™ã‚‹
+  ç­‰ã®è¡Œç‚ºã‚’ç¦æ­¢ã—ã¾ã™ï¼
    
-  ‚±‚ÌƒvƒƒOƒ‰ƒ€‚É‚æ‚Á‚Ä¶‚¶‚é‚¢‚©‚È‚é‘¹ŠQ‚É‘Î‚µ‚Ä‚àC’˜ìŒ Š—LÒ‚¨
-  ‚æ‚Ñ‘nìÒ‚ÍÓ”C‚ğ•‰‚¢‚Ü‚¹‚ñB
+  ã“ã®ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã«ã‚ˆã£ã¦ç”Ÿã˜ã‚‹ã„ã‹ãªã‚‹æå®³ã«å¯¾ã—ã¦ã‚‚ï¼Œè‘—ä½œæ¨©æ‰€æœ‰è€…ãŠ
+  ã‚ˆã³å‰µä½œè€…ã¯è²¬ä»»ã‚’è² ã„ã¾ã›ã‚“ã€‚
 
   Copyright 2002-2011.
   National Institute of Advanced Industrial Science and Technology (AIST)
@@ -32,29 +32,29 @@
   The copyright holder or the creator are not responsible for any
   damages caused by using this program.
 
-  \section abstract ŠT—v
-  libTUCuda++‚ÍCC++ŠÂ‹«‚É‚¨‚¢‚ÄNVIDIAĞ‚ÌCUDA‚ğ—˜—p‚·‚é‚½‚ß‚Ìƒ†ƒeƒBƒŠƒeƒB
-  ƒ‰ƒCƒuƒ‰ƒŠ‚Å‚ ‚éDˆÈ‰º‚Ì‚æ‚¤‚ÈƒNƒ‰ƒX‚¨‚æ‚ÑŠÖ”‚ªÀ‘•‚³‚ê‚Ä‚¢‚éD
+  \section abstract æ¦‚è¦
+  libTUCuda++ã¯ï¼ŒC++ç’°å¢ƒã«ãŠã„ã¦NVIDIAç¤¾ã®CUDAã‚’åˆ©ç”¨ã™ã‚‹ãŸã‚ã®ãƒ¦ãƒ†ã‚£ãƒªãƒ†ã‚£
+  ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã§ã‚ã‚‹ï¼ä»¥ä¸‹ã®ã‚ˆã†ãªã‚¯ãƒ©ã‚¹ãŠã‚ˆã³é–¢æ•°ãŒå®Ÿè£…ã•ã‚Œã¦ã„ã‚‹ï¼
 
-  <b>ƒfƒoƒCƒX‘¤‚ÌƒOƒ[ƒoƒ‹ƒƒ‚ƒŠ—Ìˆæ‚É‚Æ‚ç‚ê‚é1ŸŒ³‚¨‚æ‚Ñ2ŸŒ³”z—ñ</b>
+  <b>ãƒ‡ãƒã‚¤ã‚¹å´ã®ã‚°ãƒ­ãƒ¼ãƒãƒ«ãƒ¡ãƒ¢ãƒªé ˜åŸŸã«ã¨ã‚‰ã‚Œã‚‹1æ¬¡å…ƒãŠã‚ˆã³2æ¬¡å…ƒé…åˆ—</b>
   - #TU::CudaArray
   - #TU::CudaArray2
 
-  <b>ƒfƒoƒCƒX‘¤‚ÌƒeƒNƒXƒ`ƒƒƒƒ‚ƒŠ</b>
+  <b>ãƒ‡ãƒã‚¤ã‚¹å´ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ¡ãƒ¢ãƒª</b>
   - #TU::CudaTexture
   
-  <b>ƒtƒBƒ‹ƒ^ƒŠƒ“ƒO</b>
+  <b>ãƒ•ã‚£ãƒ«ã‚¿ãƒªãƒ³ã‚°</b>
   - #TU::CudaFilter2
   - #TU::CudaGaussianConvolver2
 
-  <b>ƒ†ƒeƒBƒŠƒeƒB</b>
+  <b>ãƒ¦ãƒ†ã‚£ãƒªãƒ†ã‚£</b>
   - #TU::cudaCopyToConstantMemory(Iterator, Iterator, T*)
   - #TU::cudaSubsample(const CudaArray2<T>&, CudaArray2<T>&)
   - #TU::cudaOp3x3(const CudaArray2<S>&, CudaArray2<T>&, OP op)
   - #TU::cudaSuppressNonExtrema3x3(const CudaArray2<T>&, CudaArray2<T>&, OP op, T)
   
   \file		CudaArray++.h
-  \brief	CUDAƒfƒoƒCƒXã‚Ì”z—ñ‚ÉŠÖ˜A‚·‚éƒNƒ‰ƒX‚Ì’è‹`‚ÆÀ‘•
+  \brief	CUDAãƒ‡ãƒã‚¤ã‚¹ä¸Šã®é…åˆ—ã«é–¢é€£ã™ã‚‹ã‚¯ãƒ©ã‚¹ã®å®šç¾©ã¨å®Ÿè£…
 */
 #ifndef __TUCudaArrayPP_h
 #define __TUCudaArrayPP_h
@@ -67,32 +67,32 @@
 
 /*!
   \namespace	TU
-  \brief	–{ƒ‰ƒCƒuƒ‰ƒŠ‚Å’è‹`‚³‚ê‚½ƒNƒ‰ƒX‚¨‚æ‚ÑŠÖ”‚ğ”[‚ß‚é–¼‘O‹óŠÔ
+  \brief	æœ¬ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã§å®šç¾©ã•ã‚ŒãŸã‚¯ãƒ©ã‚¹ãŠã‚ˆã³é–¢æ•°ã‚’ç´ã‚ã‚‹åå‰ç©ºé–“
 */
 namespace TU
 {
 /************************************************************************
 *  class CudaBuf<T>							*
 ************************************************************************/
-//! CUDA‚É‚¨‚¢‚ÄƒfƒoƒCƒX‘¤‚ÉŠm•Û‚³‚ê‚é‰Â•Ï’·ƒoƒbƒtƒ@ƒNƒ‰ƒX
+//! CUDAã«ãŠã„ã¦ãƒ‡ãƒã‚¤ã‚¹å´ã«ç¢ºä¿ã•ã‚Œã‚‹å¯å¤‰é•·ãƒãƒƒãƒ•ã‚¡ã‚¯ãƒ©ã‚¹
 /*!
-  ’P“Æ‚Åg—p‚·‚é‚±‚Æ‚Í‚È‚­C#TU::Array‚Ü‚½‚Í#TU::Array2‚Ì
-  ‘æ2ƒeƒ“ƒvƒŒ[ƒgˆø”‚Éw’è‚·‚é‚±‚Æ‚É‚æ‚Á‚ÄC‚»‚ê‚ç‚ÌŠî’êƒNƒ‰ƒX‚Æ‚µ‚Äg‚¤D
-  \param T	—v‘f‚ÌŒ^
+  å˜ç‹¬ã§ä½¿ç”¨ã™ã‚‹ã“ã¨ã¯ãªãï¼Œ#TU::Arrayã¾ãŸã¯#TU::Array2ã®
+  ç¬¬2ãƒ†ãƒ³ãƒ—ãƒ¬ãƒ¼ãƒˆå¼•æ•°ã«æŒ‡å®šã™ã‚‹ã“ã¨ã«ã‚ˆã£ã¦ï¼Œãã‚Œã‚‰ã®åŸºåº•ã‚¯ãƒ©ã‚¹ã¨ã—ã¦ä½¿ã†ï¼
+  \param T	è¦ç´ ã®å‹
 */
 template <class T>
 class CudaBuf
 {
   public:
-  //! —v‘f‚ÌŒ^    
+  //! è¦ç´ ã®å‹    
     typedef T						value_type;
-  //! —v‘f‚Ö‚ÌQÆ    
+  //! è¦ç´ ã¸ã®å‚ç…§    
     typedef thrust::device_reference<value_type>	reference;
-  //! —v‘f‚Ö‚ÌQÆ    
+  //! è¦ç´ ã¸ã®å‚ç…§    
     typedef thrust::device_reference<const value_type>	const_reference;
-  //! —v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef thrust::device_ptr<value_type>		pointer;
-  //! —v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef thrust::device_ptr<const value_type>	const_pointer;
     
   public:
@@ -121,9 +121,9 @@ class CudaBuf
     bool	_shared;	// buffer area is shared with other object
 };
     
-//! w’è‚µ‚½—v‘f”‚Ìƒoƒbƒtƒ@‚ğì‚éD
+//! æŒ‡å®šã—ãŸè¦ç´ æ•°ã®ãƒãƒƒãƒ•ã‚¡ã‚’ä½œã‚‹ï¼
 /*!
-  \param siz	—v‘f”
+  \param siz	è¦ç´ æ•°
 */
 template <class T> inline
 CudaBuf<T>::CudaBuf(u_int siz)
@@ -131,10 +131,10 @@ CudaBuf<T>::CudaBuf(u_int siz)
 {
 }
 
-//! ŠO•”‚Ì—Ìˆæ‚Æ—v‘f”‚ğw’è‚µ‚Äƒoƒbƒtƒ@‚ğì‚éD
+//! å¤–éƒ¨ã®é ˜åŸŸã¨è¦ç´ æ•°ã‚’æŒ‡å®šã—ã¦ãƒãƒƒãƒ•ã‚¡ã‚’ä½œã‚‹ï¼
 /*!
-  \param p	ŠO•”—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
-  \param siz	—v‘f”
+  \param p	å¤–éƒ¨é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
+  \param siz	è¦ç´ æ•°
 */
 template <class T> inline
 CudaBuf<T>::CudaBuf(pointer p, u_int siz)
@@ -142,7 +142,7 @@ CudaBuf<T>::CudaBuf(pointer p, u_int siz)
 {
 }
     
-//! ƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+//! ã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 template <class T> inline
 CudaBuf<T>::CudaBuf(const CudaBuf<T>& b)
     :_size(b._size), _p(memalloc(_size)), _shared(false)
@@ -150,7 +150,7 @@ CudaBuf<T>::CudaBuf(const CudaBuf<T>& b)
     thrust::copy(b.ptr(), b.ptr() + b.size(), ptr());
 }
 
-//! •W€‘ã“ü‰‰Zq
+//! æ¨™æº–ä»£å…¥æ¼”ç®—å­
 template <class T> inline CudaBuf<T>&
 CudaBuf<T>::operator =(const CudaBuf<T>& b)
 {
@@ -162,7 +162,7 @@ CudaBuf<T>::operator =(const CudaBuf<T>& b)
     return *this;
 }
 
-//! ƒfƒXƒgƒ‰ƒNƒ^
+//! ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 template <class T> inline
 CudaBuf<T>::~CudaBuf()
 {
@@ -170,36 +170,36 @@ CudaBuf<T>::~CudaBuf()
 	memfree(_p);
 }
     
-//! ƒoƒbƒtƒ@‚ªg—p‚·‚é“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ãƒãƒƒãƒ•ã‚¡ãŒä½¿ç”¨ã™ã‚‹å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 template <class T> inline typename CudaBuf<T>::pointer
 CudaBuf<T>::ptr()
 {
     return _p;
 }
 
-//! ƒoƒbƒtƒ@‚ªg—p‚·‚é“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ãƒãƒƒãƒ•ã‚¡ãŒä½¿ç”¨ã™ã‚‹å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 template <class T> inline typename CudaBuf<T>::const_pointer
 CudaBuf<T>::ptr() const
 {
     return _p;
 }
     
-//! ƒoƒbƒtƒ@‚Ì—v‘f”‚ğ•Ô‚·D
+//! ãƒãƒƒãƒ•ã‚¡ã®è¦ç´ æ•°ã‚’è¿”ã™ï¼
 template <class T> inline size_t
 CudaBuf<T>::size() const
 {
     return _size;
 }
     
-//! ƒoƒbƒtƒ@‚Ì—v‘f”‚ğ•ÏX‚·‚éD
+//! ãƒãƒƒãƒ•ã‚¡ã®è¦ç´ æ•°ã‚’å¤‰æ›´ã™ã‚‹ï¼
 /*!
-  ‚½‚¾‚µC‘¼‚ÌƒIƒuƒWƒFƒNƒg‚Æ‹L‰¯—Ìˆæ‚ğ‹¤—L‚µ‚Ä‚¢‚éƒoƒbƒtƒ@‚Ì—v‘f”‚ğ
-  •ÏX‚·‚é‚±‚Æ‚Í‚Å‚«‚È‚¢D
-  \param siz			V‚µ‚¢—v‘f”
-  \return			siz‚ªŒ³‚Ì—v‘f”‚æ‚è‚à‘å‚«‚¯‚ê‚ÎtrueC‚»‚¤
-				‚Å‚È‚¯‚ê‚Îfalse
-  \throw std::logic_error	‹L‰¯—Ìˆæ‚ğ‘¼‚ÌƒIƒuƒWƒFƒNƒg‚Æ‹¤—L‚µ‚Ä‚¢‚éê‡
-				‚É‘—o
+  ãŸã ã—ï¼Œä»–ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã¨è¨˜æ†¶é ˜åŸŸã‚’å…±æœ‰ã—ã¦ã„ã‚‹ãƒãƒƒãƒ•ã‚¡ã®è¦ç´ æ•°ã‚’
+  å¤‰æ›´ã™ã‚‹ã“ã¨ã¯ã§ããªã„ï¼
+  \param siz			æ–°ã—ã„è¦ç´ æ•°
+  \return			sizãŒå…ƒã®è¦ç´ æ•°ã‚ˆã‚Šã‚‚å¤§ãã‘ã‚Œã°trueï¼Œãã†
+				ã§ãªã‘ã‚Œã°false
+  \throw std::logic_error	è¨˜æ†¶é ˜åŸŸã‚’ä»–ã®ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã¨å…±æœ‰ã—ã¦ã„ã‚‹å ´åˆ
+				ã«é€å‡º
 */
 template <class T> bool
 CudaBuf<T>::resize(u_int siz)
@@ -218,10 +218,10 @@ CudaBuf<T>::resize(u_int siz)
     return _size > old_size;
 }
 
-//! ƒoƒbƒtƒ@‚ª“à•”‚Åg—p‚·‚é‹L‰¯—Ìˆæ‚ğw’è‚µ‚½‚à‚Ì‚É•ÏX‚·‚éD
+//! ãƒãƒƒãƒ•ã‚¡ãŒå†…éƒ¨ã§ä½¿ç”¨ã™ã‚‹è¨˜æ†¶é ˜åŸŸã‚’æŒ‡å®šã—ãŸã‚‚ã®ã«å¤‰æ›´ã™ã‚‹ï¼
 /*!
-  \param p	V‚µ‚¢‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
-  \param siz	V‚µ‚¢—v‘f”
+  \param p	æ–°ã—ã„è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
+  \param siz	æ–°ã—ã„è¦ç´ æ•°
 */
 template <class T> inline void
 CudaBuf<T>::resize(pointer p, u_int siz)
@@ -233,12 +233,12 @@ CudaBuf<T>::resize(pointer p, u_int siz)
     _shared = true;
 }
 
-//! w’è‚³‚ê‚½—v‘f”‚ğ‚Â‹L‰¯—Ìˆæ‚ğŠm•Û‚·‚é‚½‚ß‚ÉÀÛ‚É•K—v‚È—v‘f”‚ğ•Ô‚·D
+//! æŒ‡å®šã•ã‚ŒãŸè¦ç´ æ•°ã‚’æŒã¤è¨˜æ†¶é ˜åŸŸã‚’ç¢ºä¿ã™ã‚‹ãŸã‚ã«å®Ÿéš›ã«å¿…è¦ãªè¦ç´ æ•°ã‚’è¿”ã™ï¼
 /*!
-  i‹L‰¯—e—Ê‚Å‚Í‚È‚­j—v‘f”‚ª16‚Ü‚½‚Í32‚Ì”{”‚É‚È‚é‚æ‚¤C
-  —^‚¦‚ç‚ê‚½—v‘f”‚ğŒJ‚èã‚°‚éD
-  \param siz	—v‘f”
-  \return	16‚Ü‚½‚Í32‚Ì”{”‚ÉŒJ‚èã‚°‚ç‚ê‚½—v‘f”
+  ï¼ˆè¨˜æ†¶å®¹é‡ã§ã¯ãªãï¼‰è¦ç´ æ•°ãŒ16ã¾ãŸã¯32ã®å€æ•°ã«ãªã‚‹ã‚ˆã†ï¼Œ
+  ä¸ãˆã‚‰ã‚ŒãŸè¦ç´ æ•°ã‚’ç¹°ã‚Šä¸Šã’ã‚‹ï¼
+  \param siz	è¦ç´ æ•°
+  \return	16ã¾ãŸã¯32ã®å€æ•°ã«ç¹°ã‚Šä¸Šã’ã‚‰ã‚ŒãŸè¦ç´ æ•°
 */
 template <class T> inline u_int
 CudaBuf<T>::stride(u_int siz)
@@ -248,11 +248,11 @@ CudaBuf<T>::stride(u_int siz)
     return (siz > 0 ? ALIGN * ((siz - 1) / ALIGN + 1) : 0);
 }
     
-//! “ü—ÍƒXƒgƒŠ[ƒ€‚©‚çw’è‚µ‚½‰ÓŠ‚É”z—ñ‚ğ“Ç‚İ‚Ş(ASCII)D
+//! å…¥åŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ ã‹ã‚‰æŒ‡å®šã—ãŸç®‡æ‰€ã«é…åˆ—ã‚’èª­ã¿è¾¼ã‚€(ASCII)ï¼
 /*!
-  \param in	“ü—ÍƒXƒgƒŠ[ƒ€
-  \param m	“Ç‚İ‚İæ‚Ìæ“ª‚ğw’è‚·‚éindex
-  \return	in‚Åw’è‚µ‚½“ü—ÍƒXƒgƒŠ[ƒ€
+  \param in	å…¥åŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ 
+  \param m	èª­ã¿è¾¼ã¿å…ˆã®å…ˆé ­ã‚’æŒ‡å®šã™ã‚‹index
+  \return	inã§æŒ‡å®šã—ãŸå…¥åŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ 
 */
 template <class T> std::istream&
 CudaBuf<T>::get(std::istream& in, u_int m)
@@ -288,10 +288,10 @@ CudaBuf<T>::get(std::istream& in, u_int m)
     return in;
 }
 
-//! o—ÍƒXƒgƒŠ[ƒ€‚É”z—ñ‚ğ‘‚«o‚·(ASCII)D
+//! å‡ºåŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ ã«é…åˆ—ã‚’æ›¸ãå‡ºã™(ASCII)ï¼
 /*!
-  \param out	o—ÍƒXƒgƒŠ[ƒ€
-  \return	out‚Åw’è‚µ‚½o—ÍƒXƒgƒŠ[ƒ€
+  \param out	å‡ºåŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ 
+  \return	outã§æŒ‡å®šã—ãŸå‡ºåŠ›ã‚¹ãƒˆãƒªãƒ¼ãƒ 
 */
 template <class T> std::ostream&
 CudaBuf<T>::put(std::ostream& out) const
@@ -324,9 +324,9 @@ CudaBuf<T>::memfree(pointer p)
 /************************************************************************
 *  class CudaArray<T>							*
 ************************************************************************/
-//! CUDA‚É‚¨‚¢‚ÄƒfƒoƒCƒX‘¤‚ÉŠm•Û‚³‚ê‚éTŒ^ƒIƒuƒWƒFƒNƒg‚Ì1ŸŒ³”z—ñƒNƒ‰ƒX
+//! CUDAã«ãŠã„ã¦ãƒ‡ãƒã‚¤ã‚¹å´ã«ç¢ºä¿ã•ã‚Œã‚‹Tå‹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®1æ¬¡å…ƒé…åˆ—ã‚¯ãƒ©ã‚¹
 /*!
-  \param T	—v‘f‚ÌŒ^
+  \param T	è¦ç´ ã®å‹
 */
 template <class T>
 class CudaArray : public Array<T, CudaBuf<T> >
@@ -335,32 +335,32 @@ class CudaArray : public Array<T, CudaBuf<T> >
     typedef Array<T, CudaBuf<T> >		super;
 
   public:
-  //! ƒoƒbƒtƒ@‚ÌŒ^
+  //! ãƒãƒƒãƒ•ã‚¡ã®å‹
     typedef typename super::buf_type		buf_type;
-  //! —v‘f‚ÌŒ^    
+  //! è¦ç´ ã®å‹    
     typedef typename super::value_type		value_type;
-  //! —v‘f‚Ö‚ÌQÆ
+  //! è¦ç´ ã¸ã®å‚ç…§
     typedef typename super::reference		reference;
-  //! ’è”—v‘f‚Ö‚ÌQÆ
+  //! å®šæ•°è¦ç´ ã¸ã®å‚ç…§
     typedef typename super::const_reference	const_reference;
-  //! —v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  //! è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿
     typedef typename super::pointer		pointer;
-  //! ’è”—v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  //! å®šæ•°è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿
     typedef typename super::const_pointer	const_pointer;
-  //! ”½•œq
+  //! åå¾©å­
     typedef typename super::iterator		iterator;
-  //! ’è””½•œq
+  //! å®šæ•°åå¾©å­
     typedef typename super::const_iterator	const_iterator;
-  //! ‹t”½•œq    
+  //! é€†åå¾©å­    
     typedef typename super::reverse_iterator	reverse_iterator;
-  //! ’è”‹t”½•œq    
+  //! å®šæ•°é€†åå¾©å­    
     typedef typename super::const_reverse_iterator
 						const_reverse_iterator;
-  //! ƒ|ƒCƒ“ƒ^ŠÔ‚Ì·
+  //! ãƒã‚¤ãƒ³ã‚¿é–“ã®å·®
     typedef typename super::difference_type	difference_type;
-  //! —v‘f‚Ö‚Ì’¼Úƒ|ƒCƒ“ƒ^
+  //! è¦ç´ ã¸ã®ç›´æ¥ãƒã‚¤ãƒ³ã‚¿
     typedef value_type*				raw_pointer;
-  //! ’è”—v‘f‚Ö‚Ì’¼Úƒ|ƒCƒ“ƒ^
+  //! å®šæ•°è¦ç´ ã¸ã®ç›´æ¥ãƒã‚¤ãƒ³ã‚¿
     typedef const value_type*			const_raw_pointer;
     
   public:
@@ -388,16 +388,16 @@ class CudaArray : public Array<T, CudaBuf<T> >
     using	super::resize;
 };
 
-//! CUDA”z—ñ‚ğì‚éD
+//! CUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 template <class T> inline
 CudaArray<T>::CudaArray()
     :super()
 {
 }
 
-//! w’è‚µ‚½—v‘f”‚ÌCUDA”z—ñ‚ğì‚éD
+//! æŒ‡å®šã—ãŸè¦ç´ æ•°ã®CUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 /*!
-  \param d	”z—ñ‚Ì—v‘f”
+  \param d	é…åˆ—ã®è¦ç´ æ•°
 */
 template <class T> inline
 CudaArray<T>::CudaArray(u_int d)
@@ -405,10 +405,10 @@ CudaArray<T>::CudaArray(u_int d)
 {
 }
 
-//! ŠO•”‚Ì—Ìˆæ‚Æ—v‘f”‚ğw’è‚µ‚ÄCUDA”z—ñ‚ğì‚éD
+//! å¤–éƒ¨ã®é ˜åŸŸã¨è¦ç´ æ•°ã‚’æŒ‡å®šã—ã¦CUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 /*!
-  \param p	ŠO•”—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
-  \param d	”z—ñ‚Ì—v‘f”
+  \param p	å¤–éƒ¨é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
+  \param d	é…åˆ—ã®è¦ç´ æ•°
 */
 template <class T> inline
 CudaArray<T>::CudaArray(pointer p, u_int d)
@@ -416,11 +416,11 @@ CudaArray<T>::CudaArray(pointer p, u_int d)
 {
 }
 
-//! ‹L‰¯—Ìˆæ‚ğŒ³‚Ì”z—ñ‚Æ‹¤—L‚µ‚½•”•ªCUDA”z—ñ‚ğì‚éD
+//! è¨˜æ†¶é ˜åŸŸã‚’å…ƒã®é…åˆ—ã¨å…±æœ‰ã—ãŸéƒ¨åˆ†CUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 /*!
-  \param a	”z—ñ
-  \param i	•”•ª”z—ñ‚Ì‘æ0—v‘f‚ğw’è‚·‚éindex
-  \param d	•”•ª”z—ñ‚ÌŸŒ³(—v‘f”)
+  \param a	é…åˆ—
+  \param i	éƒ¨åˆ†é…åˆ—ã®ç¬¬0è¦ç´ ã‚’æŒ‡å®šã™ã‚‹index
+  \param d	éƒ¨åˆ†é…åˆ—ã®æ¬¡å…ƒ(è¦ç´ æ•°)
 */
 template <class T> inline
 CudaArray<T>::CudaArray(CudaArray<T>& a, u_int i, u_int d)
@@ -428,10 +428,10 @@ CudaArray<T>::CudaArray(CudaArray<T>& a, u_int i, u_int d)
 {
 }
 
-//! ‘¼‚Ì”z—ñ‚Æ“¯ˆê—v‘f‚ğ‚ÂCUDA”z—ñ‚ğì‚éiƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ÌŠg’£j
+//! ä»–ã®é…åˆ—ã¨åŒä¸€è¦ç´ ã‚’æŒã¤CUDAé…åˆ—ã‚’ä½œã‚‹ï¼ˆã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã®æ‹¡å¼µï¼‰
 /*!
-  ƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Í•Ê“r©“®“I‚É¶¬‚³‚ê‚éD
-  \param a	ƒRƒs[Œ³‚Ì”z—ñ
+  ã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã¯åˆ¥é€”è‡ªå‹•çš„ã«ç”Ÿæˆã•ã‚Œã‚‹ï¼
+  \param a	ã‚³ãƒ”ãƒ¼å…ƒã®é…åˆ—
 */
 template <class T> template <class B> inline
 CudaArray<T>::CudaArray(const Array<T, B>& a)
@@ -440,11 +440,11 @@ CudaArray<T>::CudaArray(const Array<T, B>& a)
     thrust::copy(a.begin(), a.end(), begin());
 }
 
-//! ‘¼‚Ì”z—ñ‚ğ©•ª‚É‘ã“ü‚·‚éi•W€‘ã“ü‰‰Zq‚ÌŠg’£j
+//! ä»–ã®é…åˆ—ã‚’è‡ªåˆ†ã«ä»£å…¥ã™ã‚‹ï¼ˆæ¨™æº–ä»£å…¥æ¼”ç®—å­ã®æ‹¡å¼µï¼‰
 /*!
-  •W€‘ã“ü‰‰Zq‚Í•Ê“r©“®“I‚É¶¬‚³‚ê‚éD
-  \param a	ƒRƒs[Œ³‚Ì”z—ñ
-  \return	‚±‚Ì”z—ñ
+  æ¨™æº–ä»£å…¥æ¼”ç®—å­ã¯åˆ¥é€”è‡ªå‹•çš„ã«ç”Ÿæˆã•ã‚Œã‚‹ï¼
+  \param a	ã‚³ãƒ”ãƒ¼å…ƒã®é…åˆ—
+  \return	ã“ã®é…åˆ—
 */
 template <class T> template <class B> inline CudaArray<T>&
 CudaArray<T>::operator =(const Array<T, B>& a)
@@ -454,10 +454,10 @@ CudaArray<T>::operator =(const Array<T, B>& a)
     return *this;
 }
 
-//! ‚±‚ÌCUDA”z—ñ‚Ì“à—e‚ğ‘¼‚Ì”z—ñ‚É‘‚«o‚·D
+//! ã“ã®CUDAé…åˆ—ã®å†…å®¹ã‚’ä»–ã®é…åˆ—ã«æ›¸ãå‡ºã™ï¼
 /*!
-  \param a	ƒRƒs[æ‚Ì”z—ñ
-  \return	‚±‚Ì”z—ñ
+  \param a	ã‚³ãƒ”ãƒ¼å…ˆã®é…åˆ—
+  \return	ã“ã®é…åˆ—
 */
 template <class T> template <class B> inline const CudaArray<T>&
 CudaArray<T>::write(Array<T, B>& a) const
@@ -467,10 +467,10 @@ CudaArray<T>::write(Array<T, B>& a) const
     return *this;
 }
 
-//! ‘S‚Ä‚Ì—v‘f‚É“¯ˆê‚Ì’l‚ğ‘ã“ü‚·‚éD
+//! å…¨ã¦ã®è¦ç´ ã«åŒä¸€ã®å€¤ã‚’ä»£å…¥ã™ã‚‹ï¼
 /*!
-  \param c	‘ã“ü‚·‚é’l
-  \return	‚±‚Ì”z—ñ
+  \param c	ä»£å…¥ã™ã‚‹å€¤
+  \return	ã“ã®é…åˆ—
 */
 template <class T> inline CudaArray<T>&
 CudaArray<T>::operator =(const value_type& c)
@@ -479,9 +479,9 @@ CudaArray<T>::operator =(const value_type& c)
     return *this;
 }
 
-//! ‚±‚ÌCUDA”z—ñ‚Ì“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ã“ã®CUDAé…åˆ—ã®å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 /*!
-  \return	“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  \return	å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
 */
 template <class T> inline
 CudaArray<T>::operator raw_pointer()
@@ -489,9 +489,9 @@ CudaArray<T>::operator raw_pointer()
     return super::operator pointer().get();
 }
 		    
-//! ‚±‚ÌCUDA”z—ñ‚Ì“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ã“ã®CUDAé…åˆ—ã®å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 /*!
-  \return	“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  \return	å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
 */
 template <class T> inline
 CudaArray<T>::operator const_raw_pointer() const
@@ -502,9 +502,9 @@ CudaArray<T>::operator const_raw_pointer() const
 /************************************************************************
 *  class CudaArray2<T>							*
 ************************************************************************/
-//! CUDA‚É‚¨‚¢‚ÄƒfƒoƒCƒX‘¤‚ÉŠm•Û‚³‚ê‚éTŒ^ƒIƒuƒWƒFƒNƒg‚Ì2ŸŒ³”z—ñƒNƒ‰ƒX
+//! CUDAã«ãŠã„ã¦ãƒ‡ãƒã‚¤ã‚¹å´ã«ç¢ºä¿ã•ã‚Œã‚‹Tå‹ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®2æ¬¡å…ƒé…åˆ—ã‚¯ãƒ©ã‚¹
 /*!
-  \param T	—v‘f‚ÌŒ^
+  \param T	è¦ç´ ã®å‹
 */
 template <class T>
 class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
@@ -513,45 +513,45 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
     typedef Array2<CudaArray<T>, CudaBuf<T> >	super;
     
   public:
-  //! sƒoƒbƒtƒ@‚ÌŒ^
+  //! è¡Œãƒãƒƒãƒ•ã‚¡ã®å‹
     typedef typename super::row_buf_type	row_buf_type;
-  //! s‚ÌŒ^    
+  //! è¡Œã®å‹    
     typedef typename super::row_type		row_type;
-  //! s‚Ö‚ÌQÆ    
+  //! è¡Œã¸ã®å‚ç…§    
     typedef typename super::row_reference	row_reference;
-  //! ’è”s‚Ö‚ÌQÆ    
+  //! å®šæ•°è¡Œã¸ã®å‚ç…§    
     typedef typename super::row_const_reference	row_const_reference;
-  //! s‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! è¡Œã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef typename super::row_pointer		row_pointer;
-  //! ’è”s‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! å®šæ•°è¡Œã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef typename super::row_const_pointer	row_const_pointer;
-  //! s‚Ì”½•œq    
+  //! è¡Œã®åå¾©å­    
     typedef typename super::row_iterator	row_iterator;
-  //! s‚Ì’è””½•œq    
+  //! è¡Œã®å®šæ•°åå¾©å­    
     typedef typename super::row_const_iterator	row_const_iterator;
-  //! s‚Ì‹t”½•œq    
+  //! è¡Œã®é€†åå¾©å­    
     typedef typename super::row_reverse_iterator
 						row_reverse_iterator;
-  //! s‚Ì’è”‹t”½•œq    
+  //! è¡Œã®å®šæ•°é€†åå¾©å­    
     typedef typename super::row_const_reverse_iterator
 						row_const_reverse_iterator;
-  //! ƒoƒbƒtƒ@‚ÌŒ^    
+  //! ãƒãƒƒãƒ•ã‚¡ã®å‹    
     typedef typename super::buf_type		buf_type;
-  //! —v‘f‚ÌŒ^    
+  //! è¦ç´ ã®å‹    
     typedef typename super::value_type		value_type;
-  //! —v‘f‚Ö‚ÌQÆ    
+  //! è¦ç´ ã¸ã®å‚ç…§    
     typedef typename super::reference		reference;
-  //! ’è”—v‘f‚Ö‚ÌQÆ    
+  //! å®šæ•°è¦ç´ ã¸ã®å‚ç…§    
     typedef typename super::const_reference	const_reference;
-  //! —v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef typename super::pointer		pointer;
-  //! ’è”—v‘f‚Ö‚Ìƒ|ƒCƒ“ƒ^    
+  //! å®šæ•°è¦ç´ ã¸ã®ãƒã‚¤ãƒ³ã‚¿    
     typedef typename super::const_pointer	const_pointer;
-  //! ƒ|ƒCƒ“ƒ^ŠÔ‚Ì·    
+  //! ãƒã‚¤ãƒ³ã‚¿é–“ã®å·®    
     typedef typename super::difference_type	difference_type;
-  //! —v‘f‚Ö‚Ì’¼Úƒ|ƒCƒ“ƒ^
+  //! è¦ç´ ã¸ã®ç›´æ¥ãƒã‚¤ãƒ³ã‚¿
     typedef value_type*				raw_pointer;
-  //! ’è”—v‘f‚Ö‚Ì’¼Úƒ|ƒCƒ“ƒ^
+  //! å®šæ•°è¦ç´ ã¸ã®ç›´æ¥ãƒã‚¤ãƒ³ã‚¿
     typedef const value_type*			const_raw_pointer;
 
   public:
@@ -578,17 +578,17 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
     using	super::stride;
 };
 
-//! 2ŸŒ³CUDA”z—ñ‚ğì‚éD
+//! 2æ¬¡å…ƒCUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 template <class T> inline
 CudaArray2<T>::CudaArray2()
     :super()
 {
 }
 
-//! s”‚Æ—ñ”‚ğw’è‚µ‚Ä2ŸŒ³CUDA”z—ñ‚ğì‚éD
+//! è¡Œæ•°ã¨åˆ—æ•°ã‚’æŒ‡å®šã—ã¦2æ¬¡å…ƒCUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 /*!
-  \param r	s”
-  \param c	—ñ”
+  \param r	è¡Œæ•°
+  \param c	åˆ—æ•°
 */
 template <class T> inline
 CudaArray2<T>::CudaArray2(u_int r, u_int c)
@@ -596,11 +596,11 @@ CudaArray2<T>::CudaArray2(u_int r, u_int c)
 {
 }
 
-//! ŠO•”‚Ì—Ìˆæ‚Æs”‚¨‚æ‚Ñ—ñ”‚ğw’è‚µ‚Ä2ŸŒ³CUDA”z—ñ‚ğì‚éD
+//! å¤–éƒ¨ã®é ˜åŸŸã¨è¡Œæ•°ãŠã‚ˆã³åˆ—æ•°ã‚’æŒ‡å®šã—ã¦2æ¬¡å…ƒCUDAé…åˆ—ã‚’ä½œã‚‹ï¼
 /*!
-  \param p	ŠO•”—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
-  \param r	s”
-  \param c	—ñ”
+  \param p	å¤–éƒ¨é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
+  \param r	è¡Œæ•°
+  \param c	åˆ—æ•°
 */
 template <class T> inline
 CudaArray2<T>::CudaArray2(pointer p, u_int r, u_int c)
@@ -608,13 +608,13 @@ CudaArray2<T>::CudaArray2(pointer p, u_int r, u_int c)
 {
 }
 
-//! ‹L‰¯—Ìˆæ‚ğŒ³‚Ì”z—ñ‚Æ‹¤—L‚µ‚½2ŸŒ³•”•ªCUDA”z—ñ‚ğì‚é
+//! è¨˜æ†¶é ˜åŸŸã‚’å…ƒã®é…åˆ—ã¨å…±æœ‰ã—ãŸ2æ¬¡å…ƒéƒ¨åˆ†CUDAé…åˆ—ã‚’ä½œã‚‹
 /*!
-  \param a	”z—ñ
-  \param i	•”•ª”z—ñ‚Ì¶ã‹÷—v‘f‚Ìs‚ğw’è‚·‚éindex
-  \param j	•”•ª”z—ñ‚Ì¶ã‹÷—v‘f‚Ì—ñ‚ğw’è‚·‚éindex
-  \param r	•”•ª”z—ñ‚Ìs”
-  \param c	•”•ª”z—ñ‚Ì—ñ”
+  \param a	é…åˆ—
+  \param i	éƒ¨åˆ†é…åˆ—ã®å·¦ä¸Šéš…è¦ç´ ã®è¡Œã‚’æŒ‡å®šã™ã‚‹index
+  \param j	éƒ¨åˆ†é…åˆ—ã®å·¦ä¸Šéš…è¦ç´ ã®åˆ—ã‚’æŒ‡å®šã™ã‚‹index
+  \param r	éƒ¨åˆ†é…åˆ—ã®è¡Œæ•°
+  \param c	éƒ¨åˆ†é…åˆ—ã®åˆ—æ•°
 */
 template <class T> inline
 CudaArray2<T>::CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)
@@ -622,10 +622,10 @@ CudaArray2<T>::CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)
 {
 }    
 
-//! ‘¼‚Ì2ŸŒ³”z—ñ‚Æ“¯ˆê—v‘f‚ğ‚Â2ŸŒ³CUDA”z—ñ‚ğì‚éiƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ÌŠg’£j
+//! ä»–ã®2æ¬¡å…ƒé…åˆ—ã¨åŒä¸€è¦ç´ ã‚’æŒã¤2æ¬¡å…ƒCUDAé…åˆ—ã‚’ä½œã‚‹ï¼ˆã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã®æ‹¡å¼µï¼‰
 /*!
-  ƒRƒs[ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Í•Ê“r©“®“I‚É¶¬‚³‚ê‚éD
-  \param a	ƒRƒs[Œ³‚Ì”z—ñ
+  ã‚³ãƒ”ãƒ¼ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã¯åˆ¥é€”è‡ªå‹•çš„ã«ç”Ÿæˆã•ã‚Œã‚‹ï¼
+  \param a	ã‚³ãƒ”ãƒ¼å…ƒã®é…åˆ—
 */
 template <class T>
 template <class T2, class B2, class R2> inline
@@ -635,11 +635,11 @@ CudaArray2<T>::CudaArray2(const Array2<T2, B2, R2>& a)
     operator =(a);
 }
 
-//! ‘¼‚Ì2ŸŒ³”z—ñ‚ğ©•ª‚É‘ã“ü‚·‚éi•W€‘ã“ü‰‰Zq‚ÌŠg’£j
+//! ä»–ã®2æ¬¡å…ƒé…åˆ—ã‚’è‡ªåˆ†ã«ä»£å…¥ã™ã‚‹ï¼ˆæ¨™æº–ä»£å…¥æ¼”ç®—å­ã®æ‹¡å¼µï¼‰
 /*!
-  •W€‘ã“ü‰‰Zq‚Í•Ê“r©“®“I‚É¶¬‚³‚ê‚éD
-  \param a	ƒRƒs[Œ³‚Ì”z—ñ
-  \return	‚±‚Ì”z—ñ
+  æ¨™æº–ä»£å…¥æ¼”ç®—å­ã¯åˆ¥é€”è‡ªå‹•çš„ã«ç”Ÿæˆã•ã‚Œã‚‹ï¼
+  \param a	ã‚³ãƒ”ãƒ¼å…ƒã®é…åˆ—
+  \return	ã“ã®é…åˆ—
 */
 template <class T>
 template <class T2, class B2, class R2> inline CudaArray2<T>&
@@ -658,10 +658,10 @@ CudaArray2<T>::operator =(const Array2<T2, B2, R2>& a)
     return *this;
 }
 
-//! ‚±‚Ì2ŸŒ³CUDA”z—ñ‚Ì“à—e‚ğ‘¼‚Ì2ŸŒ³”z—ñ‚É‘‚«o‚·D
+//! ã“ã®2æ¬¡å…ƒCUDAé…åˆ—ã®å†…å®¹ã‚’ä»–ã®2æ¬¡å…ƒé…åˆ—ã«æ›¸ãå‡ºã™ï¼
 /*!
-  \param a	ƒRƒs[æ‚Ì”z—ñ
-  \return	‚±‚Ì”z—ñ
+  \param a	ã‚³ãƒ”ãƒ¼å…ˆã®é…åˆ—
+  \return	ã“ã®é…åˆ—
 */
 template <class T>
 template <class T2, class B2, class R2> inline const CudaArray2<T>&
@@ -681,10 +681,10 @@ CudaArray2<T>::write(Array2<T2, B2, R2>& a) const
     return *this;
 }
 
-//! ‘S‚Ä‚Ì—v‘f‚É“¯ˆê‚Ì’l‚ğ‘ã“ü‚·‚éD
+//! å…¨ã¦ã®è¦ç´ ã«åŒä¸€ã®å€¤ã‚’ä»£å…¥ã™ã‚‹ï¼
 /*!
-  \param c	‘ã“ü‚·‚é’l
-  \return	‚±‚Ì”z—ñ
+  \param c	ä»£å…¥ã™ã‚‹å€¤
+  \return	ã“ã®é…åˆ—
 */
 template <class T> inline CudaArray2<T>&
 CudaArray2<T>::operator =(const value_type& c)
@@ -694,10 +694,10 @@ CudaArray2<T>::operator =(const value_type& c)
     return *this;
 }
 
-//! ‚±‚Ì2ŸŒ³CUDA”z—ñ‚Ì“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ã“ã®2æ¬¡å…ƒCUDAé…åˆ—ã®å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 /*!
   
-  \return	“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  \return	å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
 */
 template <class T> inline
 CudaArray2<T>::operator raw_pointer()
@@ -705,9 +705,9 @@ CudaArray2<T>::operator raw_pointer()
     return super::operator pointer().get();
 }
 		    
-//! ‚±‚Ì2ŸŒ³CUDA”z—ñ‚Ì“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^‚ğ•Ô‚·D
+//! ã“ã®2æ¬¡å…ƒCUDAé…åˆ—ã®å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿ã‚’è¿”ã™ï¼
 /*!
-  \return	“à•”‹L‰¯—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
+  \return	å†…éƒ¨è¨˜æ†¶é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
 */
 template <class T> inline
 CudaArray2<T>::operator const_raw_pointer() const

@@ -1,31 +1,32 @@
 #
-#  $Id: Makefile,v 1.15 2012-01-23 06:09:36 ueshiba Exp $
+#  $Id: Makefile,v 1.16 2012-08-29 21:17:00 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
 INCDIR		= $(PREFIX)/include/TU
-INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
+INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
 
-#ifeq ($(OSTYPE), darwin)
-#    CCC		= g++
-#endif
-
-CPPFLAGS	= #-D_DEBUG #-DNO_BORDER
-CFLAGS		= -O
+CPPFLAGS	=
+CFLAGS		= -g
+NVCCFLAGS	= -g
+ifeq ($(CXX), icpc)
+  CFLAGS	= -O3
+  NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
+  CPPFLAGS     += -DSSE3
+endif
 CCFLAGS		= $(CFLAGS)
-NVCCFLAGS	= -O
 
-LINKER		= $(NVCC)
+LINKER		= $(CXX)
 
 #########################
 #  Macros set by mkmf	#
 #########################
 .SUFFIXES:	.cu
-SUFFIX		= .cc:sC .cu:sC
+SUFFIX		= .cc:sC .cu:sC .cpp:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/types.h \
 		TU/CudaFilter.h \
@@ -47,18 +48,6 @@ OBJS		= CudaFilter.o \
 		cudaOp3x3.o \
 		cudaSubsample.o \
 		cudaSuppressNonExtrema3x3.o
-
-#########################
-#  Macros used by RCS	#
-#########################
-REV		= $(shell echo $Revision: 1.15 $	|		\
-		  sed 's/evision://'		|		\
-		  awk -F"."					\
-		  '{						\
-		      for (count = 1; count < NF; count++)	\
-			  printf("%d.", $$count);		\
-		      printf("%d", $$count + 1);		\
-		  }')
 
 include $(PROJECT)/lib/l.mk
 ###

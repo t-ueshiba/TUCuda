@@ -1,9 +1,9 @@
 /*
- *  $Id: CudaGaussianConvolver.h,v 1.5 2011-08-22 00:07:13 ueshiba Exp $
+ *  $Id: CudaGaussianConvolver.h,v 1.6 2012-08-29 21:17:00 ueshiba Exp $
  */
 /*!
   \file		CudaGaussianConvolver.h
-  \brief	Gauss³Ë¤Ë¤è¤ë¾ö¤ß¹ş¤ß¤Ë´ØÏ¢¤¹¤ë¥¯¥é¥¹¤ÎÄêµÁ¤È¼ÂÁõ
+  \brief	Gaussæ ¸ã«ã‚ˆã‚‹ç•³ã¿è¾¼ã¿ã«é–¢é€£ã™ã‚‹ã‚¯ãƒ©ã‚¹ã®å®šç¾©ã¨å®Ÿè£…
 */ 
 #include "TU/CudaFilter.h"
 
@@ -12,7 +12,7 @@ namespace TU
 /************************************************************************
 *  class CudaGaussianConvolver2						*
 ************************************************************************/
-//! CUDA¤òÍÑ¤¤¤ÆGauss³Ë¤Ë¤è¤ê2¼¡¸µÇÛÎó¾ö¤ß¹ş¤ß¤ò¹Ô¤¦¥¯¥é¥¹
+//! CUDAã‚’ç”¨ã„ã¦Gaussæ ¸ã«ã‚ˆã‚Š2æ¬¡å…ƒé…åˆ—ç•³ã¿è¾¼ã¿ã‚’è¡Œã†ã‚¯ãƒ©ã‚¹
 class CudaGaussianConvolver2 : public CudaFilter2
 {
   public:
@@ -34,14 +34,14 @@ class CudaGaussianConvolver2 : public CudaFilter2
 	diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
     
   private:
-    Array<float>	_lobe0;		//!< ¥¹¥à¡¼¥¸¥ó¥°¤Î¤¿¤á¤Î¥í¡¼¥Ö
-    Array<float>	_lobe1;		//!< 1³¬ÈùÊ¬¤Î¤¿¤á¤Î¥í¡¼¥Ö
-    Array<float>	_lobe2;		//!< 2³¬ÈùÊ¬¤Î¤¿¤á¤Î¥í¡¼¥Ö
+    Array<float>	_lobe0;		//!< ã‚¹ãƒ ãƒ¼ã‚¸ãƒ³ã‚°ã®ãŸã‚ã®ãƒ­ãƒ¼ãƒ–
+    Array<float>	_lobe1;		//!< 1éšå¾®åˆ†ã®ãŸã‚ã®ãƒ­ãƒ¼ãƒ–
+    Array<float>	_lobe2;		//!< 2éšå¾®åˆ†ã®ãŸã‚ã®ãƒ­ãƒ¼ãƒ–
 };
     
-//! Gauss³Ë¤òÀ¸À®¤¹¤ë
+//! Gaussæ ¸ã‚’ç”Ÿæˆã™ã‚‹
 /*!
-  \param sigma	Gauss³Ë¤Î¥¹¥±¡¼¥ë
+  \param sigma	Gaussæ ¸ã®ã‚¹ã‚±ãƒ¼ãƒ«
 */
 inline
 CudaGaussianConvolver2::CudaGaussianConvolver2(float sigma)
@@ -49,11 +49,11 @@ CudaGaussianConvolver2::CudaGaussianConvolver2(float sigma)
     initialize(sigma);
 }
 
-//! Gauss³Ë¤Ë¤è¤ë¥¹¥à¡¼¥·¥ó¥°
+//! Gaussæ ¸ã«ã‚ˆã‚‹ã‚¹ãƒ ãƒ¼ã‚·ãƒ³ã‚°
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
@@ -63,11 +63,11 @@ CudaGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
     return *this;
 }
     
-//! Gauss³Ë¤Ë¤è¤ë²£Êı¸ş1³¬ÈùÊ¬(DOG)
+//! Gaussæ ¸ã«ã‚ˆã‚‹æ¨ªæ–¹å‘1éšå¾®åˆ†(DOG)
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
@@ -77,11 +77,11 @@ CudaGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
     return *this;
 }
     
-//! Gauss³Ë¤Ë¤è¤ë½ÄÊı¸ş1³¬ÈùÊ¬(DOG)
+//! Gaussæ ¸ã«ã‚ˆã‚‹ç¸¦æ–¹å‘1éšå¾®åˆ†(DOG)
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
@@ -91,11 +91,11 @@ CudaGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
     return *this;
 }
     
-//! Gauss³Ë¤Ë¤è¤ë²£Êı¸ş2³¬ÈùÊ¬
+//! Gaussæ ¸ã«ã‚ˆã‚‹æ¨ªæ–¹å‘2éšå¾®åˆ†
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
@@ -105,11 +105,11 @@ CudaGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
     return *this;
 }
     
-//! Gauss³Ë¤Ë¤è¤ë½Ä²£Î¾Êı¸ş2³¬ÈùÊ¬
+//! Gaussæ ¸ã«ã‚ˆã‚‹ç¸¦æ¨ªä¸¡æ–¹å‘2éšå¾®åˆ†
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
@@ -119,11 +119,11 @@ CudaGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
     return *this;
 }
     
-//! Gauss³Ë¤Ë¤è¤ë½ÄÊı¸ş2³¬ÈùÊ¬
+//! Gaussæ ¸ã«ã‚ˆã‚‹ç¸¦æ–¹å‘2éšå¾®åˆ†
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤ÎGauss³Ë¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®Gaussæ ¸è‡ªèº«
 */
 template <class S, class T> inline CudaGaussianConvolver2&
 CudaGaussianConvolver2::diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)

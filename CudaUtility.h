@@ -1,9 +1,9 @@
 /*
- *  $Id: CudaUtility.h,v 1.7 2011-08-22 00:07:13 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.8 2012-08-29 21:17:00 ueshiba Exp $
  */
 /*!
   \file		CudaUtility.h
-  \brief	│╞╝яеке┌еьб╝е┐д╬─ъ╡┴д╚╝┬┴ї
+  \brief	хРДчиоуВкуГЪуГмуГ╝уВ┐уБохоЪч╛йуБихоЯшгЕ
 */ 
 #ifndef __TUCudaUtility_h
 #define __TUCudaUtility_h
@@ -16,7 +16,7 @@ namespace TU
 /************************************************************************
 *  3x3 operators							*
 ************************************************************************/
-//! ▓г╩¤╕■1│м╚∙╩меке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! цикцЦ╣хРС1щЪОх╛охИЖуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct diffH3x3
 {
     __host__ __device__ T
@@ -26,7 +26,7 @@ template <class S, class T=S> struct diffH3x3
     }
 };
     
-//! ╜─╩¤╕■1│м╚∙╩меке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! ч╕жцЦ╣хРС1щЪОх╛охИЖуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct diffV3x3
 {
     __host__ __device__ T
@@ -36,7 +36,7 @@ template <class S, class T=S> struct diffV3x3
     }
 };
     
-//! ▓г╩¤╕■2│м╚∙╩меке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! цикцЦ╣хРС2щЪОх╛охИЖуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct diffHH3x3
 {
     __host__ __device__ T
@@ -46,7 +46,7 @@ template <class S, class T=S> struct diffHH3x3
     }
 };
     
-//! ╜─╩¤╕■2│м╚∙╩меке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! ч╕жцЦ╣хРС2щЪОх╛охИЖуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct diffVV3x3
 {
     __host__ __device__ T
@@ -56,7 +56,7 @@ template <class S, class T=S> struct diffVV3x3
     }
 };
     
-//! ╜─▓г╬╛╩¤╕■2│м╚∙╩меке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! ч╕жцикф╕бцЦ╣хРС2щЪОх╛охИЖуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct diffHV3x3
 {
     __host__ __device__ T
@@ -66,7 +66,7 @@ template <class S, class T=S> struct diffHV3x3
     }
 };
     
-//! ▓г╩¤╕■1│м╚∙╩мSobelеке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! цикцЦ╣хРС1щЪОх╛охИЖSobelуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct sobelH3x3
 {
     __host__ __device__ T
@@ -76,7 +76,7 @@ template <class S, class T=S> struct sobelH3x3
     }
 };
     
-//! ╜─╩¤╕■1│м╚∙╩мSobelеке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! ч╕жцЦ╣хРС1щЪОх╛охИЖSobelуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct sobelV3x3
 {
     __host__ __device__ T
@@ -86,7 +86,7 @@ template <class S, class T=S> struct sobelV3x3
     }
 };
     
-//! 1│м╚∙╩мSobelеке┌еьб╝е┐д╬╜─▓г╬╛╩¤╕■╜╨╬╧д╬└ф┬╨├═д╬╧┬дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! 1щЪОх╛охИЖSobelуВкуГЪуГмуГ╝уВ┐уБоч╕жцикф╕бцЦ╣хРСхЗ║хКЫуБоч╡╢хп╛хАдуБохТМуВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct sobelAbs3x3
 {
     __host__ __device__ T
@@ -99,7 +99,7 @@ template <class S, class T=S> struct sobelAbs3x3
     }
 };
     
-//! еще╫еще╖евеєеке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! уГйуГЧуГйуВ╖уВвуГ│уВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct laplacian3x3
 {
     __host__ __device__ T
@@ -109,7 +109,7 @@ template <class S, class T=S> struct laplacian3x3
     }
 };
     
-//! е╪е├е╗╣╘╬є╝░еке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! уГШуГГуВ╗шбМхИЧх╝ПуВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class S, class T=S> struct det3x3
 {
     __host__ __device__ T
@@ -122,7 +122,7 @@ template <class S, class T=S> struct det3x3
     }
 };
 
-//! ╢╦┬ч┼└╕б╜╨еке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! це╡хдзчВ╣цдЬхЗ║уВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class T> class maximal3x3
 {
   public:
@@ -144,7 +144,7 @@ template <class T> class maximal3x3
     const T	_nonMaximal;
 };
 
-//! ╢╦╛о┼└╕б╜╨еке┌еьб╝е┐дЄ╔╜д╣┤╪┐Їеке╓е╕езепе╚
+//! це╡х░ПчВ╣цдЬхЗ║уВкуГЪуГмуГ╝уВ┐уВТшбиуБЩщЦвцХ░уВкуГЦуВ╕уВзуВпуГИ
 template <class T> class minimal3x3
 {
   public:
@@ -169,11 +169,11 @@ template <class T> class minimal3x3
 /************************************************************************
 *  utilities								*
 ************************************************************************/
-//! CUDAд╬─ъ┐Їесетеъ╬╬░шд╦е╟б╝е┐дЄе│е╘б╝д╣дыбе
+//! CUDAуБохоЪцХ░уГбуГвуГкщаШхЯЯуБлуГЗуГ╝уВ┐уВТуВ│уГФуГ╝уБЩуВЛя╝О
 /*!
-  \param begin	е│е╘б╝╕╡е╟б╝е┐д╬└ш╞мдЄ╗╪д╣╚┐╔№╗╥
-  \param end	е│е╘б╝╕╡е╟б╝е┐д╬╦Ў╚°д╬╝бдЄ╗╪д╣╚┐╔№╗╥
-  \param dst	е│е╘б╝└шд╬─ъ┐Їесетеъ╬╬░шдЄ╗╪д╣е▌едеєе┐
+  \param begin	уВ│уГФуГ╝хЕГуГЗуГ╝уВ┐уБохЕИщануВТцМЗуБЩхПНх╛йхнР
+  \param end	уВ│уГФуГ╝хЕГуГЗуГ╝уВ┐уБоцЬлх░╛уБоцмбуВТцМЗуБЩхПНх╛йхнР
+  \param dst	уВ│уГФуГ╝хЕИуБохоЪцХ░уГбуГвуГкщаШхЯЯуВТцМЗуБЩуГЭуВдуГ│уВ┐
 */
 template <class Iterator, class T> inline void
 cudaCopyToConstantMemory(Iterator begin, Iterator end, T* dst)

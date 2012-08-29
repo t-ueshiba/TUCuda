@@ -1,5 +1,5 @@
 /*
- *  $Id: filterImageGold.h,v 1.1 2011-04-21 07:00:54 ueshiba Exp $
+ *  $Id: filterImageGold.h,v 1.2 2012-08-29 22:43:57 ueshiba Exp $
  */
 #include "TU/Image++.h"
 
@@ -23,7 +23,7 @@ filter1D(const Array2<T1, B1, R1>& in, Array2<T2, B2, R2>& out,
 	
 	for (u_int j = tailWidth; j < in.ncol() - tailWidth; ++j)
 	{
-	  // ÀÑÏÂ±é»»¤ò¹Ô¤¦¡¥
+	  // ç©å’Œæ¼”ç®—ã‚’è¡Œã†ï¼Ž
 	    float	val = coeff[tailWidth] * row[j];
 	    for (u_int n = 0; n < tailWidth; ++n)
 		val += coeff[n] * (row[j - tailWidth + n] +

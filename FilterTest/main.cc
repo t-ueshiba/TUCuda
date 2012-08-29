@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.5 2012-01-23 05:34:45 ueshiba Exp $
+ *  $Id: main.cc,v 1.6 2012-08-29 22:43:57 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -81,10 +81,10 @@ main(int argc, char *argv[])
     {
 	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
 	Image<in_t>	in;
-	in.restore(cin);				// ¸¶²èÁü¤òÆÉ¤ß¹ş¤à
-	in.save(cout);					// ¸¶²èÁü¤ò¥»¡¼¥Ö
+	in.restore(cin);				// åŸç”»åƒã‚’èª­ã¿è¾¼ã‚€
+	in.save(cout);					// åŸç”»åƒã‚’ã‚»ãƒ¼ãƒ–
 
-      // GPU¤Ë¤è¤Ã¤Æ·×»»¤¹¤ë¡¥
+      // GPUã«ã‚ˆã£ã¦è¨ˆç®—ã™ã‚‹ï¼
 	CudaFilter2	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
 	
@@ -92,27 +92,27 @@ main(int argc, char *argv[])
 	CudaArray2<out_t>	out_d;
 
 	u_int		timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ¥¿¥¤¥Ş¡¼¤òºîÀ®
+	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’ä½œæˆ
 	cudaFilter.convolve(in_d, out_d);		// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #if 1
 	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaFilter.convolve(in_d, out_d);		// ¥Õ¥£¥ë¥¿¤ò¤«¤±¤ë
+	    cudaFilter.convolve(in_d, out_d);		// ãƒ•ã‚£ãƒ«ã‚¿ã‚’ã‹ã‘ã‚‹
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ¥¿¥¤¥Ş¡¼¤ò¾Ãµî
+	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’æ¶ˆå»
 #endif
 	Image<out_t>	out;
 	out_d.write(out);
-	out.save(cout);					// ·ë²Ì²èÁü¤ò¥»¡¼¥Ö
+	out.save(cout);					// çµæœç”»åƒã‚’ã‚»ãƒ¼ãƒ–
 
-      // CPU¤Ë¤è¤Ã¤Æ·×»»¤¹¤ë¡¥
+      // CPUã«ã‚ˆã£ã¦è¨ˆç®—ã™ã‚‹ï¼
 	Profiler	profiler(1);
-	Image<out_t>	outGold;
+	Image<out_t>	outGold(in.width(), in.height());
 #if 0
 	for (u_int n = 0; n < 10; ++n)
 	{
@@ -121,18 +121,18 @@ main(int argc, char *argv[])
 	    profiler.stop().nextFrame();
 	}
 #else
-	GaussianConvolver2	convolver(sigma);
+	GaussianConvolver2<out_t>	convolver(sigma);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);
-	    convolver.smooth(in, outGold);
+	    convolver.smooth(in.begin(), in.end(), outGold.begin());
 	    profiler.stop().nextFrame();
 	}
 #endif
 	profiler.print(cerr);
 	outGold.save(cout);
 
-      // ·ë²Ì¤òÈæ³Ó¤¹¤ë¡¥
+      // çµæœã‚’æ¯”è¼ƒã™ã‚‹ï¼
 	for (u_int u = lobeSize; u < out.width() - lobeSize; ++u)
 	    cerr << ' ' << out[240][u] - outGold[240][u];
 	cerr <<  endl;

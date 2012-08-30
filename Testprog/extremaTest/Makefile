@@ -1,13 +1,13 @@
 #
-#  $Id: Makefile,v 1.3 2012-01-23 06:09:36 ueshiba Exp $
+#  $Id: Makefile,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/bin
-INCDIRS		= -I.. -I../FilterTest -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
+INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
 
-PROGRAM		= filterImage
+PROGRAM		= $(shell basename $(PWD))
 LIBS		= -lTUTools++ -lTUCuda++
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64
@@ -16,11 +16,12 @@ else
 endif
 
 CPPFLAGS	=
-CFLAGS		= -O
-NVCCFLAGS	= -O
-ifeq ($(CCC), icpc)
+CFLAGS		= -g
+NVCCFLAGS	= -g
+ifeq ($(CXX), icpc)
   CFLAGS	= -O3
-  CPPFLAGS     += -DSSSE3
+  NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
+  CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
@@ -31,10 +32,10 @@ LINKER		= $(NVCC)
 #  Macros set by mkmf	#
 #########################
 .SUFFIXES:	.cu
-SUFFIX		= .cc:sC .cu:sC
-EXTHDRS		= ../TU/CudaUtility.h \
-		../TU/TU/CudaArray++.h \
-		/usr/local/include/TU/Array++.h \
+SUFFIX		= .cc:sC .cu:sC .cpp:sC
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/CudaArray++.h \
+		/usr/local/include/TU/CudaUtility.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/IIRFilter.h \
@@ -42,33 +43,25 @@ EXTHDRS		= ../TU/CudaUtility.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Vector++.h \
+		/usr/local/include/TU/algorithm.h \
+		/usr/local/include/TU/functional.h \
+		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/mmInstructions.h \
-		/usr/local/include/TU/types.h \
-		/usr/local/include/TU/utility.h
+		/usr/local/include/TU/types.h
 HDRS		=
 SRCS		= main.cc
 OBJS		= main.o
-
-#########################
-#  Macros used by RCS	#
-#########################
-REV		= $(shell echo $Revision: 1.3 $	|		\
-		  sed 's/evision://'		|		\
-		  awk -F"."					\
-		  '{						\
-		      for (count = 1; count < NF; count++)	\
-			  printf("%d.", $$count);		\
-		      printf("%d", $$count + 1);		\
-		  }')
 
 include $(PROJECT)/lib/p.mk
 
 ###
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
-	../TU/CudaUtility.h ../TU/TU/CudaArray++.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/types.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Profiler.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/CudaUtility.h \
+	/usr/local/include/TU/CudaArray++.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	/usr/local/include/TU/IIRFilter.h \
 	/usr/local/include/TU/mmInstructions.h

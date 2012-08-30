@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.6 2012-08-29 22:43:57 ueshiba Exp $
+ *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 	    profiler.stop().nextFrame();
 	}
 #else
-	GaussianConvolver2<out_t>	convolver(sigma);
+	GaussianConvolver2<float>	convolver(sigma);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);

@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.5 2011-04-21 07:01:44 ueshiba Exp $
+ *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <fstream>
 #include <stdexcept>

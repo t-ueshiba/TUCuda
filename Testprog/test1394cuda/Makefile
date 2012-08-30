@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.8 2012-01-23 00:22:37 ueshiba Exp $
+#  $Id: Makefile,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -55,7 +55,7 @@ OBJS		= cuda_image_interpolate.o \
 #########################
 #  Macros used by RCS	#
 #########################
-REV		= $(shell echo $Revision: 1.8 $	|		\
+REV		= $(shell echo $Revision: 1.1 $	|		\
 		  sed 's/evision://'		|		\
 		  awk -F"."					\
 		  '{						\

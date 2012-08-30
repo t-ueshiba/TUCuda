@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.1 2011-04-21 07:01:17 ueshiba Exp $
+ *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
@@ -21,25 +21,25 @@ main(int argc, char *argv[])
     try
     {
 	Image<pixel_t>	image;
-	image.restore(cin);				// ¸¶²èÁü¤òÆÉ¤ß¹ş¤à
+	image.restore(cin);				// åŸç”»åƒã‚’èª­ã¿è¾¼ã‚€
 	image.save(cout);
 	
 	CudaArray2<pixel_t>	in_d(image), out_d;
 	
 	u_int		timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ¥¿¥¤¥Ş¡¼¤òºîÀ®
+	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’ä½œæˆ
 	cudaSubsample(in_d, out_d);			// warp-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaSubsample(in_d, out_d);			// ¼Â¹Ô
+	    cudaSubsample(in_d, out_d);			// å®Ÿè¡Œ
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ¥¿¥¤¥Ş¡¼¤ò¾Ãµî
+	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’æ¶ˆå»
 
 	out_d.write(image);
 	image.save(cout);

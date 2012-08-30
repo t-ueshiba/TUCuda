@@ -1,5 +1,5 @@
 /*
- *  $Id: filterImageGold.h,v 1.2 2012-08-29 22:43:57 ueshiba Exp $
+ *  $Id: filterImageGold.h,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include "TU/Image++.h"
 

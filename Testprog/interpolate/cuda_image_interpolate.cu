@@ -1,5 +1,5 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.6 2011-04-21 04:34:08 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include "TU/CudaArray++.h"
 #include "TU/Image++.h"

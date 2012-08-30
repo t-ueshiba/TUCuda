@@ -1,12 +1,11 @@
 /*
- *  $Id: main.cc,v 1.2 2011-04-28 07:59:22 ueshiba Exp $
+ *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <stdexcept>
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/utility.h"
+#include "TU/algorithm.h"
 #include "TU/CudaUtility.h"
-#include "TU/GaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -30,28 +29,18 @@ main(int argc, char *argv[])
   //typedef u_char	out_t;
     typedef float	out_t;
     
-    float		sigma = 1.0;
-    extern char*	optarg;
-    for (int c; (c = getopt(argc, argv, "s:")) != -1; )
-	switch (c)
-	{
-	  case 's':
-	    sigma = atof(optarg);
-	    break;
-	}
-    
     try
     {
 	Image<in_t>	in;
-	in.restore(cin);				// ¸¶²èÁü¤òÆÉ¤ß¹ş¤à
-	in.save(cout);					// ¸¶²èÁü¤ò¥»¡¼¥Ö
+	in.restore(cin);				// åŸç”»åƒã‚’èª­ã¿è¾¼ã‚€
+	in.save(cout);					// åŸç”»åƒã‚’ã‚»ãƒ¼ãƒ–
 
-      // GPU¤Ë¤è¤Ã¤Æ·×»»¤¹¤ë¡¥
+      // GPUã«ã‚ˆã£ã¦è¨ˆç®—ã™ã‚‹ï¼
 	CudaArray2<in_t>	in_d(in);
 	CudaArray2<out_t>	out_d;
 
 	u_int		timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ¥¿¥¤¥Ş¡¼¤òºîÀ®
+	CUT_SAFE_CALL(cutCreateTimer(&timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’ä½œæˆ
       //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// warm-up
 	cudaOp3x3(in_d, out_d, OP<in_t>());		// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
@@ -59,19 +48,19 @@ main(int argc, char *argv[])
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	  //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// ¥Õ¥£¥ë¥¿¥ê¥ó¥°
-	    cudaOp3x3(in_d, out_d, OP<in_t>());		// ¥Õ¥£¥ë¥¿¥ê¥ó¥°
+	  //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// ãƒ•ã‚£ãƒ«ã‚¿ãƒªãƒ³ã‚°
+	    cudaOp3x3(in_d, out_d, OP<in_t>());		// ãƒ•ã‚£ãƒ«ã‚¿ãƒªãƒ³ã‚°
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ¥¿¥¤¥Ş¡¼¤ò¾Ãµî
+	CUT_SAFE_CALL(cutDeleteTimer(timer));		// ã‚¿ã‚¤ãƒãƒ¼ã‚’æ¶ˆå»
 
 	Image<out_t>	out;
 	out_d.write(out);
-	out.save(cout);					// ·ë²Ì²èÁü¤ò¥»¡¼¥Ö
+	out.save(cout);					// çµæœç”»åƒã‚’ã‚»ãƒ¼ãƒ–
 #if 1
-      // CPU¤Ë¤è¤Ã¤Æ·×»»¤¹¤ë¡¥
+      // CPUã«ã‚ˆã£ã¦è¨ˆç®—ã™ã‚‹ï¼
 	Profiler	profiler(1);
 	Image<out_t>	outGold;
 	for (u_int n = 0; n < 10; ++n)
@@ -85,7 +74,7 @@ main(int argc, char *argv[])
 	profiler.print(cerr);
 	outGold.save(cout);
 
-      // ·ë²Ì¤òÈæ³Ó¤¹¤ë¡¥
+      // çµæœã‚’æ¯”è¼ƒã™ã‚‹ï¼
 	const int	V = 160;
 	for (u_int u = 0; u < out.width(); ++u)
 	    cerr << ' ' << (out[V][u] - outGold[V][u]);

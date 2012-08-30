@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.2 2012-08-30 12:19:21 ueshiba Exp $
+#  $Id: Makefile,v 1.3 2012-08-30 12:25:01 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -8,14 +8,14 @@ DEST		= $(PREFIX)/bin
 INCDIRS		= -I../filterTest -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
 
 PROGRAM		= $(shell basename $(PWD))
-LIBS		= -lTUTools++ -lTUCuda++
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64 -lsvml
 else
   LIBS	       += -lcutil_$(shell uname -m)
 endif
 
-CPPFLAGS	=
+CPPFLAGS	= -DUSE_TBB
 CFLAGS		= -g
 NVCCFLAGS	= -g
 ifeq ($(CXX), icpc)

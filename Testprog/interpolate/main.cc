@@ -1,5 +1,5 @@
 /*
- *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
+ *  $Id: main.cc,v 1.2 2012-08-30 12:19:21 ueshiba Exp $
  */
 #include <fstream>
 #include <stdexcept>
@@ -22,7 +22,8 @@ main(int argc, char *argv[])
     
     try
     {
-	Image<RGBA>	images[3];
+      //Image<RGBA>	images[3];
+	Image<u_char>	images[3];
 
       // Restore a pair of input images.
 	fstream		in;

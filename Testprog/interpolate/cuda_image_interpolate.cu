@@ -1,5 +1,5 @@
 /*
- * $Id: cuda_image_interpolate.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
+ * $Id: cuda_image_interpolate.cu,v 1.2 2012-08-30 12:19:21 ueshiba Exp $
  */
 #include "TU/CudaArray++.h"
 #include "TU/Image++.h"
@@ -13,7 +13,8 @@ interpolate_pixel(T s0, T s1, float r0, float r1)
 {
     return s0 * r0 + s1 * r1;
 }
-    
+
+#if 0
 template <> __device__ RGBA
 interpolate_pixel(RGBA s0, RGBA s1, float r0, float r1)
 {
@@ -24,6 +25,7 @@ interpolate_pixel(RGBA s0, RGBA s1, float r0, float r1)
     
     return val;
 }
+#endif
     
 template <class T> __global__ void
 interpolate_kernel(const T* src0, const T* src1, T* dst,
@@ -78,9 +80,11 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
 template void	interpolate(const Image<u_char>& image0,
 			    const Image<u_char>& image1,
 				  Image<u_char>& image2)	;
+  /*
 template void	interpolate(const Image<RGBA>&   image0,
 			    const Image<RGBA>&   image1,
 				  Image<RGBA>&   image2)	;
+  */
   /*
 template void	interpolate(const Image<float4>& image0,
 			    const Image<float4>& image1,

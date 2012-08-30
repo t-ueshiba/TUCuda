@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.16 2012-08-29 21:17:00 ueshiba Exp $
+#  $Id: Makefile,v 1.17 2012-08-30 12:19:21 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -20,7 +20,7 @@ ifeq ($(CXX), icpc)
 endif
 CCFLAGS		= $(CFLAGS)
 
-LINKER		= $(CXX)
+LINKER		= $(NVCC)
 
 #########################
 #  Macros set by mkmf	#

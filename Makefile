@@ -1,12 +1,12 @@
 #
-#  $Id: Makefile,v 1.17 2012-08-30 12:19:21 ueshiba Exp $
+#  $Id: Makefile,v 1.18 2012-09-01 05:36:56 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
 INCDIR		= $(PREFIX)/include/TU
-INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include
+INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
 

@@ -1,5 +1,5 @@
 #
-#  $Id: Makefile,v 1.19 2012-09-15 05:05:50 ueshiba Exp $
+#  $Id: Makefile,v 1.20 2012-09-15 07:21:00 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
@@ -27,7 +27,8 @@ LINKER		= $(NVCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC .cpp:sC
-EXTHDRS		=
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/types.h
 HDRS		= TU/CudaArray++.h \
 		TU/CudaFilter.h \
 		TU/CudaGaussianConvolver.h \

@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaUtility.h,v 1.8 2012-08-29 21:17:00 ueshiba Exp $
+ *  $Id: CudaUtility.h,v 1.1 2012-09-15 05:05:51 ueshiba Exp $
  */
 /*!
   \file		CudaUtility.h

@@ -1,11 +1,11 @@
 #
-#  $Id: Makefile,v 1.18 2012-09-01 05:36:56 ueshiba Exp $
+#  $Id: Makefile,v 1.19 2012-09-15 05:05:50 ueshiba Exp $
 #
 #################################
 #  User customizable macros	#
 #################################
 DEST		= $(PREFIX)/lib
-INCDIR		= $(PREFIX)/include/TU
+INCDIR		= $(PREFIX)/include
 INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
@@ -27,17 +27,12 @@ LINKER		= $(NVCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC .cpp:sC
-EXTHDRS		= /usr/local/include/TU/Array++.h \
-		/usr/local/include/TU/types.h \
+EXTHDRS		=
+HDRS		= TU/CudaArray++.h \
 		TU/CudaFilter.h \
 		TU/CudaGaussianConvolver.h \
-		TU/CudaUtility.h \
-		TU/TU/CudaArray++.h
-HDRS		= CudaArray++.h \
-		CudaFilter.h \
-		CudaGaussianConvolver.h \
-		CudaTexture.h \
-		CudaUtility.h
+		TU/CudaTexture.h \
+		TU/CudaUtility.h
 SRCS		= CudaFilter.cu \
 		CudaGaussianConvolver.cc \
 		cudaOp3x3.cu \
@@ -51,15 +46,15 @@ OBJS		= CudaFilter.o \
 
 include $(PROJECT)/lib/l.mk
 ###
-CudaFilter.o: TU/CudaFilter.h TU/TU/CudaArray++.h \
+CudaFilter.o: TU/CudaFilter.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	TU/CudaUtility.h
 CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
-	TU/TU/CudaArray++.h /usr/local/include/TU/Array++.h \
+	TU/CudaArray++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/types.h
-cudaOp3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
+cudaOp3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
-cudaSubsample.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
+cudaSubsample.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
-cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/TU/CudaArray++.h \
+cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h

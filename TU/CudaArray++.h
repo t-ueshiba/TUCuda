@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaArray++.h,v 1.10 2012-08-29 21:17:00 ueshiba Exp $
+ *  $Id: CudaArray++.h,v 1.1 2012-09-15 05:05:51 ueshiba Exp $
  */
 /*!
   \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ

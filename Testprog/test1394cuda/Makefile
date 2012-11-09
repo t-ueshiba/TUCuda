@@ -35,17 +35,18 @@ LINKER		= $(NVCC)
 #########################
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC
-EXTHDRS		= ../TU/CudaArray++.h \
-		/usr/local/include/TU/Array++.h \
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/CudaArray++.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Ieee1394++.h \
 		/usr/local/include/TU/Ieee1394CameraArray.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Vector++.h \
+		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/io.h \
-		/usr/local/include/TU/types.h \
-		/usr/local/include/TU/utility.h
+		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/types.h
 HDRS		=
 SRCS		= cuda_image_interpolate.cu \
 		main.cc
@@ -67,14 +68,14 @@ REV		= $(shell echo $Revision: 1.1 $	|		\
 include $(PROJECT)/lib/p.mk
 
 ###
-cuda_image_interpolate.o: ../TU/CudaArray++.h \
+cuda_image_interpolate.o: /usr/local/include/TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/utility.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Minimize.h
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Minimize.h
 main.o: /usr/local/include/TU/Ieee1394CameraArray.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Ieee1394++.h /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/utility.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/io.h
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/functional.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/io.h

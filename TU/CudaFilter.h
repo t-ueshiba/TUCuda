@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaFilter.h,v 1.1 2012-09-15 05:05:51 ueshiba Exp $
+ *  $Id$
  */
 /*!
   \file		CudaFilter.h

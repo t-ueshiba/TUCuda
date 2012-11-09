@@ -1,5 +1,5 @@
 /*
- *  $Id: CudaGaussianConvolver.cc,v 1.2 2012-08-29 21:17:00 ueshiba Exp $
+ *  $Id$
  */
 #include "TU/CudaGaussianConvolver.h"
 #include <cmath>

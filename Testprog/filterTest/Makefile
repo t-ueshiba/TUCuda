@@ -8,7 +8,7 @@ DEST		= $(PREFIX)/bin
 INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
 
 PROGRAM		= $(shell basename $(PWD))
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -limf
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -limf -lintlc
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64
 else

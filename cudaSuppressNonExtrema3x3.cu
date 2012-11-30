@@ -128,7 +128,7 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()     / (2*threads.x),
 		       (out.nrow() - 2) / (2*threads.y));
-    extrema3x3_kernel<<<blocks, threads>>>((const T*)in[1], (T*)out[1],
+    extrema3x3_kernel<<<blocks, threads>>>(in[1].ptr(), out[1].ptr(),
 					   in.stride(), out.stride(),
 					   op, nulval);
 
@@ -139,7 +139,7 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
 	return;
     blocks.x = out.stride() / (2*threads.x);
     blocks.y = 1;
-    extrema3x3_kernel<<<blocks, threads>>>((const T*)in[ys], (T*)out[ys],
+    extrema3x3_kernel<<<blocks, threads>>>(in[ys].ptr(), out[ys].ptr(),
 					   in.stride(), out.stride(),
 					   op, nulval);
 
@@ -148,8 +148,8 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
 	return;
     int	xs = out.stride() - 2*threads.x;
     blocks.x = 1;
-    extrema3x3_kernel<<<blocks, threads>>>((const T*)in[ys]  + xs,
-					   (	  T*)out[ys] + xs,
+    extrema3x3_kernel<<<blocks, threads>>>(in[ys].ptr()  + xs,
+					   out[ys].ptr() + xs,
 					   in.stride(), out.stride(),
 					   op, nulval);
 }

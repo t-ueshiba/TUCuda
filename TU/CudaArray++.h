@@ -104,7 +104,8 @@ class CudaBuf
 
     pointer		ptr()						;
     const_pointer	ptr()					const	;
-    size_t		size()					const	;
+    u_int		size()					const	;
+    u_int		dim()					const	;
     bool		resize(u_int siz)				;
     void		resize(pointer p, u_int siz)			;
     static u_int	stride(u_int siz)				;
@@ -185,8 +186,15 @@ CudaBuf<T>::ptr() const
 }
     
 //! バッファの要素数を返す．
-template <class T> inline size_t
+template <class T> inline u_int
 CudaBuf<T>::size() const
+{
+    return _size;
+}
+    
+//! バッファの要素数を返す．
+template <class T> inline u_int
+CudaBuf<T>::dim() const
 {
     return _size;
 }
@@ -335,8 +343,8 @@ class CudaArray : public Array<T, CudaBuf<T> >
     typedef Array<T, CudaBuf<T> >		super;
 
   public:
-  //! バッファの型
-    typedef typename super::buf_type		buf_type;
+  //! 成分の型
+    typedef typename super::element_type	element_type;
   //! 要素の型    
     typedef typename super::value_type		value_type;
   //! 要素への参照
@@ -359,9 +367,9 @@ class CudaArray : public Array<T, CudaBuf<T> >
   //! ポインタ間の差
     typedef typename super::difference_type	difference_type;
   //! 要素への直接ポインタ
-    typedef value_type*				raw_pointer;
+    typedef element_type*			raw_pointer;
   //! 定数要素への直接ポインタ
-    typedef const value_type*			const_raw_pointer;
+    typedef const element_type*			const_raw_pointer;
     
   public:
     CudaArray()								;
@@ -374,10 +382,10 @@ class CudaArray : public Array<T, CudaBuf<T> >
     CudaArray&	operator =(const Array<T, B>& a)			;
     template <class B> const CudaArray&
 		write(Array<T, B>& a)				const	;
-    CudaArray&	operator =(const value_type& c)				;
+    CudaArray&	operator =(const element_type& c)			;
 
-		operator raw_pointer()					;
-		operator const_raw_pointer()			const	;
+    raw_pointer		ptr()						;
+    const_raw_pointer	ptr()					const	;
     
     using	super::begin;
     using	super::end;
@@ -473,7 +481,7 @@ CudaArray<T>::write(Array<T, B>& a) const
   \return	この配列
 */
 template <class T> inline CudaArray<T>&
-CudaArray<T>::operator =(const value_type& c)
+CudaArray<T>::operator =(const element_type& c)
 {
     thrust::fill(begin(), end(), c);
     return *this;
@@ -483,20 +491,20 @@ CudaArray<T>::operator =(const value_type& c)
 /*!
   \return	内部記憶領域へのポインタ
 */
-template <class T> inline
-CudaArray<T>::operator raw_pointer()
+template <class T> inline typename CudaArray<T>::raw_pointer
+CudaArray<T>::ptr()
 {
-    return super::operator pointer().get();
+    return super::ptr().get();
 }
 		    
 //! このCUDA配列の内部記憶領域へのポインタを返す．
 /*!
   \return	内部記憶領域へのポインタ
 */
-template <class T> inline
-CudaArray<T>::operator const_raw_pointer() const
+template <class T> inline typename CudaArray<T>::const_raw_pointer
+CudaArray<T>::ptr() const
 {
-    return super::operator const_pointer().get();
+    return super::ptr().get();
 }
 		    
 /************************************************************************
@@ -510,49 +518,36 @@ template <class T>
 class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 {
   private:
-    typedef Array2<CudaArray<T>, CudaBuf<T> >	super;
+    typedef Array2<CudaArray<T>, CudaBuf<T> >		super;
+    typedef CudaBuf<T>					buf_type;
     
   public:
-  //! 行バッファの型
-    typedef typename super::row_buf_type	row_buf_type;
   //! 行の型    
-    typedef typename super::row_type		row_type;
+    typedef typename super::value_type			value_type;
   //! 行への参照    
-    typedef typename super::row_reference	row_reference;
+    typedef typename super::reference			reference;
   //! 定数行への参照    
-    typedef typename super::row_const_reference	row_const_reference;
-  //! 行へのポインタ    
-    typedef typename super::row_pointer		row_pointer;
-  //! 定数行へのポインタ    
-    typedef typename super::row_const_pointer	row_const_pointer;
+    typedef typename super::const_reference		const_reference;
   //! 行の反復子    
-    typedef typename super::row_iterator	row_iterator;
+    typedef typename super::iterator			iterator;
   //! 行の定数反復子    
-    typedef typename super::row_const_iterator	row_const_iterator;
+    typedef typename super::const_iterator		const_iterator;
   //! 行の逆反復子    
-    typedef typename super::row_reverse_iterator
-						row_reverse_iterator;
+    typedef typename super::reverse_iterator		reverse_iterator;
   //! 行の定数逆反復子    
-    typedef typename super::row_const_reverse_iterator
-						row_const_reverse_iterator;
-  //! バッファの型    
-    typedef typename super::buf_type		buf_type;
-  //! 要素の型    
-    typedef typename super::value_type		value_type;
-  //! 要素への参照    
-    typedef typename super::reference		reference;
-  //! 定数要素への参照    
-    typedef typename super::const_reference	const_reference;
-  //! 要素へのポインタ    
-    typedef typename super::pointer		pointer;
-  //! 定数要素へのポインタ    
-    typedef typename super::const_pointer	const_pointer;
+    typedef typename super::const_reverse_iterator	const_reverse_iterator;
+  //! 成分の型    
+    typedef typename super::element_type		element_type;
+  //! 成分へのポインタ    
+    typedef typename super::pointer			pointer;
+  //! 定数成分へのポインタ    
+    typedef typename super::const_pointer		const_pointer;
+  //! 成分への直接ポインタ    
+    typedef element_type*				raw_pointer;
+  //! 定数成分への直接ポインタ    
+    typedef const element_type*				const_raw_pointer;
   //! ポインタ間の差    
-    typedef typename super::difference_type	difference_type;
-  //! 要素への直接ポインタ
-    typedef value_type*				raw_pointer;
-  //! 定数要素への直接ポインタ
-    typedef const value_type*			const_raw_pointer;
+    typedef std::ptrdiff_t				difference_type;
 
   public:
     CudaArray2()							;
@@ -565,9 +560,10 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
     CudaArray2&	operator =(const Array2<T2, B2, R2>& a)			;
     template <class T2, class B2, class R2> const CudaArray2&
 		write(Array2<T2, B2, R2>& a)			const	;
-    CudaArray2&	operator =(const value_type& c)				;
-		operator raw_pointer()					;
-		operator const_raw_pointer()			const	;
+    CudaArray2&	operator =(const element_type& c)			;
+
+    raw_pointer		ptr()						;
+    const_raw_pointer	ptr()					const	;
 
     using	super::begin;
     using	super::end;
@@ -687,7 +683,7 @@ CudaArray2<T>::write(Array2<T2, B2, R2>& a) const
   \return	この配列
 */
 template <class T> inline CudaArray2<T>&
-CudaArray2<T>::operator =(const value_type& c)
+CudaArray2<T>::operator =(const element_type& c)
 {
     if (nrow() > 0)
 	thrust::fill((*this)[0].begin(), (*this)[nrow()-1].end(), c);
@@ -699,20 +695,20 @@ CudaArray2<T>::operator =(const value_type& c)
   
   \return	内部記憶領域へのポインタ
 */
-template <class T> inline
-CudaArray2<T>::operator raw_pointer()
+template <class T> inline typename CudaArray2<T>::raw_pointer
+CudaArray2<T>::ptr()
 {
-    return super::operator pointer().get();
+    return super::ptr().get();
 }
 		    
 //! この2次元CUDA配列の内部記憶領域へのポインタを返す．
 /*!
   \return	内部記憶領域へのポインタ
 */
-template <class T> inline
-CudaArray2<T>::operator const_raw_pointer() const
+template <class T> inline typename CudaArray2<T>::const_raw_pointer
+CudaArray2<T>::ptr() const
 {
-    return super::operator const_pointer().get();
+    return super::ptr().get();
 }
 
 }

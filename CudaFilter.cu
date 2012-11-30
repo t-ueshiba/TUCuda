@@ -155,24 +155,24 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     int		xs = lobeSize;
     dim3	threads(lobeSize, BlockDimY);
     dim3	blocks((BlockDimX - xs) / threads.x, 1);
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
-						(      T*)out[0] + xs,
+    filter_kernel<true, L><<<blocks, threads>>>(in[0].ptr()  + xs,
+						out[0].ptr() + xs,
 						in.stride(), out.stride());
     xs += blocks.x * threads.x;
 
   // 右上
     threads.x = BlockDimX;
     blocks.x  = (out.stride() - xs) / threads.x;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[0]  + xs,
-						(      T*)out[0] + xs,
+    filter_kernel<true, L><<<blocks, threads>>>(in[0].ptr()  + xs,
+						out[0].ptr() + xs,
 						in.stride(), out.stride());
 
   // 中央
     int		ys = blocks.y * threads.y;
     blocks.x = out.stride() / threads.x;
     blocks.y = (out.nrow() - ys) / threads.y;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
-						(      T*)out[ys] + xs,
+    filter_kernel<true, L><<<blocks, threads>>>(in[ys].ptr()  + xs,
+						out[ys].ptr() + xs,
 						in.stride(), out.stride());
     ys += blocks.y * threads.y;
     
@@ -180,16 +180,15 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     blocks.x  = (out.stride() - lobeSize) / threads.x;
     threads.y = out.nrow() - ys;
     blocks.y  = 1;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys],
-						(      T*)out[ys],
+    filter_kernel<true, L><<<blocks, threads>>>(in[ys].ptr(), out[ys].ptr(),
 						in.stride(), out.stride());
     xs = blocks.x * threads.x;
 
   // 右下
     threads.x = lobeSize;
     blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
-    filter_kernel<true, L><<<blocks, threads>>>((const S*)in[ys]  + xs,
-						(      T*)out[ys] + xs,
+    filter_kernel<true, L><<<blocks, threads>>>(in[ys].ptr()  + xs,
+						out[ys].ptr() + xs,
 						in.stride(), out.stride());
 }
     
@@ -202,14 +201,14 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     int		ys = lobeSize;
     dim3	threads(BlockDimX, lobeSize);
     dim3	blocks(out.stride() / threads.x, (BlockDimY - ys) / threads.y);
-    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+    filter_kernel<false, L><<<blocks, threads>>>(in[ys].ptr(), out[ys].ptr(),
 						 in.stride(), out.stride());
     ys += blocks.y * threads.y;
 
   // BlockDimY行以上が残るように縦方向スレッド数をBlockDimYにして処理
     threads.y = BlockDimY;
     blocks.y  = (out.nrow() - ys) / threads.y - 1;
-    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+    filter_kernel<false, L><<<blocks, threads>>>(in[ys].ptr(), out[ys].ptr(),
 						 in.stride(), out.stride());
     ys += blocks.y * threads.y;
 
@@ -217,7 +216,7 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     threads.y = lobeSize;
     blocks.y  = (out.nrow() - ys - 1) / threads.y;
     ys = out.nrow() - (1 + blocks.y) * threads.y;
-    filter_kernel<false, L><<<blocks, threads>>>((const S*)in[ys], (T*)out[ys],
+    filter_kernel<false, L><<<blocks, threads>>>(in[ys].ptr(), out[ys].ptr(),
 						 in.stride(), out.stride());
 }
     

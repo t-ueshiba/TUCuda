@@ -102,8 +102,8 @@ class CudaBuf
     CudaBuf&		operator =(const CudaBuf& b)			;
     ~CudaBuf()								;
 
-    pointer		ptr()						;
-    const_pointer	ptr()					const	;
+    pointer		data()						;
+    const_pointer	data()					const	;
     u_int		size()					const	;
     u_int		dim()					const	;
     bool		resize(u_int siz)				;
@@ -148,7 +148,7 @@ template <class T> inline
 CudaBuf<T>::CudaBuf(const CudaBuf<T>& b)
     :_size(b._size), _p(memalloc(_size)), _shared(false)
 {
-    thrust::copy(b.ptr(), b.ptr() + b.size(), ptr());
+    thrust::copy(b.data(), b.data() + b.size(), data());
 }
 
 //! 標準代入演算子
@@ -158,7 +158,7 @@ CudaBuf<T>::operator =(const CudaBuf<T>& b)
     if (this != &b)
     {
 	resize(b._size);
-	thrust::copy(b.ptr(), b.ptr() + b.size(), ptr());
+	thrust::copy(b.data(), b.data() + b.size(), data());
     }
     return *this;
 }
@@ -173,14 +173,14 @@ CudaBuf<T>::~CudaBuf()
     
 //! バッファが使用する内部記憶領域へのポインタを返す．
 template <class T> inline typename CudaBuf<T>::pointer
-CudaBuf<T>::ptr()
+CudaBuf<T>::data()
 {
     return _p;
 }
 
 //! バッファが使用する内部記憶領域へのポインタを返す．
 template <class T> inline typename CudaBuf<T>::const_pointer
-CudaBuf<T>::ptr() const
+CudaBuf<T>::data() const
 {
     return _p;
 }
@@ -384,8 +384,8 @@ class CudaArray : public Array<T, CudaBuf<T> >
 		write(Array<T, B>& a)				const	;
     CudaArray&	operator =(const element_type& c)			;
 
-    raw_pointer		ptr()						;
-    const_raw_pointer	ptr()					const	;
+    raw_pointer		data()						;
+    const_raw_pointer	data()					const	;
     
     using	super::begin;
     using	super::end;
@@ -492,9 +492,9 @@ CudaArray<T>::operator =(const element_type& c)
   \return	内部記憶領域へのポインタ
 */
 template <class T> inline typename CudaArray<T>::raw_pointer
-CudaArray<T>::ptr()
+CudaArray<T>::data()
 {
-    return super::ptr().get();
+    return super::data().get();
 }
 		    
 //! このCUDA配列の内部記憶領域へのポインタを返す．
@@ -502,9 +502,9 @@ CudaArray<T>::ptr()
   \return	内部記憶領域へのポインタ
 */
 template <class T> inline typename CudaArray<T>::const_raw_pointer
-CudaArray<T>::ptr() const
+CudaArray<T>::data() const
 {
-    return super::ptr().get();
+    return super::data().get();
 }
 		    
 /************************************************************************
@@ -562,8 +562,8 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 		write(Array2<T2, B2, R2>& a)			const	;
     CudaArray2&	operator =(const element_type& c)			;
 
-    raw_pointer		ptr()						;
-    const_raw_pointer	ptr()					const	;
+    raw_pointer		data()						;
+    const_raw_pointer	data()					const	;
 
     using	super::begin;
     using	super::end;
@@ -696,9 +696,9 @@ CudaArray2<T>::operator =(const element_type& c)
   \return	内部記憶領域へのポインタ
 */
 template <class T> inline typename CudaArray2<T>::raw_pointer
-CudaArray2<T>::ptr()
+CudaArray2<T>::data()
 {
-    return super::ptr().get();
+    return super::data().get();
 }
 		    
 //! この2次元CUDA配列の内部記憶領域へのポインタを返す．
@@ -706,9 +706,9 @@ CudaArray2<T>::ptr()
   \return	内部記憶領域へのポインタ
 */
 template <class T> inline typename CudaArray2<T>::const_raw_pointer
-CudaArray2<T>::ptr() const
+CudaArray2<T>::data() const
 {
-    return super::ptr().get();
+    return super::data().get();
 }
 
 }

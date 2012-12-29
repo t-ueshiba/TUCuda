@@ -79,7 +79,7 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
   // Å‰‚ÆÅŒã‚Ìs‚ğœ‚¢‚½ (out.nrow() - 2) x out.stride() ‚Ì”z—ñ‚Æ‚µ‚Äˆµ‚¤
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()/threads.x, (out.nrow() - 2)/threads.y);
-    op3x3_kernel<<<blocks, threads>>>(in[1].ptr(), out[1].ptr(),
+    op3x3_kernel<<<blocks, threads>>>(in[1].data(), out[1].data(),
 				      in.stride(), out.stride(), op);
 
   // ¶‰º
@@ -89,7 +89,7 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 	return;
     blocks.x = out.stride() / threads.x;
     blocks.y = 1;
-    op3x3_kernel<<<blocks, threads>>>(in[top].ptr(), out[top].ptr(),
+    op3x3_kernel<<<blocks, threads>>>(in[top].data(), out[top].data(),
 				      in.stride(), out.stride(), op);
 
   // ‰E‰º
@@ -97,8 +97,8 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 	return;
     int	lft = out.stride() - threads.x;
     blocks.x = 1;
-    op3x3_kernel<<<blocks, threads>>>(in[top].ptr()  + lft,
-				      out[top].ptr() + lft,
+    op3x3_kernel<<<blocks, threads>>>(in[top].data()  + lft,
+				      out[top].data() + lft,
 				      in.stride(), out.stride(), op);
 }
 

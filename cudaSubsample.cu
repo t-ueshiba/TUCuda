@@ -50,15 +50,15 @@ cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)
     dim3	blocks(out.ncol() / threads.x, out.nrow() / threads.y);
 
   // 左上
-    subsample_kernel<<<blocks, threads>>>(in.ptr(), out.ptr(),
+    subsample_kernel<<<blocks, threads>>>(in.data(), out.data(),
 					  in.stride(), out.stride());
 
   // 下端
     uint	bottom = blocks.y * threads.y;
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
-    subsample_kernel<<<blocks, threads>>>(in.ptr()  + bottom * in.stride(),
-					  out.ptr() + bottom * out.stride(),
+    subsample_kernel<<<blocks, threads>>>(in.data()  + bottom * in.stride(),
+					  out.data() + bottom * out.stride(),
 					  in.stride(), out.stride());
 
   // 右端
@@ -67,17 +67,17 @@ cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)
     blocks.x  = 1;
     threads.y = BlockDimY;
     blocks.y  = out.nrow() / threads.y;
-    subsample_kernel<<<blocks, threads>>>(in.ptr()  + right,
-					  out.ptr() + right,
+    subsample_kernel<<<blocks, threads>>>(in.data()  + right,
+					  out.data() + right,
 					  in.stride(), out.stride());
 
   // 右下
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
-    subsample_kernel<<<blocks, threads>>>(in.ptr()  + bottom * in.stride()
-							+ right,
-					  out.ptr() + bottom * out.stride()
-							+ right,
+    subsample_kernel<<<blocks, threads>>>(in.data()  + bottom * in.stride()
+						     + right,
+					  out.data() + bottom * out.stride()
+						     + right,
 					  in.stride(), out.stride());
 }
 

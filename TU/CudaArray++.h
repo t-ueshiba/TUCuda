@@ -88,12 +88,16 @@ class CudaBuf
     typedef T						value_type;
   //! 要素への参照    
     typedef thrust::device_reference<value_type>	reference;
-  //! 要素への参照    
+  //! 定数要素への参照    
     typedef thrust::device_reference<const value_type>	const_reference;
   //! 要素へのポインタ    
     typedef thrust::device_ptr<value_type>		pointer;
-  //! 要素へのポインタ    
+  //! 定数要素へのポインタ    
     typedef thrust::device_ptr<const value_type>	const_pointer;
+  //! 反復子    
+    typedef pointer					iterator;
+  //! 定数反復子    
+    typedef const_pointer				const_iterator;
     
   public:
     explicit CudaBuf(u_int siz=0)					;

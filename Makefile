@@ -14,7 +14,7 @@ CPPFLAGS	=
 CFLAGS		= -g
 NVCCFLAGS	= -g
 ifeq ($(CXX), icpc)
-  CFLAGS	= -O3
+  CFLAGS	= -O3 -std=c++0x
   NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
   CPPFLAGS     += -DSSE3
 endif
@@ -28,6 +28,9 @@ LINKER		= $(NVCC)
 .SUFFIXES:	.cu
 SUFFIX		= .cc:sC .cu:sC .cpp:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/functional.h \
+		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/mmInstructions.h \
 		/usr/local/include/TU/types.h
 HDRS		= TU/CudaArray++.h \
 		TU/CudaFilter.h \
@@ -49,13 +52,22 @@ include $(PROJECT)/lib/l.mk
 ###
 CudaFilter.o: TU/CudaFilter.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	TU/CudaUtility.h
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h TU/CudaUtility.h
 CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 	TU/CudaArray++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/types.h
+	/usr/local/include/TU/types.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h
 cudaOp3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h
 cudaSubsample.o: TU/CudaUtility.h TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h
 cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h

@@ -108,6 +108,12 @@ class CudaBuf
 
     pointer		data()						;
     const_pointer	data()					const	;
+    const_iterator	cbegin()				const	;
+    const_iterator	begin()					const	;
+    iterator		begin()						;
+    const_iterator	cend()					const	;
+    const_iterator	end()					const	;
+    iterator		end()						;
     u_int		size()					const	;
     u_int		dim()					const	;
     bool		resize(u_int siz)				;
@@ -152,7 +158,7 @@ template <class T> inline
 CudaBuf<T>::CudaBuf(const CudaBuf<T>& b)
     :_size(b._size), _p(memalloc(_size)), _shared(false)
 {
-    thrust::copy(b.data(), b.data() + b.size(), data());
+    thrust::copy(b.cbegin(), b.cend(), begin());
 }
 
 //! 標準代入演算子
@@ -162,7 +168,7 @@ CudaBuf<T>::operator =(const CudaBuf<T>& b)
     if (this != &b)
     {
 	resize(b._size);
-	thrust::copy(b.data(), b.data() + b.size(), data());
+	thrust::copy(b.cbegin(), b.cend(), begin());
     }
     return *this;
 }
@@ -189,6 +195,48 @@ CudaBuf<T>::data() const
     return _p;
 }
     
+//! バッファの先頭要素を指す定数反復子を返す．
+template <class T> inline typename CudaBuf<T>::const_iterator
+CudaBuf<T>::cbegin() const
+{
+    return data();
+}
+
+//! バッファの先頭要素を指す定数反復子を返す．
+template <class T> inline typename CudaBuf<T>::const_iterator
+CudaBuf<T>::begin() const
+{
+    return cbegin();
+}
+
+//! バッファの先頭要素を指す反復子を返す．
+template <class T> inline typename CudaBuf<T>::iterator
+CudaBuf<T>::begin()
+{
+    return data();
+}
+
+//! バッファの末尾を指す定数反復子を返す．
+template <class T> inline typename CudaBuf<T>::const_iterator
+CudaBuf<T>::cend() const
+{
+    return cbegin() + size();
+}
+
+//! バッファの末尾を指す定数反復子を返す．
+template <class T> inline typename CudaBuf<T>::const_iterator
+CudaBuf<T>::end() const
+{
+    return cend();
+}
+
+//! バッファの末尾を指す反復子を返す．
+template <class T> inline typename CudaBuf<T>::iterator
+CudaBuf<T>::end()
+{
+    return begin() + size();
+}
+
 //! バッファの要素数を返す．
 template <class T> inline u_int
 CudaBuf<T>::size() const

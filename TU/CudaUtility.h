@@ -5,8 +5,8 @@
   \file		CudaUtility.h
   \brief	各種オペレータの定義と実装
 */ 
-#ifndef __TUCudaUtility_h
-#define __TUCudaUtility_h
+#ifndef __TU_CUDAUTILITY_H
+#define __TU_CUDAUTILITY_H
 
 #include "TU/CudaArray++.h"
 #include <cmath>
@@ -193,5 +193,4 @@ template <class T, class OP> void
 cudaSuppressNonExtrema3x3(const CudaArray2<T>& in, CudaArray2<T>& out,
 			  OP op, T nulval=0)				;
 }
-
-#endif	// !__TUCudaUtility_h
+#endif	// !__TU_CUDAUTILITY_H

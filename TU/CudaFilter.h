@@ -5,8 +5,8 @@
   \file		CudaFilter.h
   \brief	フィルタの定義と実装
 */ 
-#ifndef __TUCudaFilter_h
-#define __TUCudaFilter_h
+#ifndef __TU_CUDAFILTER_H
+#define __TU_CUDAFILTER_H
 
 #include "TU/CudaArray++.h"
 
@@ -38,5 +38,4 @@ class CudaFilter2
 };
     
 }
-
-#endif	// !__TUCudaFilter_h
+#endif	// !__TU_CUDAFILTER_H

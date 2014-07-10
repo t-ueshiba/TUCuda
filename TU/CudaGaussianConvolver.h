@@ -5,6 +5,9 @@
   \file		CudaGaussianConvolver.h
   \brief	Gauss核による畳み込みに関連するクラスの定義と実装
 */ 
+#ifndef __TU_CUDAGAUSSIANCONVOLVER_H
+#define __TU_CUDAGAUSSIANCONVOLVER_H
+
 #include "TU/CudaFilter.h"
 
 namespace TU
@@ -134,3 +137,4 @@ CudaGaussianConvolver2::diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)
 }
     
 }
+#endif	// !__TU_CUDAGAUSSIANCONVOLVER_H

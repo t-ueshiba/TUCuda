@@ -56,8 +56,8 @@
   \file		CudaArray++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
 */
-#ifndef __TUCudaArrayPP_h
-#define __TUCudaArrayPP_h
+#ifndef __TU_CUDAARRAYPP_H
+#define __TU_CUDAARRAYPP_H
 
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
@@ -764,4 +764,4 @@ CudaArray2<T>::data() const
 }
 
 }
-#endif	/* !__TUCudaArrayPP_h */
+#endif	// !__TU_CUDAARRAYPP_H

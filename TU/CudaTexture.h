@@ -5,8 +5,8 @@
   \file		CudaTexture.h
   \brief	CUDAテクスチャメモリに関連するクラスの定義と実装
 */ 
-#ifndef __TUCudaTexture_h
-#define __TUCudaTexture_h
+#ifndef __TU_CUDATEXTURE_H
+#define __TU_CUDATEXTURE_H
 
 #include "TU/CudaArray++.h"
 #include <cuda_texture_types.h>
@@ -116,4 +116,4 @@ CudaTexture<T>::~CudaTexture()
 }
 
 }
-#endif	/* !__TUCudaTexture_h */
+#endif	// !__TU_CUDATEXTURE_H

@@ -100,11 +100,11 @@ class CudaBuf
     typedef const_pointer				const_iterator;
     
   public:
-    explicit CudaBuf(u_int siz=0)					;
-    CudaBuf(pointer p, u_int siz)					;
-    CudaBuf(const CudaBuf& b)						;
+    explicit		CudaBuf(size_t siz=0)				;
+			CudaBuf(pointer p, size_t siz)			;
+			CudaBuf(const CudaBuf& b)			;
     CudaBuf&		operator =(const CudaBuf& b)			;
-    ~CudaBuf()								;
+			~CudaBuf()					;
 
     pointer		data()						;
     const_pointer	data()					const	;
@@ -114,20 +114,20 @@ class CudaBuf
     const_iterator	cend()					const	;
     const_iterator	end()					const	;
     iterator		end()						;
-    u_int		size()					const	;
-    u_int		dim()					const	;
-    bool		resize(u_int siz)				;
-    void		resize(pointer p, u_int siz)			;
-    static u_int	stride(u_int siz)				;
-    std::istream&	get(std::istream& in, u_int m=0)		;
+    size_t		size()					const	;
+    size_t		dim()					const	;
+    bool		resize(size_t siz)				;
+    void		resize(pointer p, size_t siz)			;
+    static size_t	stride(size_t siz)				;
+    std::istream&	get(std::istream& in, size_t m=0)		;
     std::ostream&	put(std::ostream& out)			const	;
     
   private:
-    static pointer	memalloc(u_int siz)				;
+    static pointer	memalloc(size_t siz)				;
     static void		memfree(pointer p)				;
 
   private:
-    u_int	_size;		// the number of elements in the buffer
+    size_t	_size;		// the number of elements in the buffer
     pointer	_p;		// pointer to the buffer area
     bool	_shared;	// buffer area is shared with other object
 };
@@ -137,7 +137,7 @@ class CudaBuf
   \param siz	要素数
 */
 template <class T> inline
-CudaBuf<T>::CudaBuf(u_int siz)
+CudaBuf<T>::CudaBuf(size_t siz)
     :_size(siz), _p(memalloc(_size)), _shared(false)
 {
 }
@@ -148,7 +148,7 @@ CudaBuf<T>::CudaBuf(u_int siz)
   \param siz	要素数
 */
 template <class T> inline
-CudaBuf<T>::CudaBuf(pointer p, u_int siz)
+CudaBuf<T>::CudaBuf(pointer p, size_t siz)
     :_size(siz), _p(p), _shared(true)
 {
 }
@@ -238,14 +238,14 @@ CudaBuf<T>::end()
 }
 
 //! バッファの要素数を返す．
-template <class T> inline u_int
+template <class T> inline size_t
 CudaBuf<T>::size() const
 {
     return _size;
 }
     
 //! バッファの要素数を返す．
-template <class T> inline u_int
+template <class T> inline size_t
 CudaBuf<T>::dim() const
 {
     return _size;
@@ -262,7 +262,7 @@ CudaBuf<T>::dim() const
 				に送出
 */
 template <class T> bool
-CudaBuf<T>::resize(u_int siz)
+CudaBuf<T>::resize(size_t siz)
 {
     if (_size == siz)
 	return false;
@@ -271,7 +271,7 @@ CudaBuf<T>::resize(u_int siz)
 	throw std::logic_error("CudaBuf<T>::resize: cannot change size of shared buffer!");
 
     memfree(_p);
-    const u_int	old_size = _size;
+    const size_t	old_size = _size;
     _size = siz;
     _p = memalloc(_size);
 
@@ -284,7 +284,7 @@ CudaBuf<T>::resize(u_int siz)
   \param siz	新しい要素数
 */
 template <class T> inline void
-CudaBuf<T>::resize(pointer p, u_int siz)
+CudaBuf<T>::resize(pointer p, size_t siz)
 {
     if (!_shared)
 	memfree(_p);
@@ -300,10 +300,10 @@ CudaBuf<T>::resize(pointer p, u_int siz)
   \param siz	要素数
   \return	16または32の倍数に繰り上げられた要素数
 */
-template <class T> inline u_int
-CudaBuf<T>::stride(u_int siz)
+template <class T> inline size_t
+CudaBuf<T>::stride(size_t siz)
 {
-    const u_int	ALIGN = (sizeof(T) % 8 != 0 ? 32 : 16);
+    const size_t	ALIGN = (sizeof(T) % 8 != 0 ? 32 : 16);
 	
     return (siz > 0 ? ALIGN * ((siz - 1) / ALIGN + 1) : 0);
 }
@@ -315,11 +315,11 @@ CudaBuf<T>::stride(u_int siz)
   \return	inで指定した入力ストリーム
 */
 template <class T> std::istream&
-CudaBuf<T>::get(std::istream& in, u_int m)
+CudaBuf<T>::get(std::istream& in, size_t m)
 {
-    const u_int	BufSiz = (sizeof(T) < 2048 ? 2048 / sizeof(T) : 1);
-    T* const	tmp = new T[BufSiz];
-    u_int	n = 0;
+    const size_t	BufSiz = (sizeof(T) < 2048 ? 2048 / sizeof(T) : 1);
+    T* const		tmp = new T[BufSiz];
+    size_t		n = 0;
     
     while (n < BufSiz)
     {
@@ -340,7 +340,7 @@ CudaBuf<T>::get(std::istream& in, u_int m)
     if (n == BufSiz)
 	get(in, m + n);
 
-    for (u_int i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i)
 	_p[m + i] = tmp[i];
 
     delete [] tmp;
@@ -356,13 +356,13 @@ CudaBuf<T>::get(std::istream& in, u_int m)
 template <class T> std::ostream&
 CudaBuf<T>::put(std::ostream& out) const
 {
-    for (u_int i = 0; i < _size; )
+    for (size_t i = 0; i < _size; )
 	out << ' ' << _p[i++];
     return out;
 }
 
 template <class T> inline typename CudaBuf<T>::pointer
-CudaBuf<T>::memalloc(u_int siz)
+CudaBuf<T>::memalloc(size_t siz)
 {
     if (siz > 0)
     {
@@ -424,12 +424,12 @@ class CudaArray : public Array<T, CudaBuf<T> >
     typedef const element_type*			const_raw_pointer;
     
   public:
-    CudaArray()								;
-    explicit CudaArray(u_int d)						;
-    CudaArray(pointer p, u_int d)					;
-    CudaArray(CudaArray& a, u_int i, u_int d)				;
+		CudaArray()						;
+    explicit	CudaArray(size_t d)					;
+		CudaArray(pointer p, size_t d)				;
+		CudaArray(CudaArray& a, size_t i, size_t d)		;
     template <class B>
-    CudaArray(const Array<T, B>& a)					;
+		CudaArray(const Array<T, B>& a)				;
     template <class B>
     CudaArray&	operator =(const Array<T, B>& a)			;
     template <class B> const CudaArray&
@@ -460,7 +460,7 @@ CudaArray<T>::CudaArray()
   \param d	配列の要素数
 */
 template <class T> inline
-CudaArray<T>::CudaArray(u_int d)
+CudaArray<T>::CudaArray(size_t d)
     :super(d)
 {
 }
@@ -471,7 +471,7 @@ CudaArray<T>::CudaArray(u_int d)
   \param d	配列の要素数
 */
 template <class T> inline
-CudaArray<T>::CudaArray(pointer p, u_int d)
+CudaArray<T>::CudaArray(pointer p, size_t d)
     :super(p, d)
 {
 }
@@ -483,7 +483,7 @@ CudaArray<T>::CudaArray(pointer p, u_int d)
   \param d	部分配列の次元(要素数)
 */
 template <class T> inline
-CudaArray<T>::CudaArray(CudaArray<T>& a, u_int i, u_int d)
+CudaArray<T>::CudaArray(CudaArray<T>& a, size_t i, size_t d)
     :super(a, i, d)
 {
 }
@@ -603,9 +603,9 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 
   public:
     CudaArray2()							;
-    CudaArray2(u_int r, u_int c)					;
-    CudaArray2(pointer p, u_int r, u_int c)				;
-    CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)	;
+    CudaArray2(size_t r, size_t c)					;
+    CudaArray2(pointer p, size_t r, size_t c)				;
+    CudaArray2(CudaArray2& a, size_t i, size_t j, size_t r, size_t c)	;
     template <class T2, class B2, class R2>
     CudaArray2(const Array2<T2, B2, R2>& a)				;
     template <class T2, class B2, class R2>
@@ -639,7 +639,7 @@ CudaArray2<T>::CudaArray2()
   \param c	列数
 */
 template <class T> inline
-CudaArray2<T>::CudaArray2(u_int r, u_int c)
+CudaArray2<T>::CudaArray2(size_t r, size_t c)
     :super(r, c)
 {
 }
@@ -651,7 +651,7 @@ CudaArray2<T>::CudaArray2(u_int r, u_int c)
   \param c	列数
 */
 template <class T> inline
-CudaArray2<T>::CudaArray2(pointer p, u_int r, u_int c)
+CudaArray2<T>::CudaArray2(pointer p, size_t r, size_t c)
     :super(p, r, c)
 {
 }
@@ -665,7 +665,7 @@ CudaArray2<T>::CudaArray2(pointer p, u_int r, u_int c)
   \param c	部分配列の列数
 */
 template <class T> inline
-CudaArray2<T>::CudaArray2(CudaArray2& a, u_int i, u_int j, u_int r, u_int c)
+CudaArray2<T>::CudaArray2(CudaArray2& a, size_t i, size_t j, size_t r, size_t c)
     :super(a, i, j, r, c)
 {
 }    
@@ -700,7 +700,7 @@ CudaArray2<T>::operator =(const Array2<T2, B2, R2>& a)
     }
     else
     {
-	for (u_int i = 0; i < nrow(); ++i)
+	for (size_t i = 0; i < nrow(); ++i)
 	    (*this)[i] = a[i];
     }
     return *this;
@@ -723,7 +723,7 @@ CudaArray2<T>::write(Array2<T2, B2, R2>& a) const
     }
     else
     {
-	for (u_int i = 0; i < nrow(); ++i)
+	for (size_t i = 0; i < nrow(); ++i)
 	    (*this)[i].write(a[i]);
     }
     return *this;

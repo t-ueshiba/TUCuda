@@ -32,8 +32,8 @@ class CudaFilter2
 
   private:
     cudaDeviceProp		_prop;		//!< デバイスの特性
-    u_int			_lobeSizeH;	//!< 水平方向フィルタのローブ長
-    u_int			_lobeSizeV;	//!< 垂直方向フィルタのローブ長
+    size_t			_lobeSizeH;	//!< 水平方向フィルタのローブ長
+    size_t			_lobeSizeV;	//!< 垂直方向フィルタのローブ長
     mutable CudaArray2<float>	_buf;		//!< 中間結果用のバッファ
 };
     

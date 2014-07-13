@@ -10,11 +10,11 @@ INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 
 NAME		= $(shell basename $(PWD))
 
-CPPFLAGS	= -DNDEBUG
+CPPFLAGS	= #-DNDEBUG
 CFLAGS		= -g
 NVCCFLAGS	= -g
 ifeq ($(CXX), icpc)
-  CFLAGS	= -O3 -std=c++0x
+#  CFLAGS	= -O3
   NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
   CPPFLAGS     += -DSSE3
 endif
@@ -30,7 +30,8 @@ SUFFIX		= .cc:sC .cu:sC .cpp:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
-		/usr/local/include/TU/mmInstructions.h
+		/usr/local/include/TU/mmInstructions.h \
+		/usr/local/include/TU/tuple.h
 HDRS		= TU/CudaArray++.h \
 		TU/CudaFilter.h \
 		TU/CudaGaussianConvolver.h \
@@ -52,20 +53,21 @@ include $(PROJECT)/lib/l.mk
 CudaFilter.o: TU/CudaFilter.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/functional.h \
-	/usr/local/include/TU/mmInstructions.h TU/CudaUtility.h
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h \
+	TU/CudaUtility.h
 CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 	TU/CudaArray++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
-	/usr/local/include/TU/mmInstructions.h
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h
 cudaOp3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/functional.h \
-	/usr/local/include/TU/mmInstructions.h
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h
 cudaSubsample.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/functional.h \
-	/usr/local/include/TU/mmInstructions.h
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h
 cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/functional.h \
-	/usr/local/include/TU/mmInstructions.h
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h

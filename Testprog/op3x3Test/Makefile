@@ -12,7 +12,7 @@ LIBS		= -lTUCuda++ -lTUTools++
 ifeq ($(OSTYPE), darwin)
   LIBS	       += -lcutil_x86_64
 else
-  LIBS	       += -lcutil_$(shell uname -m)
+  LIBS	       += -lintlc -lcutil_$(shell uname -m)
 endif
 
 CPPFLAGS	=

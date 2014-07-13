@@ -59,9 +59,9 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
   // execute the kernel
     cerr << "Let's go!" << endl;
     for (int i = 0; i < 1000; ++i)
-	interpolate_kernel<<<blocks, threads>>>((const T*)d_image0,
-						(const T*)d_image1,
-						(      T*)d_image2,
+	interpolate_kernel<<<blocks, threads>>>(d_image0.data(),
+						d_image1.data(),
+						d_image2.data(),
 						d_image2.stride(), 0.5f);
     cerr << "Returned!" << endl;
     

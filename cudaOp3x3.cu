@@ -8,13 +8,13 @@ namespace TU
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const u_int	BlockDim = 16;		// ブロックサイズの初期値
+static const size_t	BlockDim = 16;		// ブロックサイズの初期値
     
 /************************************************************************
 *  device functions							*
 ************************************************************************/
 template <class S, class T, class OP> static __global__ void
-op3x3_kernel(const S* in, T* out, u_int stride_i, u_int stride_o, OP op)
+op3x3_kernel(const S* in, T* out, size_t stride_i, size_t stride_o, OP op)
 {
   // このカーネルはブロック境界処理のために blockDim.x == blockDim.y を仮定
     const int	blk = blockDim.x;	// u_intにするとダメ．CUDAのバグ？

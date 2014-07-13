@@ -8,8 +8,8 @@ namespace TU
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const u_int	BlockDimX = 32;
-static const u_int	BlockDimY = 16;
+static const size_t	BlockDimX = 32;
+static const size_t	BlockDimY = 16;
     
 /************************************************************************
 *  device functions							*

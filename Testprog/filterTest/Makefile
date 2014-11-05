@@ -1,38 +1,45 @@
 #
-#  $Id: Makefile,v 1.2 2012-09-01 05:37:33 ueshiba Exp $
+#  $Id$
 #
 #################################
 #  User customizable macros	#
 #################################
-DEST		= $(PREFIX)/bin
-INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
-
 PROGRAM		= $(shell basename $(PWD))
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -limf -lintlc
-ifeq ($(OSTYPE), darwin)
-  LIBS	       += -lcutil_x86_64
-else
-  LIBS	       += -lcutil_$(shell uname -m)
-endif
+#LIBRARY		= lib$(shell basename $(PWD))
 
-CPPFLAGS	= -DUSE_TBB
+IDLDIR		= .
+IDLS		=
+
+INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
+CPPFLAGS	= -DNDEBUG -DUSE_TBB
 CFLAGS		= -g
 NVCCFLAGS	= -g
-ifeq ($(CXX), icpc)
+ifneq ($(findstring icpc,$(CXX)),)
   CFLAGS	= -O3
-  NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
+  NVCCFLAGS	= -O			# must < -O2
   CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -limf -lintlc -lsvml
+ifneq ($(findstring darwin,$(OSTYPE)),)
+  LIBS	       += -lcutil_x86_64 -framework IOKit -framework CoreFoundation -framework CoreServices
+else
+  LIBS	       += -lcutil_$(shell uname -m)
+endif
+
 LDFLAGS		= -L$(CUDASDK)/lib
 LINKER		= $(NVCC)
+
+PROGDIR		= $(PREFIX)/bin
+LIBDIR		= $(PREFIX)/lib
+HDRSDIR		= $(PREFIX)/include
 
 #########################
 #  Macros set by mkmf	#
 #########################
-.SUFFIXES:	.cu
-SUFFIX		= .cc:sC .cu:sC .cpp:sC
+.SUFFIXES:	.cu .idl .hh .so
+SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/CudaArray++.h \
 		/usr/local/include/TU/CudaFilter.h \
@@ -42,25 +49,30 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
+		/usr/local/include/TU/SeparableFilter2.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/mmInstructions.h \
+		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		= filterImageGold.h
 SRCS		= main.cc
 OBJS		= main.o
 
-include $(PROJECT)/lib/p.mk
-
+#include $(PROJECT)/lib/rtc.mk		# modified: CPPFLAGS, LIBS
+#include $(PROJECT)/lib/cnoid.mk	# modified: CPPFLAGS, LIBS, LIBDIR
+#include $(PROJECT)/lib/lib.mk		# added:    PUBHDRS TARGHDRS
+include $(PROJECT)/lib/common.mk
 ###
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/types.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/Profiler.h \
+main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/functional.h \
+	/usr/local/include/TU/mmInstructions.h /usr/local/include/TU/tuple.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	/usr/local/include/TU/IIRFilter.h \
-	/usr/local/include/TU/mmInstructions.h filterImageGold.h \
+	/usr/local/include/TU/SeparableFilter2.h filterImageGold.h \
 	/usr/local/include/TU/CudaFilter.h \
 	/usr/local/include/TU/CudaArray++.h

@@ -11,14 +11,9 @@ IDLDIR		= .
 IDLS		=
 
 INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG
-CFLAGS		= -g
-NVCCFLAGS	= -g
-ifneq ($(findstring icpc,$(CXX)),)
-  CFLAGS	= -O3
-  NVCCFLAGS	= -O -std=c++11			# must < -O2
-  CPPFLAGS     += -DSSE3
-endif
+CPPFLAGS	= -DNDEBUG #-DSSE3
+CFLAGS		= -O
+NVCCFLAGS	= -O -std=c++11 --relaxed-constexpr
 CCFLAGS		= $(CFLAGS)
 
 LIBS		=

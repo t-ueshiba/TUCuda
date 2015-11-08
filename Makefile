@@ -34,6 +34,7 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/pair.h \
 		/usr/local/include/TU/simd/allocator.h \
 		/usr/local/include/TU/simd/arithmetic.h \
 		/usr/local/include/TU/simd/arm/allocator.h \
@@ -123,7 +124,7 @@ CudaFilter.o: TU/CudaFilter.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
-	/usr/local/include/TU/simd/vec.h \
+	/usr/local/include/TU/simd/vec.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/simd/type_traits.h \
 	/usr/local/include/TU/simd/intel/type_traits.h \
 	/usr/local/include/TU/simd/arm/type_traits.h \
@@ -189,7 +190,7 @@ CudaGaussianConvolver.o: TU/CudaGaussianConvolver.h TU/CudaFilter.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/functional.h /usr/local/include/TU/simd/simd.h \
 	/usr/local/include/TU/simd/config.h /usr/local/include/TU/simd/vec.h \
-	/usr/local/include/TU/simd/type_traits.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/simd/type_traits.h \
 	/usr/local/include/TU/simd/intel/type_traits.h \
 	/usr/local/include/TU/simd/arm/type_traits.h \
 	/usr/local/include/TU/simd/intel/vec.h \
@@ -253,7 +254,7 @@ cudaOp3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
-	/usr/local/include/TU/simd/vec.h \
+	/usr/local/include/TU/simd/vec.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/simd/type_traits.h \
 	/usr/local/include/TU/simd/intel/type_traits.h \
 	/usr/local/include/TU/simd/arm/type_traits.h \
@@ -318,7 +319,7 @@ cudaSubsample.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
-	/usr/local/include/TU/simd/vec.h \
+	/usr/local/include/TU/simd/vec.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/simd/type_traits.h \
 	/usr/local/include/TU/simd/intel/type_traits.h \
 	/usr/local/include/TU/simd/arm/type_traits.h \
@@ -383,7 +384,7 @@ cudaSuppressNonExtrema3x3.o: TU/CudaUtility.h TU/CudaArray++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
-	/usr/local/include/TU/simd/vec.h \
+	/usr/local/include/TU/simd/vec.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/simd/type_traits.h \
 	/usr/local/include/TU/simd/intel/type_traits.h \
 	/usr/local/include/TU/simd/arm/type_traits.h \

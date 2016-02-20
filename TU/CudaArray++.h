@@ -71,18 +71,18 @@
 namespace TU
 {
 /************************************************************************
-*  specialization for Buf<T, thrust::device_allocator<T> >		*
+*  specialization for Buf<T, 0, thrust::device_allocator<T> >		*
 ************************************************************************/
   /*
 template <class T> inline
-Buf<T, thrust::device_allocator<T> >::Buf(const Buf& b)
+Buf<T, 0, thrust::device_allocator<T> >::Buf(const Buf& b)
     :_size(b._size), _p(alloc(_size)), _shared(0), _capacity(_size)
 {
     thrust::copy(b.cbegin(), b.cend(), begin());
 }
     
-template <class T> inline Buf<T, thrust::device_allocator<T> >&
-Buf<T, thrust::device_allocator<T> >::operator =(const Buf& b)
+template <class T> inline Buf<T, 0, thrust::device_allocator<T> >&
+Buf<T, 0, thrust::device_allocator<T> >::operator =(const Buf& b)
 {
     if (this != &b)
     {
@@ -102,11 +102,11 @@ Buf<T, thrust::device_allocator<T> >::operator =(const Buf& b)
   \param T	要素の型
 */
 template <class T>
-class CudaBuf
+class Buf<T, 0, thrust::device_allocator<T> >
 {
   public:
+  //! アロケータの型    
     typedef thrust::device_allocator<T>			allocator_type;
-    
   //! 要素の型    
     typedef typename allocator_type::value_type		value_type;
   //! 要素への参照    
@@ -123,18 +123,18 @@ class CudaBuf
     typedef const_pointer				const_iterator;
     
   public:
-    explicit		CudaBuf(size_t siz=0)
+    explicit		Buf(size_t siz=0)
 			    :_size(siz),
 			     _p(alloc(_size)), _shared(false)		{}
-			CudaBuf(pointer p, size_t siz)
+			Buf(pointer p, size_t siz)
 			    :_size(siz), _p(p), _shared(true)		{}
-			CudaBuf(const CudaBuf& b)
+			Buf(const Buf& b)
 			    :_size(b._size), _p(alloc(_size)), _shared(false)
 			{
 			    thrust::copy(b.cbegin(), b.cend(), begin());
 			}
 			
-    CudaBuf&		operator =(const CudaBuf& b)
+    Buf&		operator =(const Buf& b)
 			{
 			    if (this != &b)
 			    {
@@ -144,7 +144,7 @@ class CudaBuf
 			    return *this;
 			}
 
-			~CudaBuf()
+			~Buf()
 			{
 			    if (!_shared)
 				free(_p, _size);
@@ -176,7 +176,7 @@ class CudaBuf
 				return false;
     
 			    if (_shared)
-				throw std::logic_error("CudaBuf<T>::resize: cannot change size of shared buffer!");
+				throw std::logic_error("Buf<T>::resize: cannot change size of shared buffer!");
 			    
 			    const size_t	old_size = _size;
 			    _size = siz;
@@ -239,7 +239,7 @@ class CudaBuf
   \return	inで指定した入力ストリーム
 */
 template <class T> std::istream&
-CudaBuf<T>::get(std::istream& in, size_t m)
+Buf<T, 0, thrust::device_allocator<T> >::get(std::istream& in, size_t m)
 {
     const size_t	BufSiz = (sizeof(T) < 2048 ? 2048 / sizeof(T) : 1);
     T* const		tmp = new T[BufSiz];
@@ -280,12 +280,10 @@ CudaBuf<T>::get(std::istream& in, size_t m)
   \param T	要素の型
 */
 template <class T>
-//class CudaArray : public Array<T, Buf<T, thrust::device_allocator<T> > >
-class CudaArray : public Array<T, CudaBuf<T> >
+class CudaArray : public Array<T, 0, thrust::device_allocator<T> >
 {
   private:
-  //typedef Array<T, Buf<T, thrust::device_allocator<T> > >	super;
-    typedef Array<T, CudaBuf<T> >				super;
+    typedef Array<T, 0, thrust::device_allocator<T> >	super;
 
   public:
   //! 成分の型
@@ -322,28 +320,29 @@ class CudaArray : public Array<T, CudaBuf<T> >
 		CudaArray(pointer p, size_t d)	:super(p, d)		{}
 		CudaArray(CudaArray& a, size_t i, size_t d)
 		    :super(a, i, d)					{}
-    template <class B>
-		CudaArray(const Array<T, B>& a)	:super(a.size())
+    template <size_t D>
+		CudaArray(const Array<T, D>& a)	:super(a.size())
 		{
 		    thrust::copy(a.begin(), a.end(), begin());
 		}
-    template <class B>
-    CudaArray&	operator =(const Array<T, B>& a)
+    template <size_t D>
+    CudaArray&	operator =(const Array<T, D>& a)
 		{
 		    resize(a.size());
 		    thrust::copy(a.begin(), a.end(), begin());
 		    return *this;
 		}
-    template <class B> const CudaArray&
-		write(Array<T, B>& a) const
+    CudaArray&	operator =(const element_type& c)
+		{
+		    thrust::fill(begin(), end(), c);
+		    return *this;
+		}
+    template <size_t D> const CudaArray&
+		write(Array<T, D>& a) const
 		{
 		    a.resize(size());
 		    thrust::copy(begin(), end(), a.begin());
 		    return *this;
-		}
-    void	fill(const element_type& c)
-		{
-		    thrust::fill(begin(), end(), c);
 		}
 
     raw_pointer		data()			{ return super::data().get(); }
@@ -366,11 +365,11 @@ class CudaArray : public Array<T, CudaBuf<T> >
   \param T	要素の型
 */
 template <class T>
-class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
+class CudaArray2 : public Array2<CudaArray<T> >
 {
   private:
-    typedef Array2<CudaArray<T>, CudaBuf<T> >		super;
-    typedef CudaBuf<T>					buf_type;
+    typedef Buf<T, 0, thrust::device_allocator<T> >	buf_type;
+    typedef Array2<CudaArray<T> >			super;
     
   public:
   //! 行の型    
@@ -408,14 +407,14 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 		CudaArray2(CudaArray2& a,
 			   size_t i, size_t j, size_t r, size_t c)
 		    :super(a, i, j, r, c)				{}
-    template <class T2, class B2, class R2>
-		CudaArray2(const Array2<T2, B2, R2>& a)
+    template <class T2, size_t R2, size_t C2>
+		CudaArray2(const Array2<T2, R2, C2>& a)
 		    :super()
 		{
 		    operator =(a);
 		}
-    template <class T2, class B2, class R2>
-    CudaArray2&	operator =(const Array2<T2, B2, R2>& a)
+    template <class T2, size_t R2, size_t C2>
+    CudaArray2&	operator =(const Array2<T2, R2, C2>& a)
 		{
 		    resize(a.nrow(), a.ncol());
 		    if (a.nrow() > 0 && a.stride() == stride())
@@ -430,9 +429,17 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 		    }
 		    return *this;
 		}
+
+    CudaArray2&	operator =(const element_type& c)
+		{
+		    if (nrow() > 0)
+			thrust::fill((*this)[0].begin(),
+				     (*this)[nrow()-1].end(), c);
+		    return *this;
+		}
     
-    template <class T2, class B2, class R2> const CudaArray2&
-		write(Array2<T2, B2, R2>& a) const
+    template <class T2, size_t R2, size_t C2> const CudaArray2&
+		write(Array2<T2, R2, C2>& a) const
 		{
 		    a.resize(nrow(), ncol());
 		    if (nrow() > 0 && stride() == a.stride())
@@ -448,13 +455,6 @@ class CudaArray2 : public Array2<CudaArray<T>, CudaBuf<T> >
 		    return *this;
 		}
 	
-    void	fill(const element_type& c)
-		{
-		    if (nrow() > 0)
-			thrust::fill((*this)[0].begin(),
-				     (*this)[nrow()-1].end(), c);
-		}
-
     raw_pointer		data()		{ return super::data().get(); }
     const_raw_pointer	data()	const	{ return super::data().get(); }
     

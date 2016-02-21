@@ -111,7 +111,7 @@ main(int argc, char *argv[])
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	Profiler	profiler(1);
+	Profiler<>	profiler(1);
 	Image<out_t>	outGold(in.width(), in.height());
 #if 0
 	for (u_int n = 0; n < 10; ++n)

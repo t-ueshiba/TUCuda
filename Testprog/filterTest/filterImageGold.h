@@ -8,8 +8,8 @@ namespace TU
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-template <class T1, class B1, class R1, class T2, class B2, class R2> void
-filter1D(const Array2<T1, B1, R1>& in, Array2<T2, B2, R2>& out,
+template <class T1, size_t R1, size_t C1, class T2, size_t R2, size_t C2> void
+filter1D(const Array2<T1, R1, C1>& in, Array2<T2, R2, C2>& out,
 	 const Array<float>& coeff)
 {
     out.resize(in.ncol(), in.nrow());

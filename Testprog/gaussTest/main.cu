@@ -111,7 +111,7 @@ main(int argc, char *argv[])
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	Profiler	profiler(1);
+	Profiler<>	profiler(1);
 	Image<out_t>	outGold(in.width(), in.height());
 #if 0
 	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);

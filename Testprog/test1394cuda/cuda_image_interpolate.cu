@@ -12,7 +12,7 @@ interpolate_pixel(T s0, T s1, float r0, float r1)
 {
     return s0 * r0 + s1 * r1;
 }
-    
+  /*    
 template <> __device__ RGBA
 interpolate_pixel(RGBA s0, RGBA s1, float r0, float r1)
 {
@@ -23,7 +23,7 @@ interpolate_pixel(RGBA s0, RGBA s1, float r0, float r1)
     
     return val;
 }
-    
+  */
 template <class T> __global__ void
 interpolate_kernel(const T* src0, const T* src1, T* dst,
 		   u_int stride, float ratio)
@@ -57,9 +57,9 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
     dim3  blocks(image0.ncol()/threads.x, image0.nrow()/threads.y, 1);
     
   // execute the kernel
-    interpolate_kernel<<<blocks, threads>>>((const T*)d_image0,
-					    (const T*)d_image1,
-					    (      T*)d_image2,
+    interpolate_kernel<<<blocks, threads>>>(d_image0.data(),
+					    d_image1.data(),
+					    d_image2.data(),
 					    d_image2.stride(), 0.5f);
     
   // check if kernel execution generated and error
@@ -79,7 +79,9 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
 template void	interpolate(const Image<u_char>& image0,
 			    const Image<u_char>& image1,
 				  Image<u_char>& image2)	;
+  /*
 template void	interpolate(const Image<RGBA>&   image0,
 			    const Image<RGBA>&   image1,
 				  Image<RGBA>&   image2)	;
+  */
 }

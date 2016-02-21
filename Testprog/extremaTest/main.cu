@@ -6,14 +6,15 @@
 #include "TU/Profiler.h"
 #include "TU/algorithm.h"
 #include "TU/CudaUtility.h"
+#include "TU/GaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
+#include <thrust/functional.h>
 
-//#define OP	det3x3
-//#define OP	laplacian3x3
-//#define OP	sobelAbs3x3
-#define OP	maximal3x3
-//#define OP	minimal3x3
+#define OP_H	maximal3x3
+#define OP_D	thrust::greater
+//#define OP_H	minimal3x3
+//#define OP_D	thrust::less
 
 /************************************************************************
 *  Global fucntions							*
@@ -39,36 +40,33 @@ main(int argc, char *argv[])
 	CudaArray2<in_t>	in_d(in);
 	CudaArray2<out_t>	out_d;
 
-	u_int		timer = 0;
+	u_int	timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-      //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// warm-up
-	cudaOp3x3(in_d, out_d, OP<in_t>());		// warm-up
+	cudaSuppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());	// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-
+#if 1
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	  //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// フィルタリング
-	    cudaOp3x3(in_d, out_d, OP<in_t>());		// フィルタリング
+	    cudaSuppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
 	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
-
+#endif
 	Image<out_t>	out;
 	out_d.write(out);
 	out.save(cout);					// 結果画像をセーブ
 #if 1
       // CPUによって計算する．
-	Profiler	profiler(1);
+	Profiler<>	profiler(1);
 	Image<out_t>	outGold;
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    outGold = in;
 	    profiler.start(0);
-	  //op3x3(outGold.begin(), outGold.end(), OP<in_t, out_t>());
-	    op3x3(outGold.begin(), outGold.end(), OP<in_t>());
+	    op3x3(outGold.begin(), outGold.end(), OP_H<in_t>());
 	    profiler.stop().nextFrame();
 	}
 	profiler.print(cerr);
@@ -77,8 +75,11 @@ main(int argc, char *argv[])
       // 結果を比較する．
 	const int	V = 160;
 	for (u_int u = 0; u < out.width(); ++u)
-	    cerr << ' ' << (out[V][u] - outGold[V][u]);
+	    if (out[V][u] != outGold[V][u])
+		cerr << ' ' << u << ":(" << out[V][u] << ',' << outGold[V][u]
+		     << ')';
 	cerr <<  endl;
+	cerr << Image<in_t>(in, 598, V-1, 3, 3);
 #endif
     }
     catch (exception& err)

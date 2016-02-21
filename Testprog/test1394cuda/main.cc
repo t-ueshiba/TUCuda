@@ -99,7 +99,7 @@ main(int argc, char *argv[])
     
     const char*		configDirs = DEFAULT_CONFIG_DIRS;
     const char*		cameraName = DEFAULT_CAMERA_NAME;
-    bool		i1394b	   = false;
+    Ieee1394Node::Speed	speed	   = Ieee1394Node::SPD_400M;
     int			ncameras   = 2;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "d:c:Bn:")) != EOF; )
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 	    cameraName = optarg;
 	    break;
 	  case 'B':
-	    i1394b = true;
+	    speed = Ieee1394Node::SPD_800M;
 	    break;
 	  case 'n':
 	    ncameras = atoi(optarg);
@@ -123,7 +123,7 @@ main(int argc, char *argv[])
     {
       // IEEE1394カメラのオープン．
 	Ieee1394CameraArray	cameras(cameraName, configDirs,
-					i1394b, ncameras);
+					speed, ncameras);
 	if (cameras.dim() == 0)
 	    return 0;
 

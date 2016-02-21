@@ -71,34 +71,12 @@
 namespace TU
 {
 /************************************************************************
-*  specialization for Buf<T, 0, thrust::device_allocator<T> >		*
-************************************************************************/
-  /*
-template <class T> inline
-Buf<T, 0, thrust::device_allocator<T> >::Buf(const Buf& b)
-    :_size(b._size), _p(alloc(_size)), _shared(0), _capacity(_size)
-{
-    thrust::copy(b.cbegin(), b.cend(), begin());
-}
-    
-template <class T> inline Buf<T, 0, thrust::device_allocator<T> >&
-Buf<T, 0, thrust::device_allocator<T> >::operator =(const Buf& b)
-{
-    if (this != &b)
-    {
-	resize(b._size);
-	thrust::copy(b.cbegin(), b.cend(), begin());
-    }
-    return *this;
-}
-  */
-/************************************************************************
-*  class CudaBuf<T>							*
+*  specialization for Buf<T, D, ALLOC> for CUDA				*
 ************************************************************************/
 //! CUDAにおいてデバイス側に確保される可変長バッファクラス
 /*!
-  単独で使用することはなく，#TU::Arrayまたは#TU::Array2の
-  第2テンプレート引数に指定することによって，それらの基底クラスとして使う．
+  単独で使用することはなく，#TU::Array の基底クラスまたは #TU::Array2 の
+  内部バッファクラスとして使う．
   \param T	要素の型
 */
 template <class T>
@@ -202,18 +180,6 @@ class Buf<T, 0, thrust::device_allocator<T> >
 	
     std::istream&	get(std::istream& in, size_t m=0)	;
 
-  //! 出力ストリームに配列を書き出す(ASCII)．
-  /*!
-    \param out	出力ストリーム
-    \return	outで指定した出力ストリーム
-  */
-    std::ostream&	put(std::ostream& out) const
-			{
-			    for (size_t i = 0; i < _size; )
-				out << ' ' << _p[i++];
-			    return out;
-			}
-    
   private:
     pointer		alloc(size_t siz)
 			{
@@ -226,10 +192,10 @@ class Buf<T, 0, thrust::device_allocator<T> >
 			}
 
   private:
-    allocator_type	_allocator;
-    size_t		_size;		// the number of elements in the buffer
-    pointer		_p;		// pointer to the buffer area
-    bool		_shared;	// whether shared with other objects
+    allocator_type	_allocator;		//!< アロケータ
+    size_t		_size;			//!< 要素数
+    pointer		_p;			//!< 記憶領域の先頭ポインタ
+    bool		_shared;		//!< 記憶領域の共有を示すフラグ
 };
 
 //! 入力ストリームから指定した箇所に配列を読み込む(ASCII)．
@@ -271,7 +237,7 @@ Buf<T, 0, thrust::device_allocator<T> >::get(std::istream& in, size_t m)
     
     return in;
 }
-    
+
 /************************************************************************
 *  class CudaArray<T>							*
 ************************************************************************/
@@ -286,33 +252,34 @@ class CudaArray : public Array<T, 0, thrust::device_allocator<T> >
     typedef Array<T, 0, thrust::device_allocator<T> >	super;
 
   public:
+  //! アロケータの型
+    typedef typename super::allocator_type		allocator_type;
   //! 成分の型
-    typedef typename super::element_type	element_type;
+    typedef typename super::element_type		element_type;
   //! 要素の型    
-    typedef typename super::value_type		value_type;
-  //! 要素への参照
-    typedef typename super::reference		reference;
-  //! 定数要素への参照
-    typedef typename super::const_reference	const_reference;
+    typedef typename super::value_type			value_type;
   //! 要素へのポインタ
-    typedef typename super::pointer		pointer;
+    typedef typename super::pointer			pointer;
   //! 定数要素へのポインタ
-    typedef typename super::const_pointer	const_pointer;
+    typedef typename super::const_pointer		const_pointer;
   //! 反復子
-    typedef typename super::iterator		iterator;
+    typedef typename super::iterator			iterator;
   //! 定数反復子
-    typedef typename super::const_iterator	const_iterator;
+    typedef typename super::const_iterator		const_iterator;
   //! 逆反復子    
-    typedef typename super::reverse_iterator	reverse_iterator;
+    typedef typename super::reverse_iterator		reverse_iterator;
   //! 定数逆反復子    
-    typedef typename super::const_reverse_iterator
-						const_reverse_iterator;
+    typedef typename super::const_reverse_iterator	const_reverse_iterator;
+  //! 要素への参照
+    typedef typename super::reference			reference;
+  //! 定数要素への参照
+    typedef typename super::const_reference		const_reference;
   //! ポインタ間の差
-    typedef typename super::difference_type	difference_type;
+    typedef typename super::difference_type		difference_type;
   //! 要素への直接ポインタ
-    typedef element_type*			raw_pointer;
+    typedef element_type*				raw_pointer;
   //! 定数要素への直接ポインタ
-    typedef const element_type*			const_raw_pointer;
+    typedef const element_type*				const_raw_pointer;
     
   public:
 		CudaArray()			:super()		{}
@@ -320,13 +287,13 @@ class CudaArray : public Array<T, 0, thrust::device_allocator<T> >
 		CudaArray(pointer p, size_t d)	:super(p, d)		{}
 		CudaArray(CudaArray& a, size_t i, size_t d)
 		    :super(a, i, d)					{}
-    template <size_t D>
-		CudaArray(const Array<T, D>& a)	:super(a.size())
+    template <size_t D, class ALLOC>
+		CudaArray(const Array<T, D, ALLOC>& a)	:super(a.size())
 		{
 		    thrust::copy(a.begin(), a.end(), begin());
 		}
-    template <size_t D>
-    CudaArray&	operator =(const Array<T, D>& a)
+    template <size_t D, class ALLOC>
+    CudaArray&	operator =(const Array<T, D, ALLOC>& a)
 		{
 		    resize(a.size());
 		    thrust::copy(a.begin(), a.end(), begin());
@@ -337,8 +304,8 @@ class CudaArray : public Array<T, 0, thrust::device_allocator<T> >
 		    thrust::fill(begin(), end(), c);
 		    return *this;
 		}
-    template <size_t D> const CudaArray&
-		write(Array<T, D>& a) const
+    template <size_t D, class ALLOC> const CudaArray&
+		write(Array<T, D, ALLOC>& a) const
 		{
 		    a.resize(size());
 		    thrust::copy(begin(), end(), a.begin());
@@ -368,7 +335,6 @@ template <class T>
 class CudaArray2 : public Array2<CudaArray<T> >
 {
   private:
-    typedef Buf<T, 0, thrust::device_allocator<T> >	buf_type;
     typedef Array2<CudaArray<T> >			super;
     
   public:
@@ -464,6 +430,7 @@ class CudaArray2 : public Array2<CudaArray<T> >
     using	super::dim;
     using	super::nrow;
     using	super::ncol;
+    using	super::resize;
     using	super::stride;
 };
 

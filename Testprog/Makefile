@@ -2,7 +2,8 @@ SUBDIR	= extremaTest		\
 	  filterTest		\
 	  gaussTest		\
 	  op3x3Test		\
-	  subsampleTest
+	  subsampleTest		\
+	  test1394cuda
 
 TARGETS	= all clean depend
 

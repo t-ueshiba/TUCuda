@@ -1,38 +1,39 @@
 #
-#  $Id: Makefile,v 1.2 2012-08-30 12:19:21 ueshiba Exp $
+#  $Id$
 #
 #################################
 #  User customizable macros	#
 #################################
-DEST		= $(PREFIX)/bin
-INCDIRS		= -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
-
 PROGRAM		= $(shell basename $(PWD))
-LIBS		= -lTUTools++
-ifeq ($(OSTYPE), darwin)
-  LIBS	       += -lcutil_x86_64
-else
-  LIBS	       += -lcutil_$(shell uname -m)
-endif
+#LIBRARY		= lib$(shell basename $(PWD))
 
-CPPFLAGS	=
-CFLAGS		= -g
-NVCCFLAGS	= -g
-ifeq ($(CXX), icpc)
-  CFLAGS	= -O3
-  NVCCFLAGS	= -O		# -O2以上にするとコンパイルエラーになる．
+VPATH		=
+
+IDLS		=
+MOCHDRS		=
+
+INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
+CPPFLAGS	= -DNDEBUG
+CFLAGS		= -O3
+NVCCFLAGS	= -O
+ifeq ($(shell arch), armv7l)
+  CPPFLAGS     += -DNEON
+else
   CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
-LDFLAGS		= -L$(CUDASDK)/lib
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m) -lintlc
 LINKER		= $(NVCC)
+
+BINDIR		= $(PREFIX)/bin
+LIBDIR		= $(PREFIX)/lib
+INCDIR		= $(PREFIX)/include
 
 #########################
 #  Macros set by mkmf	#
 #########################
-.SUFFIXES:	.cu
-SUFFIX		= .cc:sC .cu:sC .cpp:sC
+SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/CudaArray++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -41,6 +42,8 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/pair.h \
+		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		=
 SRCS		= cuda_image_interpolate.cu \
@@ -48,15 +51,20 @@ SRCS		= cuda_image_interpolate.cu \
 OBJS		= cuda_image_interpolate.o \
 		main.o
 
-include $(PROJECT)/lib/p.mk
-
+#include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
+#include $(PROJECT)/lib/qt.mk		# MOCSRCS, OBJS
+#include $(PROJECT)/lib/cnoid.mk	# CPPFLAGS, LIBS, LIBDIR
+#include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
+include $(PROJECT)/lib/common.mk
 ###
 cuda_image_interpolate.o: /usr/local/include/TU/CudaArray++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/types.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Minimize.h
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/functional.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/types.h /usr/local/include/TU/Minimize.h
+main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h

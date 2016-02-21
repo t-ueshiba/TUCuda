@@ -13,7 +13,7 @@ IDLS		=
 INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG #-DSSE3
 CFLAGS		= -O
-NVCCFLAGS	= -O -std=c++11 --expt-relaxed-constexpr
+NVCCFLAGS	= -O
 CCFLAGS		= $(CFLAGS)
 
 LIBS		=
@@ -21,7 +21,7 @@ ifneq ($(findstring darwin,$(OSTYPE)),)
   LIBS	       += -framework IOKit -framework CoreFoundation -framework CoreServices
 endif
 
-LINKER		= $(CXX)
+LINKER		= $(NVCC)
 
 BINDIR		= $(PREFIX)/bin
 LIBDIR		= $(PREFIX)/lib

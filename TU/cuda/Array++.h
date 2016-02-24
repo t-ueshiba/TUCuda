@@ -41,19 +41,19 @@
   - #TU::CudaArray2
 
   <b>デバイス側のテクスチャメモリ</b>
-  - #TU::CudaTexture
+  - #TU::cuda::Texture
   
   <b>フィルタリング</b>
-  - #TU::CudaFilter2
-  - #TU::CudaGaussianConvolver2
+  - #TU::cuda::FIRFilter2
+  - #TU::cuda::FIRGaussianConvolver2
 
   <b>ユティリティ</b>
-  - #TU::cudaCopyToConstantMemory(Iterator, Iterator, T*)
-  - #TU::cudaSubsample(const CudaArray2<T>&, CudaArray2<T>&)
-  - #TU::cudaOp3x3(const CudaArray2<S>&, CudaArray2<T>&, OP op)
-  - #TU::cudaSuppressNonExtrema3x3(const CudaArray2<T>&, CudaArray2<T>&, OP op, T)
+  - #TU::cuda::copyToConstantMemory(Iterator, Iterator, T*)
+  - #TU::cuda::subsample(const CudaArray2<T>&, CudaArray2<T>&)
+  - #TU::cuda::op3x3(const CudaArray2<S>&, CudaArray2<T>&, OP op)
+  - #TU::cuda::suppressNonExtrema3x3(const CudaArray2<T>&, CudaArray2<T>&, OP op, T)
   
-  \file		CudaArray++.h
+  \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
 */
 #ifndef __TU_CUDA_ARRAYPP_H
@@ -64,6 +64,10 @@
 #include <thrust/fill.h>
 #include "TU/Array++.h"
 
+/*!
+  \namespace	TU
+  \brief	植芝によって開発されたクラスおよび関数を納める名前空間
+*/
 namespace TU
 {
 /*!

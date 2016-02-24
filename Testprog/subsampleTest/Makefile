@@ -35,8 +35,8 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/CudaArray++.h \
-		../../TU/CudaUtility.h \
+EXTHDRS		= ../../TU/cuda/Array++.h \
+		../../TU/cuda/utility.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Image++.h \
@@ -62,4 +62,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
-	../../TU/CudaUtility.h ../../TU/CudaArray++.h
+	../../TU/cuda/utility.h ../../TU/cuda/Array++.h

@@ -2,16 +2,18 @@
  *  $Id$
  */
 /*!
-  \file		CudaUtility.h
+  \file		utility.h
   \brief	各種オペレータの定義と実装
 */ 
-#ifndef __TU_CUDAUTILITY_H
-#define __TU_CUDAUTILITY_H
+#ifndef __TU_CUDA_UTILITY_H
+#define __TU_CUDA_UTILITY_H
 
-#include "TU/CudaArray++.h"
+#include "TU/cuda/Array++.h"
 #include <cmath>
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  3x3 operators							*
@@ -176,7 +178,7 @@ template <class T> class minimal3x3
   \param dst	コピー先の定数メモリ領域を指すポインタ
 */
 template <class Iterator, class T> inline void
-cudaCopyToConstantMemory(Iterator begin, Iterator end, T* dst)
+copyToConstantMemory(Iterator begin, Iterator end, T* dst)
 {
     if (begin < end)
 	cudaMemcpyToSymbol((const char*)dst, &(*begin),
@@ -184,13 +186,14 @@ cudaCopyToConstantMemory(Iterator begin, Iterator end, T* dst)
 }
 
 template <class T> void
-cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)		;
+subsample(const CudaArray2<T>& in, CudaArray2<T>& out)			;
 
 template <class S, class T, class OP> void
-cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)		;
+op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)		;
     
 template <class T, class OP> void
-cudaSuppressNonExtrema3x3(const CudaArray2<T>& in, CudaArray2<T>& out,
-			  OP op, T nulval=0)				;
+suppressNonExtrema3x3(const CudaArray2<T>& in, CudaArray2<T>& out,
+		      OP op, T nulval=0)				;
 }
-#endif	// !__TU_CUDAUTILITY_H
+}
+#endif	// !__TU_CUDA_UTILITY_H

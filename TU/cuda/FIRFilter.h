@@ -2,32 +2,34 @@
  *  $Id$
  */
 /*!
-  \file		CudaFilter.h
+  \file		FIRFilter.h
   \brief	フィルタの定義と実装
 */ 
-#ifndef __TU_CUDAFILTER_H
-#define __TU_CUDAFILTER_H
+#ifndef __TU_CUDA_FIRFILTER_H
+#define __TU_CUDA_FIRFILTER_H
 
-#include "TU/CudaArray++.h"
+#include "TU/cuda/Array++.h"
 
 namespace TU
 {
+namespace cuda
+{
 /************************************************************************
-*  class CudaFilter2							*
+*  class FIRFilter2							*
 ************************************************************************/
 //! CUDAによるseparableな2次元フィルタを表すクラス
-class CudaFilter2
+class FIRFilter2
 {
   public:
     enum		{LOBE_SIZE_MAX = 17};
 
   public:
-    CudaFilter2()							;
+    FIRFilter2()							;
     
-    CudaFilter2&	initialize(const Array<float>& lobeH,
+    FIRFilter2&		initialize(const Array<float>& lobeH,
 				   const Array<float>& lobeV)		;
     template <class S, class T>
-    const CudaFilter2&	convolve(const CudaArray2<S>& in,
+    const FIRFilter2&	convolve(const CudaArray2<S>& in,
 				       CudaArray2<T>& out)	const	;
 
   private:
@@ -36,6 +38,7 @@ class CudaFilter2
     size_t			_lobeSizeV;	//!< 垂直方向フィルタのローブ長
     mutable CudaArray2<float>	_buf;		//!< 中間結果用のバッファ
 };
-    
+
 }
-#endif	// !__TU_CUDAFILTER_H
+}
+#endif	// !__TU_CUDA_FIRFILTER_H

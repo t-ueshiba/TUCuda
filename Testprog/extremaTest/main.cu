@@ -5,15 +5,15 @@
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
 #include "TU/algorithm.h"
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 #include "TU/GaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 #include <thrust/functional.h>
 
-#define OP_H	maximal3x3
+#define OP_H	cuda::maximal3x3
 #define OP_D	thrust::greater
-//#define OP_H	minimal3x3
+//#define OP_H	cuda::minimal3x3
 //#define OP_D	thrust::less
 
 /************************************************************************
@@ -42,13 +42,13 @@ main(int argc, char *argv[])
 
 	u_int	timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cudaSuppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());	// warm-up
+	cuda::suppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());	// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #if 1
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaSuppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());
+	    cuda::suppressNonExtrema3x3(in_d, out_d, OP_D<in_t>());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 

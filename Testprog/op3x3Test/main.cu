@@ -5,15 +5,15 @@
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
 #include "TU/algorithm.h"
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
-//#define OP	det3x3
-//#define OP	laplacian3x3
-//#define OP	sobelAbs3x3
-#define OP	maximal3x3
-//#define OP	minimal3x3
+//#define OP	cuda::det3x3
+//#define OP	cuda::laplacian3x3
+//#define OP	cuda::sobelAbs3x3
+#define OP	cuda::maximal3x3
+//#define OP	cuda::minimal3x3
 
 /************************************************************************
 *  Global fucntions							*
@@ -42,14 +42,14 @@ main(int argc, char *argv[])
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
       //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// warm-up
-	cudaOp3x3(in_d, out_d, OP<in_t>());		// warm-up
+	cuda::op3x3(in_d, out_d, OP<in_t>());		// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	  //cudaOp3x3(in_d, out_d, OP<in_t, out_t>());	// フィルタリング
-	    cudaOp3x3(in_d, out_d, OP<in_t>());		// フィルタリング
+	  //cuda::op3x3(in_d, out_d, OP<in_t, out_t>());	// フィルタリング
+	    cuda::op3x3(in_d, out_d, OP<in_t>());	// フィルタリング
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 

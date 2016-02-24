@@ -1,7 +1,7 @@
 /*
  * $Id: cuda_image_interpolate.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include "TU/CudaArray++.h"
+#include "TU/cuda/Array++.h"
 #include "TU/Image++.h"
 #include <cutil.h>
 
@@ -57,9 +57,9 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
     dim3  blocks(image0.ncol()/threads.x, image0.nrow()/threads.y, 1);
     
   // execute the kernel
-    interpolate_kernel<<<blocks, threads>>>(d_image0.data(),
-					    d_image1.data(),
-					    d_image2.data(),
+    interpolate_kernel<<<blocks, threads>>>(d_image0.data().get(),
+					    d_image1.data().get(),
+					    d_image2.data().get(),
 					    d_image2.stride(), 0.5f);
     
   // check if kernel execution generated and error

@@ -3,7 +3,7 @@
  */
 #include <stdexcept>
 #include "TU/Image++.h"
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -28,13 +28,13 @@ main(int argc, char *argv[])
 	
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cudaSubsample(in_d, out_d);			// warp-up
+	cuda::subsample(in_d, out_d);			// warp-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaSubsample(in_d, out_d);			// 実行
+	    cuda::subsample(in_d, out_d);		// 実行
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 

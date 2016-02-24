@@ -1,10 +1,12 @@
 /*
  *  $Id$
  */
-#include "TU/CudaGaussianConvolver.h"
+#include "TU/cuda/FIRGaussianConvolver.h"
 #include <cmath>
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  static functions							*
@@ -14,7 +16,7 @@ lobeSize(const float lobe[], bool even)
 {
     using namespace	std;
     
-    const size_t	sizMax  = CudaFilter2::LOBE_SIZE_MAX;
+    const size_t	sizMax  = FIRFilter2::LOBE_SIZE_MAX;
     const float	epsilon = 0.01;			// 打ち切りのしきい値の比率
 
   // 打ち切りのしきい値を求める．
@@ -58,20 +60,20 @@ lobeSize(const float lobe[], bool even)
 }
     
 /************************************************************************
-*  class CudaGaussianConvolver2						*
+*  class FIRGaussianConvolver2						*
 ************************************************************************/
 //! Gauss核を初期化する
 /*!
   \param sigma	Gauss核のスケール
   \return	このGauss核
 */
-CudaGaussianConvolver2&
-CudaGaussianConvolver2::initialize(float sigma)
+FIRGaussianConvolver2&
+FIRGaussianConvolver2::initialize(float sigma)
 {
     using namespace	std;
 
   // 0/1/2階微分のためのローブを計算する．
-    const size_t	sizMax = CudaFilter2::LOBE_SIZE_MAX;
+    const size_t	sizMax = FIRFilter2::LOBE_SIZE_MAX;
     float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
     for (size_t i = 0; i < sizMax; ++i)
     {
@@ -115,4 +117,5 @@ CudaGaussianConvolver2::initialize(float sigma)
     return *this;
 }
     
+}
 }

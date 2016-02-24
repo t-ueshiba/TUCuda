@@ -34,8 +34,8 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= /usr/local/include/TU/Array++.h \
-		/usr/local/include/TU/CudaArray++.h \
+EXTHDRS		= ../../TU/cuda/Array++.h \
+		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Image++.h \
 		/usr/local/include/TU/Minimize.h \
@@ -57,7 +57,7 @@ OBJS		= cuda_image_interpolate.o \
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-cuda_image_interpolate.o: /usr/local/include/TU/CudaArray++.h \
+cuda_image_interpolate.o: ../../TU/cuda/Array++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Image++.h \

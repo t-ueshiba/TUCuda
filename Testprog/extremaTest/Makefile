@@ -35,8 +35,8 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/CudaArray++.h \
-		../../TU/CudaUtility.h \
+EXTHDRS		= ../../TU/cuda/Array++.h \
+		../../TU/cuda/utility.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -50,6 +50,7 @@ EXTHDRS		= ../../TU/CudaArray++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
+		/usr/local/include/TU/simd/BufTraits.h \
 		/usr/local/include/TU/simd/allocator.h \
 		/usr/local/include/TU/simd/arithmetic.h \
 		/usr/local/include/TU/simd/arm/allocator.h \
@@ -132,7 +133,7 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Profiler.h /usr/local/include/TU/algorithm.h \
-	../../TU/CudaUtility.h ../../TU/CudaArray++.h \
+	../../TU/cuda/utility.h ../../TU/cuda/Array++.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	/usr/local/include/TU/IIRFilter.h \
 	/usr/local/include/TU/SeparableFilter2.h \
@@ -197,4 +198,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/cvtdown_iterator.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
-	/usr/local/include/TU/simd/row_vec_iterator.h
+	/usr/local/include/TU/simd/row_vec_iterator.h \
+	/usr/local/include/TU/simd/BufTraits.h

@@ -1,9 +1,11 @@
 /*
- *  $Id: cudaOp3x3.cu,v 1.7 2011-05-09 00:35:49 ueshiba Exp $
+ *  $Id: op3x3.cu,v 1.7 2011-05-09 00:35:49 ueshiba Exp $
  */
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  global constatnt variables						*
@@ -67,7 +69,7 @@ op3x3_kernel(const S* in, T* out, size_t stride_i, size_t stride_o, OP op)
   \param op	3x3近傍演算子
 */
 template <class S, class T, class OP> void
-cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
+op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 {
     using namespace	std;
     
@@ -79,7 +81,7 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
   // 最初と最後の行を除いた (out.nrow() - 2) x out.stride() の配列として扱う
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()/threads.x, (out.nrow() - 2)/threads.y);
-    op3x3_kernel<<<blocks, threads>>>(in[1].data(), out[1].data(),
+    op3x3_kernel<<<blocks, threads>>>(in[1].data().get(), out[1].data().get(),
 				      in.stride(), out.stride(), op);
 
   // 左下
@@ -89,7 +91,8 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 	return;
     blocks.x = out.stride() / threads.x;
     blocks.y = 1;
-    op3x3_kernel<<<blocks, threads>>>(in[top].data(), out[top].data(),
+    op3x3_kernel<<<blocks, threads>>>(in[ top].data().get(),
+				      out[top].data().get(),
 				      in.stride(), out.stride(), op);
 
   // 右下
@@ -97,86 +100,87 @@ cudaOp3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 	return;
     int	lft = out.stride() - threads.x;
     blocks.x = 1;
-    op3x3_kernel<<<blocks, threads>>>(in[top].data()  + lft,
-				      out[top].data() + lft,
+    op3x3_kernel<<<blocks, threads>>>(in[ top].data().get() + lft,
+				      out[top].data().get() + lft,
 				      in.stride(), out.stride(), op);
 }
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  diffH3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      diffH3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  diffH3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      diffH3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  diffV3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      diffV3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  diffV3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      diffV3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  diffHH3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      diffHH3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  diffHH3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      diffHH3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  diffVV3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      diffVV3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  diffVV3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      diffVV3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  diffHV3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      diffHV3x3<float, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  diffHV3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      diffHV3x3<u_char, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  sobelH3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      sobelH3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  sobelH3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      sobelH3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  sobelV3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      sobelV3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  sobelV3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      sobelV3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  sobelAbs3x3<u_char, float> op)				;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      sobelAbs3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  sobelAbs3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      sobelAbs3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  laplacian3x3<u_char, float> op)				;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      laplacian3x3<u_char, float> op)					;
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  laplacian3x3<float, float> op)				;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      laplacian3x3<float, float> op)					;
 
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  det3x3<float, float> op)					;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      det3x3<float, float> op)						;
 template void
-cudaOp3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
-	  det3x3<u_char, float> op)					;
+op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+      det3x3<u_char, float> op)						;
 
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  maximal3x3<float> op)						;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      maximal3x3<float> op)						;
 
 template void
-cudaOp3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
-	  minimal3x3<float> op)						;
+op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+      minimal3x3<float> op)						;
+}
 }

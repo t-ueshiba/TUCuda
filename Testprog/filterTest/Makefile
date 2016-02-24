@@ -13,9 +13,9 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
-CPPFLAGS	= -DNDEBUG
+CPPFLAGS	= -DNDEBUG #-DUSE_TBB
 CFLAGS		= -O3
-NVCCFLAGS	= -O
+NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
@@ -35,8 +35,8 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/CudaArray++.h \
-		../../TU/CudaFilter.h \
+EXTHDRS		= ../../TU/cuda/Array++.h \
+		../../TU/cuda/FIRFilter.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -49,6 +49,7 @@ EXTHDRS		= ../../TU/CudaArray++.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
+		/usr/local/include/TU/simd/BufTraits.h \
 		/usr/local/include/TU/simd/allocator.h \
 		/usr/local/include/TU/simd/arithmetic.h \
 		/usr/local/include/TU/simd/arm/allocator.h \
@@ -195,5 +196,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/cvtdown_iterator.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
-	/usr/local/include/TU/simd/row_vec_iterator.h filterImageGold.h \
-	../../TU/CudaFilter.h ../../TU/CudaArray++.h
+	/usr/local/include/TU/simd/row_vec_iterator.h \
+	/usr/local/include/TU/simd/BufTraits.h filterImageGold.h \
+	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h

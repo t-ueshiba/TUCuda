@@ -2,38 +2,40 @@
  *  $Id$
  */
 /*!
-  \file		CudaGaussianConvolver.h
+  \file		FIRGaussianConvolver.h
   \brief	Gauss核による畳み込みに関連するクラスの定義と実装
 */ 
-#ifndef __TU_CUDAGAUSSIANCONVOLVER_H
-#define __TU_CUDAGAUSSIANCONVOLVER_H
+#ifndef __TU_CUDA_FIRGAUSSIANCONVOLVER_H
+#define __TU_CUDA_FIRGAUSSIANCONVOLVER_H
 
-#include "TU/CudaFilter.h"
+#include "TU/cuda/FIRFilter.h"
 
 namespace TU
 {
+namespace cuda
+{
 /************************************************************************
-*  class CudaGaussianConvolver2						*
+*  class FIRGaussianConvolver2						*
 ************************************************************************/
 //! CUDAを用いてGauss核により2次元配列畳み込みを行うクラス
-class CudaGaussianConvolver2 : public CudaFilter2
+class FIRGaussianConvolver2 : public FIRFilter2
 {
   public:
-    CudaGaussianConvolver2(float sigma=1.0)				;
+    FIRGaussianConvolver2(float sigma=1.0)				;
 
-    CudaGaussianConvolver2&	initialize(float sigma)			;
+    FIRGaussianConvolver2&	initialize(float sigma)			;
 
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	smooth(const CudaArray2<S>& in, CudaArray2<T>& out)		;
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	diffH(const CudaArray2<S>& in, CudaArray2<T>& out)		;
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	diffV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)		;
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
-    template <class S, class T> CudaGaussianConvolver2&
+    template <class S, class T> FIRGaussianConvolver2&
 	diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
     
   private:
@@ -47,7 +49,7 @@ class CudaGaussianConvolver2 : public CudaFilter2
   \param sigma	Gauss核のスケール
 */
 inline
-CudaGaussianConvolver2::CudaGaussianConvolver2(float sigma)
+FIRGaussianConvolver2::FIRGaussianConvolver2(float sigma)
 {
     initialize(sigma);
 }
@@ -58,10 +60,10 @@ CudaGaussianConvolver2::CudaGaussianConvolver2(float sigma)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe0, _lobe0).convolve(in, out);
+    FIRFilter2::initialize(_lobe0, _lobe0).convolve(in, out);
 
     return *this;
 }
@@ -72,10 +74,10 @@ CudaGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe1, _lobe0).convolve(in, out);
+    FIRFilter2::initialize(_lobe1, _lobe0).convolve(in, out);
 
     return *this;
 }
@@ -86,10 +88,10 @@ CudaGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe0, _lobe1).convolve(in, out);
+    FIRFilter2::initialize(_lobe0, _lobe1).convolve(in, out);
 
     return *this;
 }
@@ -100,10 +102,10 @@ CudaGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe2, _lobe0).convolve(in, out);
+    FIRFilter2::initialize(_lobe2, _lobe0).convolve(in, out);
 
     return *this;
 }
@@ -114,10 +116,10 @@ CudaGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe1, _lobe1).convolve(in, out);
+    FIRFilter2::initialize(_lobe1, _lobe1).convolve(in, out);
 
     return *this;
 }
@@ -128,13 +130,14 @@ CudaGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
   \param out	出力2次元配列
   \return	このGauss核自身
 */
-template <class S, class T> inline CudaGaussianConvolver2&
-CudaGaussianConvolver2::diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)
+template <class S, class T> inline FIRGaussianConvolver2&
+FIRGaussianConvolver2::diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    CudaFilter2::initialize(_lobe0, _lobe2).convolve(in, out);
+    FIRFilter2::initialize(_lobe0, _lobe2).convolve(in, out);
 
     return *this;
 }
     
 }
-#endif	// !__TU_CUDAGAUSSIANCONVOLVER_H
+}
+#endif	// !__TU_CUDA_FIRGAUSSIANCONVOLVER_H

@@ -1,11 +1,13 @@
 /*
- * $Id: CudaFilter.cu,v 1.7 2011-04-26 06:39:19 ueshiba Exp $
+ * $Id: FIRFilter.cu,v 1.7 2011-04-26 06:39:19 ueshiba Exp $
  */
-#include "TU/CudaFilter.h"
-#include "TU/CudaUtility.h"
+#include "TU/cuda/FIRFilter.h"
+#include "TU/cuda/utility.h"
 #include <boost/mpl/size_t.hpp>
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  global constatnt variables						*
@@ -13,8 +15,8 @@ namespace TU
 static const size_t		BlockDimX = 32;
 static const size_t		BlockDimY = 16;
     
-static __constant__ float	_lobeH[CudaFilter2::LOBE_SIZE_MAX];
-static __constant__ float	_lobeV[CudaFilter2::LOBE_SIZE_MAX];
+static __constant__ float	_lobeH[FIRFilter2::LOBE_SIZE_MAX];
+static __constant__ float	_lobeV[FIRFilter2::LOBE_SIZE_MAX];
 
 /************************************************************************
 *  device functions							*
@@ -193,16 +195,16 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     int		xs = lobeSize;
     dim3	threads(lobeSize, BlockDimY);
     dim3	blocks((BlockDimX - xs) / threads.x, 1);
-    filterH_kernel<L><<<blocks, threads>>>(in[0].data()  + xs,
-					   out[0].data() + xs,
+    filterH_kernel<L><<<blocks, threads>>>(in[ 0].data().get() + xs,
+					   out[0].data().get() + xs,
 					   in.stride(), out.stride());
     xs += blocks.x * threads.x;
 
   // 右上
     threads.x = BlockDimX;
     blocks.x  = (out.stride() - xs) / threads.x;
-    filterH_kernel<L><<<blocks, threads>>>(in[0].data()  + xs,
-					   out[0].data() + xs,
+    filterH_kernel<L><<<blocks, threads>>>(in[ 0].data().get() + xs,
+					   out[0].data().get() + xs,
 					   in.stride(), out.stride());
     int		ys = blocks.y * threads.y;
     if (ys >= in.nrow())
@@ -211,8 +213,8 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
   // 中央
     blocks.x = out.stride() / threads.x;
     blocks.y = (out.nrow() - ys) / threads.y;
-    filterH_kernel<L><<<blocks, threads>>>(in[ys].data()  + xs,
-					   out[ys].data() + xs,
+    filterH_kernel<L><<<blocks, threads>>>(in[ ys].data().get() + xs,
+					   out[ys].data().get() + xs,
 					   in.stride(), out.stride());
     ys += blocks.y * threads.y;
     if (ys >= in.nrow())
@@ -222,15 +224,16 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     blocks.x  = (out.stride() - lobeSize) / threads.x;
     threads.y = out.nrow() - ys;
     blocks.y  = 1;
-    filterH_kernel<L><<<blocks, threads>>>(in[ys].data(), out[ys].data(),
+    filterH_kernel<L><<<blocks, threads>>>(in[ ys].data().get(),
+					   out[ys].data().get(),
 					   in.stride(), out.stride());
     xs = blocks.x * threads.x;
 
   // 右下
     threads.x = lobeSize;
     blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
-    filterH_kernel<L><<<blocks, threads>>>(in[ys].data()  + xs,
-					   out[ys].data() + xs,
+    filterH_kernel<L><<<blocks, threads>>>(in[ ys].data().get() + xs,
+					   out[ys].data().get() + xs,
 					   in.stride(), out.stride());
 }
     
@@ -243,7 +246,8 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     int		ys = lobeSize;
     dim3	threads(BlockDimX, lobeSize);
     dim3	blocks(out.stride() / threads.x, (BlockDimY - ys) / threads.y);
-    filterV_kernel<L><<<blocks, threads>>>(in[ys].data(), out[ys].data(),
+    filterV_kernel<L><<<blocks, threads>>>(in[ ys].data().get(),
+					   out[ys].data().get(),
 					   in.stride(), out.stride());
     ys += blocks.y * threads.y;
     if (ys >= in.nrow())
@@ -252,7 +256,8 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
   // BlockDimY行以上が残るように縦方向スレッド数をBlockDimYにして処理
     threads.y = BlockDimY;
     blocks.y  = (out.nrow() - ys) / threads.y - 1;
-    filterV_kernel<L><<<blocks, threads>>>(in[ys].data(), out[ys].data(),
+    filterV_kernel<L><<<blocks, threads>>>(in[ ys].data().get(),
+					   out[ys].data().get(),
 					   in.stride(), out.stride());
     ys += blocks.y * threads.y;
     if (ys >= in.nrow())
@@ -262,15 +267,16 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     threads.y = lobeSize;
     blocks.y  = (out.nrow() - ys - 1) / threads.y;
     ys = out.nrow() - (1 + blocks.y) * threads.y;
-    filterV_kernel<L><<<blocks, threads>>>(in[ys].data(), out[ys].data(),
+    filterV_kernel<L><<<blocks, threads>>>(in[ ys].data().get(),
+					   out[ys].data().get(),
 					   in.stride(), out.stride());
 }
     
 /************************************************************************
-*  class CudaFilter2							*
+*  class FIRFilter2							*
 ************************************************************************/
 //! CUDAによる2次元フィルタを生成する．
-CudaFilter2::CudaFilter2()
+FIRFilter2::FIRFilter2()
     :_lobeSizeH(0), _lobeSizeV(0)
 {
     int	device;
@@ -286,13 +292,13 @@ CudaFilter2::CudaFilter2()
   \param lobeV	縦方向ローブ
   \return	この2次元フィルタ
 */
-CudaFilter2&
-CudaFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
+FIRFilter2&
+FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
 {
     using namespace	std;
     
     if (_lobeSizeH > LOBE_SIZE_MAX || _lobeSizeV > LOBE_SIZE_MAX)
-	throw runtime_error("CudaFilter2::initialize: too large lobe size!");
+	throw runtime_error("FIRFilter2::initialize: too large lobe size!");
     
     _lobeSizeH = lobeH.size();
     _lobeSizeV = lobeV.size();
@@ -308,8 +314,8 @@ CudaFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
   \param out	出力2次元配列
   \return	このフィルタ自身
 */
-template <class S, class T> const CudaFilter2&
-CudaFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
+template <class S, class T> const FIRFilter2&
+FIRFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 {
     using namespace	std;
 
@@ -343,7 +349,7 @@ CudaFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 	convolveH_dispatch< 2>(in, _buf);
 	break;
       default:
-	throw runtime_error("CudaFilter2::convolve: unsupported horizontal lobe size!");
+	throw runtime_error("FIRFilter2::convolve: unsupported horizontal lobe size!");
     }
 
   // 縦方向に畳み込む．
@@ -376,22 +382,23 @@ CudaFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 	convolveV_dispatch< 2>(_buf, out);
 	break;
       default:
-	throw runtime_error("CudaFilter2::convolve: unsupported vertical lobe size!");
+	throw runtime_error("FIRFilter2::convolve: unsupported vertical lobe size!");
     }
 
     return *this;
 }
 
-template const CudaFilter2&
-CudaFilter2::convolve(const CudaArray2<u_char>& in,
-			    CudaArray2<u_char>& out)		const	;
-template const CudaFilter2&
-CudaFilter2::convolve(const CudaArray2<u_char>& in,
-			    CudaArray2<float>&  out)		const	;
-template const CudaFilter2&
-CudaFilter2::convolve(const CudaArray2<float>& in,
-			    CudaArray2<u_char>& out)		const	;
-template const CudaFilter2&
-CudaFilter2::convolve(const CudaArray2<float>& in,
-			    CudaArray2<float>& out)		const	;
+template const FIRFilter2&
+FIRFilter2::convolve(const CudaArray2<u_char>& in,
+			   CudaArray2<u_char>& out)		const	;
+template const FIRFilter2&
+FIRFilter2::convolve(const CudaArray2<u_char>& in,
+			   CudaArray2<float>&  out)		const	;
+template const FIRFilter2&
+FIRFilter2::convolve(const CudaArray2<float>& in,
+			   CudaArray2<u_char>& out)		const	;
+template const FIRFilter2&
+FIRFilter2::convolve(const CudaArray2<float>& in,
+			   CudaArray2<float>& out)		const	;
+}
 }

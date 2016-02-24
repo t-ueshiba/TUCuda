@@ -1,10 +1,12 @@
 /*
- *  $Id: cudaSuppressNonExtrema3x3.cu,v 1.2 2011-05-09 00:35:49 ueshiba Exp $
+ *  $Id: suppressNonExtrema3x3.cu,v 1.2 2011-05-09 00:35:49 ueshiba Exp $
  */
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 #include <thrust/functional.h>
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  global constatnt variables						*
@@ -116,7 +118,7 @@ extrema3x3_kernel(const T* in, T* out,
   \param nulval	”ñ‹É’l‚ð‚Æ‚é‰æ‘f‚ÉŠ„‚è“–‚Ä‚é’l
 */
 template <class T, class OP> void
-cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
+suppressNonExtrema3x3(const CudaArray2<T>& in,
 				CudaArray2<T>& out, OP op, T nulval)
 {
     if (in.nrow() < 3 || in.ncol() < 3)
@@ -128,7 +130,8 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()     / (2*threads.x),
 		       (out.nrow() - 2) / (2*threads.y));
-    extrema3x3_kernel<<<blocks, threads>>>(in[1].data(), out[1].data(),
+    extrema3x3_kernel<<<blocks, threads>>>(in[1].data().get(),
+					   out[1].data().get(),
 					   in.stride(), out.stride(),
 					   op, nulval);
 
@@ -139,7 +142,8 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
 	return;
     blocks.x = out.stride() / (2*threads.x);
     blocks.y = 1;
-    extrema3x3_kernel<<<blocks, threads>>>(in[ys].data(), out[ys].data(),
+    extrema3x3_kernel<<<blocks, threads>>>(in[ys].data().get(),
+					   out[ys].data().get(),
 					   in.stride(), out.stride(),
 					   op, nulval);
 
@@ -148,26 +152,23 @@ cudaSuppressNonExtrema3x3(const CudaArray2<T>& in,
 	return;
     int	xs = out.stride() - 2*threads.x;
     blocks.x = 1;
-    extrema3x3_kernel<<<blocks, threads>>>(in[ys].data()  + xs,
-					   out[ys].data() + xs,
+    extrema3x3_kernel<<<blocks, threads>>>(in[ys].data().get()  + xs,
+					   out[ys].data().get() + xs,
 					   in.stride(), out.stride(),
 					   op, nulval);
 }
 
 template  void
-cudaSuppressNonExtrema3x3(const CudaArray2<u_char>& in,
-			  CudaArray2<u_char>& out,
-			  thrust::greater<u_char> op, u_char nulval);
+suppressNonExtrema3x3(const CudaArray2<u_char>& in, CudaArray2<u_char>& out,
+		      thrust::greater<u_char> op, u_char nulval)	;
 template  void
-cudaSuppressNonExtrema3x3(const CudaArray2<float>& in,
-			  CudaArray2<float>& out,
-			  thrust::greater<float> op, float nulval);
+suppressNonExtrema3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+		      thrust::greater<float> op, float nulval)		;
 template  void
-cudaSuppressNonExtrema3x3(const CudaArray2<u_char>& in,
-			  CudaArray2<u_char>& out,
-			  thrust::less<u_char> op, u_char nulval);
+suppressNonExtrema3x3(const CudaArray2<u_char>& in, CudaArray2<u_char>& out,
+		      thrust::less<u_char> op, u_char nulval)		;
 template  void
-cudaSuppressNonExtrema3x3(const CudaArray2<float>& in,
-			  CudaArray2<float>& out,
-			  thrust::less<float> op, float nulval);
+suppressNonExtrema3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+		      thrust::less<float> op, float nulval)		;
+}
 }

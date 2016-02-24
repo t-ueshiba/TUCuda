@@ -6,7 +6,7 @@
 #include "TU/Profiler.h"
 #include "TU/GaussianConvolver.h"
 #include "filterImageGold.h"
-#include "TU/CudaFilter.h"
+#include "TU/cuda/FIRFilter.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -85,7 +85,7 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	CudaFilter2	cudaFilter;
+	cuda::FIRFilter2	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
 	
 	CudaArray2<in_t>	in_d(in);

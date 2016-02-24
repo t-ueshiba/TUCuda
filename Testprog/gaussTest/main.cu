@@ -6,7 +6,7 @@
 #include "TU/Profiler.h"
 #include "TU/GaussianConvolver.h"
 #include "filterImageGold.h"
-#include "TU/CudaGaussianConvolver.h"
+#include "TU/cuda/FIRGaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -86,10 +86,9 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	CudaGaussianConvolver2	cudaFilter(sigma);
-
-	CudaArray2<in_t>	in_d(in);
-	CudaArray2<out_t>	out_d;
+	cuda::FIRGaussianConvolver2	cudaFilter(sigma);
+	CudaArray2<in_t>		in_d(in);
+	CudaArray2<out_t>		out_d;
 
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成

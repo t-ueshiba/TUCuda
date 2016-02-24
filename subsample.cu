@@ -1,9 +1,11 @@
 /*
- * $Id: cudaSubsample.cu,v 1.3 2011-04-19 04:00:25 ueshiba Exp $
+ * $Id: subsample.cu,v 1.3 2011-04-19 04:00:25 ueshiba Exp $
  */
-#include "TU/CudaUtility.h"
+#include "TU/cuda/utility.h"
 
 namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  global constatnt variables						*
@@ -42,7 +44,7 @@ subsample_kernel(const T* in, T* out, uint stride_i, uint stride_o)
   \param out	出力2次元配列
 */
 template <class T> void
-cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)
+subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
 {
     out.resize(in.nrow()/2, in.ncol()/2);
 
@@ -50,16 +52,17 @@ cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)
     dim3	blocks(out.ncol() / threads.x, out.nrow() / threads.y);
 
   // 左上
-    subsample_kernel<<<blocks, threads>>>(in.data(), out.data(),
+    subsample_kernel<<<blocks, threads>>>(in.data().get(), out.data().get(),
 					  in.stride(), out.stride());
 
   // 下端
     uint	bottom = blocks.y * threads.y;
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
-    subsample_kernel<<<blocks, threads>>>(in.data()  + bottom * in.stride(),
-					  out.data() + bottom * out.stride(),
-					  in.stride(), out.stride());
+    subsample_kernel<<<blocks, threads>>>(
+	in.data().get()  + bottom * in.stride(),
+	out.data().get() + bottom * out.stride(),
+	in.stride(), out.stride());
 
   // 右端
     uint	right = blocks.x * threads.x;
@@ -67,26 +70,26 @@ cudaSubsample(const CudaArray2<T>& in, CudaArray2<T>& out)
     blocks.x  = 1;
     threads.y = BlockDimY;
     blocks.y  = out.nrow() / threads.y;
-    subsample_kernel<<<blocks, threads>>>(in.data()  + right,
-					  out.data() + right,
-					  in.stride(), out.stride());
+    subsample_kernel<<<blocks, threads>>>(
+	in.data().get() + right, out.data().get() + right,
+	in.stride(), out.stride());
 
   // 右下
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
-    subsample_kernel<<<blocks, threads>>>(in.data()  + bottom * in.stride()
-						     + right,
-					  out.data() + bottom * out.stride()
-						     + right,
-					  in.stride(), out.stride());
+    subsample_kernel<<<blocks, threads>>>(
+	in.data().get()  + bottom * in.stride()  + right,
+	out.data().get() + bottom * out.stride() + right,
+	in.stride(), out.stride());
 }
 
-template void	cudaSubsample(const CudaArray2<u_char>& in,
-				    CudaArray2<u_char>& out)	;
-template void	cudaSubsample(const CudaArray2<short>& in,
-				    CudaArray2<short>& out)	;
-template void	cudaSubsample(const CudaArray2<int>& in,
-				    CudaArray2<int>& out)	;
-template void	cudaSubsample(const CudaArray2<float>& in,
-				    CudaArray2<float>& out)	;
+template void	subsample(const CudaArray2<u_char>& in,
+				CudaArray2<u_char>& out)	;
+template void	subsample(const CudaArray2<short>& in,
+				CudaArray2<short>& out)		;
+template void	subsample(const CudaArray2<int>& in,
+				CudaArray2<int>& out)		;
+template void	subsample(const CudaArray2<float>& in,
+				CudaArray2<float>& out)		;
+}
 }

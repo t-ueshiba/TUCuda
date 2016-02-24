@@ -2,19 +2,21 @@
  *  $Id$
  */
 /*!
-  \file		CudaTexture.h
+  \file		Texture.h
   \brief	CUDAテクスチャメモリに関連するクラスの定義と実装
 */ 
-#ifndef __TU_CUDATEXTURE_H
-#define __TU_CUDATEXTURE_H
+#ifndef __TU_CUDA_TEXTURE_H
+#define __TU_CUDA_TEXTURE_H
 
-#include "TU/CudaArray++.h"
+#include "TU/cuda/Array++.h"
 #include <cuda_texture_types.h>
 
 namespace TU
 {
+namespace cuda
+{
 /************************************************************************
-*  class CudaTexture<T>							*
+*  class Texture<T>							*
 ************************************************************************/
 //! CUDAにおけるT型オブジェクトのテクスチャクラス
 /*!
@@ -23,7 +25,7 @@ namespace TU
   \param T	要素の型
 */
 template <class T>
-class CudaTexture
+class Texture
 {
   public:
     typedef T					value_type;
@@ -33,14 +35,14 @@ class CudaTexture
     
   public:
     template <enum cudaTextureReadMode M>
-    CudaTexture(const array_type& a, texture<T, 1, M>& texref,
-		bool wrap=false,
-		bool interpolate=false, bool normalized=false)		;
+    Texture(const array_type& a, texture<T, 1, M>& texref,
+	    bool wrap=false,
+	    bool interpolate=false, bool normalized=false)		;
     template <enum cudaTextureReadMode M>
-    CudaTexture(const array2_type& a, texture<T, 2, M>& texref,
-		bool wrap=false,
-		bool interpolate=false, bool normalized=false)		;
-    ~CudaTexture()							;
+    Texture(const array2_type& a, texture<T, 2, M>& texref,
+	    bool wrap=false,
+	    bool interpolate=false, bool normalized=false)		;
+    ~Texture()								;
     
   private:
     texref_type&	_texref;
@@ -59,8 +61,8 @@ class CudaTexture
 			そうでなければfalse
 */
 template <class T> template <enum cudaTextureReadMode M> inline
-CudaTexture<T>::CudaTexture(const array_type& a, texture<T, 1, M>& texref,
-			    bool wrap, bool interpolate, bool normalized)
+Texture<T>::Texture(const array_type& a, texture<T, 1, M>& texref,
+		    bool wrap, bool interpolate, bool normalized)
     :_texref(texref)
 {
     using namespace	std;
@@ -73,7 +75,7 @@ CudaTexture<T>::CudaTexture(const array_type& a, texture<T, 1, M>& texref,
     cudaError_t	err = cudaBindTexture(0, &_texref, (const T*)a,
 				      &_texref.channelDesc, a.size());
     if (err != cudaSuccess)
-	throw runtime_error("CudaTexture::CudaTexture(): failed to bind texture to the given 1D array!");
+	throw runtime_error("Texture::Texture(): failed to bind texture to the given 1D array!");
 }
 
 //! 2次元CUDA配列から2次元テクスチャを作る．
@@ -89,8 +91,8 @@ CudaTexture<T>::CudaTexture(const array_type& a, texture<T, 1, M>& texref,
 			そうでなければfalse
 */
 template <class T> template <enum cudaTextureReadMode M> inline
-CudaTexture<T>::CudaTexture(const array2_type& a, texture<T, 2, M>& texref,
-			    bool wrap, bool interpolate, bool normalized)
+Texture<T>::Texture(const array2_type& a, texture<T, 2, M>& texref,
+		    bool wrap, bool interpolate, bool normalized)
     :_texref(texref)
 {
     using namespace	std;
@@ -105,15 +107,16 @@ CudaTexture<T>::CudaTexture(const array2_type& a, texture<T, 2, M>& texref,
 					&_texref.channelDesc,
 					a.ncol(), a.nrow(), a.stride()*sizeof(T));
     if (err != cudaSuccess)
-	throw runtime_error("CudaTexture::CudaTexture(): failed to bind texture to the given 2D array!");
+	throw runtime_error("Texture::Texture(): failed to bind texture to the given 2D array!");
 }
 
 //! テクスチャを破壊する．
 template <class T> inline
-CudaTexture<T>::~CudaTexture()
+Texture<T>::~Texture()
 {
     cudaUnbindTexture(&_texref);
 }
 
 }
-#endif	// !__TU_CUDATEXTURE_H
+}
+#endif	// !__TU_CUDA_TEXTURE_H

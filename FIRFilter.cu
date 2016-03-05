@@ -6,7 +6,6 @@
 */
 #include "TU/cuda/FIRFilter.h"
 #include "TU/cuda/utility.h"
-#include <boost/mpl/size_t.hpp>
 
 namespace TU
 {
@@ -25,7 +24,8 @@ static __constant__ float	_lobeV[FIRFilter2::LOBE_SIZE_MAX];
 *  device functions							*
 ************************************************************************/
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<17>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 17>)
 {
   // ローブ長が17画素の偶関数畳み込みカーネル
     return lobe[ 0] * (in_s[-16] + in_s[16])
@@ -48,7 +48,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<17>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<16>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 16>)
 {
   // ローブ長が16画素の奇関数畳み込みカーネル
     return lobe[ 0] * (in_s[-16] - in_s[16])
@@ -70,7 +71,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<16>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<9>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 9>)
 {
   // ローブ長が9画素の偶関数畳み込みカーネル
     return lobe[0] * (in_s[-8] + in_s[8])
@@ -85,7 +87,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<9>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<8>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 8>)
 {
   // ローブ長が8画素の奇関数畳み込みカーネル
     return lobe[0] * (in_s[-8] - in_s[8])
@@ -99,7 +102,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<8>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<5>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 5>)
 {
   // ローブ長が5画素の偶関数畳み込みカーネル
     return lobe[0] * (in_s[-4] + in_s[4])
@@ -110,7 +114,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<5>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<4>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 4>)
 {
   // ローブ長が4画素の奇関数畳み込みカーネル
     return lobe[0] * (in_s[-4] - in_s[4])
@@ -120,7 +125,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<4>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<3>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 3>)
 {
   // ローブ長が3画素の偶関数畳み込みカーネル
     return lobe[0] * (in_s[-2] + in_s[2])
@@ -129,7 +135,8 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<3>)
 }
     
 static inline __device__ float
-convolve(const float* in_s, const float* lobe, boost::mpl::size_t<2>)
+convolve(const float* in_s, const float* lobe,
+	 std::integral_constant<size_t, 2>)
 {
   // ローブ長が2画素の奇関数畳み込みカーネル
     return lobe[0] * (in_s[-2] - in_s[2])
@@ -157,7 +164,7 @@ filterH_kernel(const S* in, T* out, uint stride_i, uint stride_o)
     
   // 積和演算
     out[y*stride_o + x] = convolve(in_s + xy_s, _lobeH,
-				   boost::mpl::size_t<L>());
+				   std::integral_constant<size_t, L>());
 }
     
 template <size_t L, class S, class T> static __global__ void
@@ -183,7 +190,7 @@ filterV_kernel(const S* in, T* out, uint stride_i, uint stride_o)
     
   // 積和演算
     out[y*stride_o + x] = convolve(in_s + xy_s, _lobeH,
-				   boost::mpl::size_t<L>());
+				   std::integral_constant<size_t, L>());
 }
 
 /************************************************************************
@@ -300,7 +307,7 @@ FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
 {
     using namespace	std;
     
-    if (_lobeSizeH > LOBE_SIZE_MAX || _lobeSizeV > LOBE_SIZE_MAX)
+    if (lobeH.size() > LOBE_SIZE_MAX || lobeV.size() > LOBE_SIZE_MAX)
 	throw runtime_error("FIRFilter2::initialize: too large lobe size!");
     
     _lobeSizeH = lobeH.size();

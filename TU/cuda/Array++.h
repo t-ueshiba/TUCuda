@@ -137,15 +137,19 @@ struct BufTraits<T, cuda::allocator<T> >
     typedef typename allocator_type::pointer		iterator;
     typedef typename allocator_type::const_pointer	const_iterator;
 
+  protected:
     template <class IN_, class OUT_>
     static OUT_	copy(IN_ ib, IN_ ie, OUT_ out)
 		{
 		    return thrust::copy(ib, ie, out);
 		}
-    template <class ITER_, class T_>
-    static void	fill(ITER_ ib, ITER_ ie, const T_& c)
+    template <class T_>
+    static void	fill(iterator ib, iterator ie, const T_& c)
 		{
 		    thrust::fill(ib, ie, c);
+		}
+    static void	init(iterator ib, iterator ie)
+		{
 		}
 };
 

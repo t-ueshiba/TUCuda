@@ -1,6 +1,9 @@
 /*
  *  $Id$
  */
+/*!
+  \file		FIRGaussianConvolver.cc
+*/
 #include "TU/cuda/FIRGaussianConvolver.h"
 #include <cmath>
 

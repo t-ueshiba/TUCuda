@@ -1,6 +1,9 @@
 /*
  *  $Id: suppressNonExtrema3x3.cu,v 1.2 2011-05-09 00:35:49 ueshiba Exp $
  */
+/*!
+  \file		suppressNonExtrema3x3.cu
+*/
 #include "TU/cuda/utility.h"
 #include <thrust/functional.h>
 
@@ -11,7 +14,7 @@ namespace cuda
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const size_t	BlockDim = 16;		// ƒuƒƒbƒNƒTƒCƒY‚Ì‰Šú’l
+static const size_t	BlockDim = 16;		// ãƒ–ãƒ­ãƒƒã‚¯ã‚µã‚¤ã‚ºã®åˆæœŸå€¤
     
 /************************************************************************
 *  device functions							*
@@ -20,51 +23,51 @@ template <class T, class OP> static __global__ void
 extrema3x3_kernel(const T* in, T* out,
 		  size_t stride_i, size_t stride_o, OP op, T nulval)
 {
-  // ‚±‚ÌƒJ[ƒlƒ‹‚ÍƒuƒƒbƒN‹«ŠEˆ—‚Ì‚½‚ß‚É blockDim.x == blockDim.y ‚ğ‰¼’è
-    const int	blk = blockDim.x;	// u_int‚É‚·‚é‚Æƒ_ƒDCUDA‚ÌƒoƒOH
+  // ã“ã®ã‚«ãƒ¼ãƒãƒ«ã¯ãƒ–ãƒ­ãƒƒã‚¯å¢ƒç•Œå‡¦ç†ã®ãŸã‚ã« blockDim.x == blockDim.y ã‚’ä»®å®š
+    const int	blk = blockDim.x;	// u_intã«ã™ã‚‹ã¨ãƒ€ãƒ¡ï¼CUDAã®ãƒã‚°ï¼Ÿ
     int		xy  = 2*(blockIdx.y*blockDim.y + threadIdx.y)*stride_i
 		    + 2* blockIdx.x*blockDim.x + threadIdx.x;
     int		x   = 1 +   threadIdx.x;
     const int	y   = 1 + 2*threadIdx.y;
 
-  // (2*blockDim.x)x(2*blockDim.y) ‚Ì‹éŒ`—Ìˆæ‚É‹¤—Lƒƒ‚ƒŠ—Ìˆæ‚ÉƒRƒs[
+  // (2*blockDim.x)x(2*blockDim.y) ã®çŸ©å½¢é ˜åŸŸã«å…±æœ‰ãƒ¡ãƒ¢ãƒªé ˜åŸŸã«ã‚³ãƒ”ãƒ¼
     __shared__ T	buf[2*BlockDim + 2][2*BlockDim + 3];
     buf[y    ][x      ] = in[xy			];
     buf[y    ][x + blk] = in[xy		   + blk];
     buf[y + 1][x      ] = in[xy + stride_i	];
     buf[y + 1][x + blk] = in[xy + stride_i + blk];
 
-  // 2x2ƒuƒƒbƒN‚ÌŠO˜g‚ğ‹¤—Lƒƒ‚ƒŠ—Ìˆæ‚ÉƒRƒs[
-    if (threadIdx.y == 0)	// ƒuƒƒbƒN‚Ìã’[?
+  // 2x2ãƒ–ãƒ­ãƒƒã‚¯ã®å¤–æ ã‚’å…±æœ‰ãƒ¡ãƒ¢ãƒªé ˜åŸŸã«ã‚³ãƒ”ãƒ¼
+    if (threadIdx.y == 0)	// ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸Šç«¯?
     {
 	const int	blk2 = 2*blockDim.y;
-	const int	top  = xy - stride_i;		// Œ»İˆÊ’u‚Ì’¼ã
-	const int	bot  = xy + blk2 * stride_i;	// Œ»İˆÊ’u‚Ì‰º’[
-	buf[0	    ][x      ] = in[top      ];		// ã˜g¶”¼
-	buf[0	    ][x + blk] = in[top + blk];		// ã˜g‰E”¼
-	buf[1 + blk2][x      ] = in[bot      ];		// ‰º˜g¶”¼
-	buf[1 + blk2][x + blk] = in[bot + blk];		// ‰º˜g‰E”¼
+	const int	top  = xy - stride_i;		// ç¾åœ¨ä½ç½®ã®ç›´ä¸Š
+	const int	bot  = xy + blk2 * stride_i;	// ç¾åœ¨ä½ç½®ã®ä¸‹ç«¯
+	buf[0	    ][x      ] = in[top      ];		// ä¸Šæ å·¦åŠ
+	buf[0	    ][x + blk] = in[top + blk];		// ä¸Šæ å³åŠ
+	buf[1 + blk2][x      ] = in[bot      ];		// ä¸‹æ å·¦åŠ
+	buf[1 + blk2][x + blk] = in[bot + blk];		// ä¸‹æ å³åŠ
 
 	int	lft = xy + threadIdx.x*(stride_i - 1);
-	buf[x      ][0       ] = in[lft -    1];	// ¶˜gã”¼
-	buf[x      ][1 + blk2] = in[lft + blk2];	// ‰E˜gã”¼
+	buf[x      ][0       ] = in[lft -    1];	// å·¦æ ä¸ŠåŠ
+	buf[x      ][1 + blk2] = in[lft + blk2];	// å³æ ä¸ŠåŠ
 	lft += blockDim.y * stride_i;
-	buf[x + blk][0       ] = in[lft -    1];	// ¶˜g‰º”¼
-	buf[x + blk][1 + blk2] = in[lft + blk2];	// ‰E˜g‰º”¼
+	buf[x + blk][0       ] = in[lft -    1];	// å·¦æ ä¸‹åŠ
+	buf[x + blk][1 + blk2] = in[lft + blk2];	// å³æ ä¸‹åŠ
 
-	if (threadIdx.x == 0)	// ƒuƒƒbƒN‚Ì¶ã‹÷?
+	if (threadIdx.x == 0)	// ãƒ–ãƒ­ãƒƒã‚¯ã®å·¦ä¸Šéš…?
 	{
 	    if ((blockIdx.x != 0) || (blockIdx.y != 0))
-	  	buf[0][0] = in[top - 1];			// ¶ã‹÷
+	  	buf[0][0] = in[top - 1];			// å·¦ä¸Šéš…
 	    if ((blockIdx.x != gridDim.x - 1) || (blockIdx.y != gridDim.y - 1))
-		buf[1 + blk2][1 + blk2] = in[bot + blk2];	// ‰E‰º‹÷
-	    buf[0][1 + blk2] = in[top + blk2];			// ‰Eã‹÷
-	    buf[1 + blk2][0] = in[bot -    1];			// ¶‰º‹÷
+		buf[1 + blk2][1 + blk2] = in[bot + blk2];	// å³ä¸‹éš…
+	    buf[0][1 + blk2] = in[top + blk2];			// å³ä¸Šéš…
+	    buf[1 + blk2][0] = in[bot -    1];			// å·¦ä¸‹éš…
 	}
     }
     __syncthreads();
 
-  // ‚±‚ÌƒXƒŒƒbƒh‚Ìˆ—‘ÎÛ‚Å‚ ‚é2x2ƒEƒBƒ“ƒhƒE’†‚ÅÅ‘å/Å¬‚Æ‚È‚é‰æ‘f‚ÌÀ•W‚ğ‹‚ß‚éD
+  // ã“ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã®å‡¦ç†å¯¾è±¡ã§ã‚ã‚‹2x2ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ä¸­ã§æœ€å¤§/æœ€å°ã¨ãªã‚‹ç”»ç´ ã®åº§æ¨™ã‚’æ±‚ã‚ã‚‹ï¼
     x = 1 + 2*threadIdx.x;
   //const int	i01 = (op(buf[y    ][x], buf[y	  ][x + 1]) ? 0 : 1);
   //const int	i23 = (op(buf[y + 1][x], buf[y + 1][x + 1]) ? 2 : 3);
@@ -72,10 +75,10 @@ extrema3x3_kernel(const T* in, T* out,
     const int	i23 = op(buf[y + 1][x + 1], buf[y + 1][x]) + 2;
     const int	iex = (op(buf[y][x + i01], buf[y + 1][x + (i23 & 0x1)]) ?
 		       i01 : i23);
-    const int	xx  = x + (iex & 0x1);		// Å‘å/Å¬“_‚ÌxÀ•W
-    const int	yy  = y + (iex >> 1);		// Å‘å/Å¬“_‚ÌyÀ•W
+    const int	xx  = x + (iex & 0x1);		// æœ€å¤§/æœ€å°ç‚¹ã®xåº§æ¨™
+    const int	yy  = y + (iex >> 1);		// æœ€å¤§/æœ€å°ç‚¹ã®yåº§æ¨™
 
-  // Å‘å/Å¬‚Æ‚È‚Á‚½‰æ‘f‚ªCc‚è5‚Â‚Ì‹ß–T“_‚æ‚è‚à‘å‚«‚¢/¬‚³‚¢‚©’²‚×‚éD
+  // æœ€å¤§/æœ€å°ã¨ãªã£ãŸç”»ç´ ãŒï¼Œæ®‹ã‚Š5ã¤ã®è¿‘å‚ç‚¹ã‚ˆã‚Šã‚‚å¤§ãã„/å°ã•ã„ã‹èª¿ã¹ã‚‹ï¼
   //const int	dx  = (iex & 0x1 ? 1 : -1);
   //const int	dy  = (iex & 0x2 ? 1 : -1);
     const int	dx  = ((iex & 0x1) << 1) - 1;
@@ -88,15 +91,15 @@ extrema3x3_kernel(const T* in, T* out,
 	   op(val, buf[yy - dy][xx + dx]) ? val : nulval);
     __syncthreads();
 
-  // ‚±‚Ì2x2‰æ‘fƒEƒBƒ“ƒhƒE‚É‘Î‰‚·‚é‹¤—Lƒƒ‚ƒŠ—Ìˆæ‚Éo—Í’l‚ğ‘‚«‚ŞD
-    buf[y    ][x    ] = nulval;		// ”ñ‹É’l
-    buf[y    ][x + 1] = nulval;		// ”ñ‹É’l
-    buf[y + 1][x    ] = nulval;		// ”ñ‹É’l
-    buf[y + 1][x + 1] = nulval;		// ”ñ‹É’l
-    buf[yy   ][xx   ] = val;		// ‹É’l‚Ü‚½‚Í”ñ‹É’l
+  // ã“ã®2x2ç”»ç´ ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«å¯¾å¿œã™ã‚‹å…±æœ‰ãƒ¡ãƒ¢ãƒªé ˜åŸŸã«å‡ºåŠ›å€¤ã‚’æ›¸ãè¾¼ã‚€ï¼
+    buf[y    ][x    ] = nulval;		// éæ¥µå€¤
+    buf[y    ][x + 1] = nulval;		// éæ¥µå€¤
+    buf[y + 1][x    ] = nulval;		// éæ¥µå€¤
+    buf[y + 1][x + 1] = nulval;		// éæ¥µå€¤
+    buf[yy   ][xx   ] = val;		// æ¥µå€¤ã¾ãŸã¯éæ¥µå€¤
     __syncthreads();
     
-  // (2*blockDim.x)x(2*blockDim.y) ‚Ì‹éŒ`—Ìˆæ‚É‹¤—Lƒƒ‚ƒŠ—Ìˆæ‚ğƒRƒs[D
+  // (2*blockDim.x)x(2*blockDim.y) ã®çŸ©å½¢é ˜åŸŸã«å…±æœ‰ãƒ¡ãƒ¢ãƒªé ˜åŸŸã‚’ã‚³ãƒ”ãƒ¼ï¼
     x = 1 + threadIdx.x;
     xy  = 2*(blockIdx.y*blockDim.y + threadIdx.y)*stride_o
 	+ 2* blockIdx.x*blockDim.x + threadIdx.x;
@@ -109,13 +112,13 @@ extrema3x3_kernel(const T* in, T* out,
 /************************************************************************
 *  global functions							*
 ************************************************************************/
-//! CUDA‚É‚æ‚Á‚Ä2ŸŒ³”z—ñ‚É‘Î‚µ‚Ä3x3”ñ‹É’l—}§ˆ—‚ğs‚¤D
+//! CUDAã«ã‚ˆã£ã¦2æ¬¡å…ƒé…åˆ—ã«å¯¾ã—ã¦3x3éæ¥µå€¤æŠ‘åˆ¶å‡¦ç†ã‚’è¡Œã†ï¼
 /*!
-  \param in	“ü—Í2ŸŒ³”z—ñ
-  \param out	o—Í2ŸŒ³”z—ñ
-  \param op	‹É‘å’l‚ğŒŸo‚·‚é‚Æ‚«‚Í thrust::greater<T> ‚ğC
-		‹É¬’l‚ğŒŸo‚·‚é‚Æ‚«‚Í thrust::less<T> ‚ğ—^‚¦‚é
-  \param nulval	”ñ‹É’l‚ğ‚Æ‚é‰æ‘f‚ÉŠ„‚è“–‚Ä‚é’l
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \param op	æ¥µå¤§å€¤ã‚’æ¤œå‡ºã™ã‚‹ã¨ãã¯ thrust::greater<T> ã‚’ï¼Œ
+		æ¥µå°å€¤ã‚’æ¤œå‡ºã™ã‚‹ã¨ãã¯ thrust::less<T> ã‚’ä¸ãˆã‚‹
+  \param nulval	éæ¥µå€¤ã‚’ã¨ã‚‹ç”»ç´ ã«å‰²ã‚Šå½“ã¦ã‚‹å€¤
 */
 template <class T, class OP> void
 suppressNonExtrema3x3(const CudaArray2<T>& in,
@@ -126,7 +129,7 @@ suppressNonExtrema3x3(const CudaArray2<T>& in,
     
     out.resize(in.nrow(), in.ncol());
 
-  // Å‰‚ÆÅŒã‚Ìs‚ğœ‚¢‚½ (out.nrow() - 2) x out.stride() ‚Ì”z—ñ‚Æ‚µ‚Äˆµ‚¤
+  // æœ€åˆã¨æœ€å¾Œã®è¡Œã‚’é™¤ã„ãŸ (out.nrow() - 2) x out.stride() ã®é…åˆ—ã¨ã—ã¦æ‰±ã†
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()     / (2*threads.x),
 		       (out.nrow() - 2) / (2*threads.y));
@@ -135,7 +138,7 @@ suppressNonExtrema3x3(const CudaArray2<T>& in,
 					   in.stride(), out.stride(),
 					   op, nulval);
 
-  // ¶‰º
+  // å·¦ä¸‹
     int	ys = 1 + 2*threads.y * blocks.y;
     threads.x = threads.y = (out.nrow() - ys - 1) / 2;
     if (threads.x == 0)
@@ -147,7 +150,7 @@ suppressNonExtrema3x3(const CudaArray2<T>& in,
 					   in.stride(), out.stride(),
 					   op, nulval);
 
-  // ‰E‰º
+  // å³ä¸‹
     if (2*threads.x * blocks.x == out.stride())
 	return;
     int	xs = out.stride() - 2*threads.x;

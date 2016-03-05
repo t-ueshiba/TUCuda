@@ -48,10 +48,10 @@
   - #TU::cuda::FIRGaussianConvolver2
 
   <b>ユティリティ</b>
-  - #TU::cuda::copyToConstantMemory(Iterator, Iterator, T*)
-  - #TU::cuda::subsample(const CudaArray2<T>&, CudaArray2<T>&)
-  - #TU::cuda::op3x3(const CudaArray2<S>&, CudaArray2<T>&, OP op)
-  - #TU::cuda::suppressNonExtrema3x3(const CudaArray2<T>&, CudaArray2<T>&, OP op, T)
+  - #TU::cuda::copyToConstantMemory()
+  - #TU::cuda::subsample()
+  - #TU::cuda::op3x3()
+  - #TU::cuda::suppressNonExtrema3x3()
   
   \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
@@ -64,16 +64,10 @@
 #include <thrust/fill.h>
 #include "TU/Array++.h"
 
-/*!
-  \namespace	TU
-  \brief	植芝によって開発されたクラスおよび関数を納める名前空間
-*/
+//! 植芝によって開発されたクラスおよび関数を納める名前空間
 namespace TU
 {
-/*!
-  \namespace	cuda
-  \brief	本ライブラリで定義されたクラスおよび関数を納める名前空間
-*/
+//! 本ライブラリで定義されたクラスおよび関数を納める名前空間
 namespace cuda
 {
 /************************************************************************

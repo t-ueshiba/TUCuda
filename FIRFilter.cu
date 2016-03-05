@@ -1,6 +1,9 @@
 /*
  * $Id: FIRFilter.cu,v 1.7 2011-04-26 06:39:19 ueshiba Exp $
  */
+/*!
+  \file		FIRFilter.cu
+*/
 #include "TU/cuda/FIRFilter.h"
 #include "TU/cuda/utility.h"
 #include <boost/mpl/size_t.hpp>
@@ -24,7 +27,7 @@ static __constant__ float	_lobeV[FIRFilter2::LOBE_SIZE_MAX];
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<17>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬17²èÁÇ¤Î¶ö´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ17ç”»ç´ ã®å¶é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[ 0] * (in_s[-16] + in_s[16])
 	 + lobe[ 1] * (in_s[-15] + in_s[15])
 	 + lobe[ 2] * (in_s[-14] + in_s[14])
@@ -47,7 +50,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<17>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<16>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬16²èÁÇ¤Î´ñ´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ16ç”»ç´ ã®å¥‡é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[ 0] * (in_s[-16] - in_s[16])
 	 + lobe[ 1] * (in_s[-15] - in_s[15])
 	 + lobe[ 2] * (in_s[-14] - in_s[14])
@@ -69,7 +72,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<16>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<9>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬9²èÁÇ¤Î¶ö´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ9ç”»ç´ ã®å¶é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-8] + in_s[8])
 	 + lobe[1] * (in_s[-7] + in_s[7])
 	 + lobe[2] * (in_s[-6] + in_s[6])
@@ -84,7 +87,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<9>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<8>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬8²èÁÇ¤Î´ñ´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ8ç”»ç´ ã®å¥‡é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-8] - in_s[8])
 	 + lobe[1] * (in_s[-7] - in_s[7])
 	 + lobe[2] * (in_s[-6] - in_s[6])
@@ -98,7 +101,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<8>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<5>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬5²èÁÇ¤Î¶ö´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ5ç”»ç´ ã®å¶é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-4] + in_s[4])
 	 + lobe[1] * (in_s[-3] + in_s[3])
 	 + lobe[2] * (in_s[-2] + in_s[2])
@@ -109,7 +112,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<5>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<4>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬4²èÁÇ¤Î´ñ´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ4ç”»ç´ ã®å¥‡é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-4] - in_s[4])
 	 + lobe[1] * (in_s[-3] - in_s[3])
 	 + lobe[2] * (in_s[-2] - in_s[2])
@@ -119,7 +122,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<4>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<3>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬3²èÁÇ¤Î¶ö´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ3ç”»ç´ ã®å¶é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-2] + in_s[2])
 	 + lobe[1] * (in_s[-1] + in_s[1])
 	 + lobe[2] *  in_s[ 0];
@@ -128,7 +131,7 @@ convolve(const float* in_s, const float* lobe, boost::mpl::size_t<3>)
 static inline __device__ float
 convolve(const float* in_s, const float* lobe, boost::mpl::size_t<2>)
 {
-  // ¥í¡¼¥ÖÄ¹¤¬2²èÁÇ¤Î´ñ´Ø¿ô¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë
+  // ãƒ­ãƒ¼ãƒ–é•·ãŒ2ç”»ç´ ã®å¥‡é–¢æ•°ç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«
     return lobe[0] * (in_s[-2] - in_s[2])
 	 + lobe[1] * (in_s[-1] - in_s[1]);    
 }
@@ -141,18 +144,18 @@ filterH_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 		xy  = y*stride_i + x,
     		dxy = blockDim.x;
 
-  // in_s[]¤ò½Ä:blockDim.y, ²£:3*blockDim.x ¤Î2¼¡¸µÇÛÎó¤È¤·¤Æ°·¤¦¡¥
+  // in_s[]ã‚’ç¸¦:blockDim.y, æ¨ª:3*blockDim.x ã®2æ¬¡å…ƒé…åˆ—ã¨ã—ã¦æ‰±ã†ï¼
     const int	xy_s  = threadIdx.y*(3*blockDim.x) + blockDim.x + threadIdx.x,
 		dxy_s = blockDim.x;
 
-  // ¸¶²èÁü¤Î3¤Ä¤Î¥¿¥¤¥ë(¥¹¥ì¥Ã¥É¥Ö¥í¥Ã¥¯¤ËÂĞ±ş)¤ò¶¦Í­¥á¥â¥ê¤Ë¥³¥Ô¡¼
+  // åŸç”»åƒã®3ã¤ã®ã‚¿ã‚¤ãƒ«(ã‚¹ãƒ¬ãƒƒãƒ‰ãƒ–ãƒ­ãƒƒã‚¯ã«å¯¾å¿œ)ã‚’å…±æœ‰ãƒ¡ãƒ¢ãƒªã«ã‚³ãƒ”ãƒ¼
     __shared__ float	in_s[BlockDimX * (3*BlockDimY + 1)];
     in_s[xy_s - dxy_s] = in[xy - dxy];
     in_s[xy_s	     ] = in[xy	    ];
     in_s[xy_s + dxy_s] = in[xy + dxy];
     __syncthreads();
     
-  // ÀÑÏÂ±é»»
+  // ç©å’Œæ¼”ç®—
     out[y*stride_o + x] = convolve(in_s + xy_s, _lobeH,
 				   boost::mpl::size_t<L>());
 }
@@ -165,20 +168,20 @@ filterV_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 		xy  = y*stride_i + x,
 		dxy = blockDim.y*stride_i;
 
-  // bank conflict¤òËÉ¤°¤¿¤á¡¤in_s[]¤ò½Ä:blockDim.x, ²£:3*blockDim.y + 1 ¤Î
-  // 2¼¡¸µÇÛÎó¤È¤·¤Æ°·¤¦¡¥
+  // bank conflictã‚’é˜²ããŸã‚ï¼Œin_s[]ã‚’ç¸¦:blockDim.x, æ¨ª:3*blockDim.y + 1 ã®
+  // 2æ¬¡å…ƒé…åˆ—ã¨ã—ã¦æ‰±ã†ï¼
     const int	xy_s  = threadIdx.x*(3*blockDim.y + 1)
 		      + blockDim.y + threadIdx.y,
 		dxy_s = blockDim.y;
     
-  // ¸¶²èÁü¤Î3¤Ä¤Î¥¿¥¤¥ë(¥¹¥ì¥Ã¥É¥Ö¥í¥Ã¥¯¤ËÂĞ±ş)¤ò¶¦Í­¥á¥â¥ê¤Ë¥³¥Ô¡¼
+  // åŸç”»åƒã®3ã¤ã®ã‚¿ã‚¤ãƒ«(ã‚¹ãƒ¬ãƒƒãƒ‰ãƒ–ãƒ­ãƒƒã‚¯ã«å¯¾å¿œ)ã‚’å…±æœ‰ãƒ¡ãƒ¢ãƒªã«ã‚³ãƒ”ãƒ¼
     __shared__ float	in_s[BlockDimX * (3*BlockDimY + 1)];
     in_s[xy_s - dxy_s] = in[xy - dxy];
     in_s[xy_s	     ] = in[xy	    ];
     in_s[xy_s + dxy_s] = in[xy + dxy];
     __syncthreads();
     
-  // ÀÑÏÂ±é»»
+  // ç©å’Œæ¼”ç®—
     out[y*stride_o + x] = convolve(in_s + xy_s, _lobeH,
 				   boost::mpl::size_t<L>());
 }
@@ -189,9 +192,9 @@ filterV_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 template <size_t L, class S, class T> inline static void
 convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    const size_t	lobeSize = L & ~0x1;	// Ãæ¿´ÅÀ¤ò´Ş¤Ş¤Ê¤¤¥í¡¼¥ÖÄ¹
+    const size_t	lobeSize = L & ~0x1;	// ä¸­å¿ƒç‚¹ã‚’å«ã¾ãªã„ãƒ­ãƒ¼ãƒ–é•·
 
-  // º¸¾å
+  // å·¦ä¸Š
     int		xs = lobeSize;
     dim3	threads(lobeSize, BlockDimY);
     dim3	blocks((BlockDimX - xs) / threads.x, 1);
@@ -200,7 +203,7 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 					   in.stride(), out.stride());
     xs += blocks.x * threads.x;
 
-  // ±¦¾å
+  // å³ä¸Š
     threads.x = BlockDimX;
     blocks.x  = (out.stride() - xs) / threads.x;
     filterH_kernel<L><<<blocks, threads>>>(in[ 0].data().get() + xs,
@@ -210,7 +213,7 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     if (ys >= in.nrow())
 	return;
 
-  // Ãæ±û
+  // ä¸­å¤®
     blocks.x = out.stride() / threads.x;
     blocks.y = (out.nrow() - ys) / threads.y;
     filterH_kernel<L><<<blocks, threads>>>(in[ ys].data().get() + xs,
@@ -220,7 +223,7 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     if (ys >= in.nrow())
 	return;
 
-  // º¸²¼
+  // å·¦ä¸‹
     blocks.x  = (out.stride() - lobeSize) / threads.x;
     threads.y = out.nrow() - ys;
     blocks.y  = 1;
@@ -229,7 +232,7 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 					   in.stride(), out.stride());
     xs = blocks.x * threads.x;
 
-  // ±¦²¼
+  // å³ä¸‹
     threads.x = lobeSize;
     blocks.x  = (out.stride() - lobeSize - xs) / threads.x;
     filterH_kernel<L><<<blocks, threads>>>(in[ ys].data().get() + xs,
@@ -240,9 +243,9 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 template <size_t L, class S, class T> inline static void
 convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 {
-    const size_t	lobeSize = L & ~0x1;	// Ãæ¿´ÅÀ¤ò´Ş¤Ş¤Ê¤¤¥í¡¼¥ÖÄ¹
+    const size_t	lobeSize = L & ~0x1;	// ä¸­å¿ƒç‚¹ã‚’å«ã¾ãªã„ãƒ­ãƒ¼ãƒ–é•·
 
-  // ºÇ½é¤ÎBlockDimY¹Ô¡ÊºÇ½é¤ÎlobeSize¹Ô¤ÏÉÔÄê¡Ë
+  // æœ€åˆã®BlockDimYè¡Œï¼ˆæœ€åˆã®lobeSizeè¡Œã¯ä¸å®šï¼‰
     int		ys = lobeSize;
     dim3	threads(BlockDimX, lobeSize);
     dim3	blocks(out.stride() / threads.x, (BlockDimY - ys) / threads.y);
@@ -253,7 +256,7 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     if (ys >= in.nrow())
 	return;
     
-  // BlockDimY¹Ô°Ê¾å¤¬»Ä¤ë¤è¤¦¤Ë½ÄÊı¸ş¥¹¥ì¥Ã¥É¿ô¤òBlockDimY¤Ë¤·¤Æ½èÍı
+  // BlockDimYè¡Œä»¥ä¸ŠãŒæ®‹ã‚‹ã‚ˆã†ã«ç¸¦æ–¹å‘ã‚¹ãƒ¬ãƒƒãƒ‰æ•°ã‚’BlockDimYã«ã—ã¦å‡¦ç†
     threads.y = BlockDimY;
     blocks.y  = (out.nrow() - ys) / threads.y - 1;
     filterV_kernel<L><<<blocks, threads>>>(in[ ys].data().get(),
@@ -263,7 +266,7 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
     if (ys >= in.nrow())
 	return;
     
-  // »Ä¤ê¤Ï½ÄÊı¸ş¥¹¥ì¥Ã¥É¿ô¤òlobeSize¤Ë¤·¤Æ½èÍı¡ÊºÇ¸å¤ÎlobeSize¹Ô¤ÏÉÔÄê¡Ë
+  // æ®‹ã‚Šã¯ç¸¦æ–¹å‘ã‚¹ãƒ¬ãƒƒãƒ‰æ•°ã‚’lobeSizeã«ã—ã¦å‡¦ç†ï¼ˆæœ€å¾Œã®lobeSizeè¡Œã¯ä¸å®šï¼‰
     threads.y = lobeSize;
     blocks.y  = (out.nrow() - ys - 1) / threads.y;
     ys = out.nrow() - (1 + blocks.y) * threads.y;
@@ -275,7 +278,7 @@ convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 /************************************************************************
 *  class FIRFilter2							*
 ************************************************************************/
-//! CUDA¤Ë¤è¤ë2¼¡¸µ¥Õ¥£¥ë¥¿¤òÀ¸À®¤¹¤ë¡¥
+//! CUDAã«ã‚ˆã‚‹2æ¬¡å…ƒãƒ•ã‚£ãƒ«ã‚¿ã‚’ç”Ÿæˆã™ã‚‹ï¼
 FIRFilter2::FIRFilter2()
     :_lobeSizeH(0), _lobeSizeV(0)
 {
@@ -284,13 +287,13 @@ FIRFilter2::FIRFilter2()
     cudaGetDeviceProperties(&_prop, device);
 }
 
-//! 2¼¡¸µ¥Õ¥£¥ë¥¿¤Î¥í¡¼¥Ö¤òÀßÄê¤¹¤ë¡¥
+//! 2æ¬¡å…ƒãƒ•ã‚£ãƒ«ã‚¿ã®ãƒ­ãƒ¼ãƒ–ã‚’è¨­å®šã™ã‚‹ï¼
 /*!
-  Í¿¤¨¤ë¥í¡¼¥Ö¤ÎÄ¹¤µ¤Ï¡¤¾ö¤ß¹ş¤ß¥«¡¼¥Í¥ë¤¬¶ö´Ø¿ô¤Î¾ì¹ç2^n + 1, ´ñ´Ø¿ô¤Î¾ì¹ç2^n
-  (n = 1, 2, 3, 4)¤Ç¤Ê¤±¤ì¤Ğ¤Ê¤é¤Ê¤¤¡¥
-  \param lobeH	²£Êı¸ş¥í¡¼¥Ö
-  \param lobeV	½ÄÊı¸ş¥í¡¼¥Ö
-  \return	¤³¤Î2¼¡¸µ¥Õ¥£¥ë¥¿
+  ä¸ãˆã‚‹ãƒ­ãƒ¼ãƒ–ã®é•·ã•ã¯ï¼Œç•³ã¿è¾¼ã¿ã‚«ãƒ¼ãƒãƒ«ãŒå¶é–¢æ•°ã®å ´åˆ2^n + 1, å¥‡é–¢æ•°ã®å ´åˆ2^n
+  (n = 1, 2, 3, 4)ã§ãªã‘ã‚Œã°ãªã‚‰ãªã„ï¼
+  \param lobeH	æ¨ªæ–¹å‘ãƒ­ãƒ¼ãƒ–
+  \param lobeV	ç¸¦æ–¹å‘ãƒ­ãƒ¼ãƒ–
+  \return	ã“ã®2æ¬¡å…ƒãƒ•ã‚£ãƒ«ã‚¿
 */
 FIRFilter2&
 FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
@@ -308,18 +311,18 @@ FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
     return *this;
 }
     
-//! Í¿¤¨¤é¤ì¤¿2¼¡¸µÇÛÎó¤È¤³¤Î¥Õ¥£¥ë¥¿¤ò¾ö¤ß¹ş¤à
+//! ä¸ãˆã‚‰ã‚ŒãŸ2æ¬¡å…ƒé…åˆ—ã¨ã“ã®ãƒ•ã‚£ãƒ«ã‚¿ã‚’ç•³ã¿è¾¼ã‚€
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
-  \return	¤³¤Î¥Õ¥£¥ë¥¿¼«¿È
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \return	ã“ã®ãƒ•ã‚£ãƒ«ã‚¿è‡ªèº«
 */
 template <class S, class T> const FIRFilter2&
 FIRFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 {
     using namespace	std;
 
-  // ²£Êı¸ş¤Ë¾ö¤ß¹ş¤à¡¥
+  // æ¨ªæ–¹å‘ã«ç•³ã¿è¾¼ã‚€ï¼
     _buf.resize(in.nrow(), in.ncol());
 
     switch (_lobeSizeH)
@@ -352,7 +355,7 @@ FIRFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 	throw runtime_error("FIRFilter2::convolve: unsupported horizontal lobe size!");
     }
 
-  // ½ÄÊı¸ş¤Ë¾ö¤ß¹ş¤à¡¥
+  // ç¸¦æ–¹å‘ã«ç•³ã¿è¾¼ã‚€ï¼
     out.resize(_buf.nrow(), _buf.ncol());
     
     switch (_lobeSizeV)

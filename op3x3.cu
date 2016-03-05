@@ -1,6 +1,9 @@
 /*
  *  $Id: op3x3.cu,v 1.7 2011-05-09 00:35:49 ueshiba Exp $
  */
+/*!
+  \file		op3x3.cu
+*/
 #include "TU/cuda/utility.h"
 
 namespace TU
@@ -10,7 +13,7 @@ namespace cuda
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
-static const size_t	BlockDim = 16;		// ƒuƒƒbƒNƒTƒCƒY‚Ì‰Šú’l
+static const size_t	BlockDim = 16;		// ãƒ–ãƒ­ãƒƒã‚¯ã‚µã‚¤ã‚ºã®åˆæœŸå€¤
     
 /************************************************************************
 *  device functions							*
@@ -18,41 +21,41 @@ static const size_t	BlockDim = 16;		// ƒuƒƒbƒNƒTƒCƒY‚Ì‰Šú’l
 template <class S, class T, class OP> static __global__ void
 op3x3_kernel(const S* in, T* out, size_t stride_i, size_t stride_o, OP op)
 {
-  // ‚±‚ÌƒJ[ƒlƒ‹‚ÍƒuƒƒbƒN‹«ŠEˆ—‚Ì‚½‚ß‚É blockDim.x == blockDim.y ‚ğ‰¼’è
-    const int	blk = blockDim.x;	// u_int‚É‚·‚é‚Æƒ_ƒDCUDA‚ÌƒoƒOH
+  // ã“ã®ã‚«ãƒ¼ãƒãƒ«ã¯ãƒ–ãƒ­ãƒƒã‚¯å¢ƒç•Œå‡¦ç†ã®ãŸã‚ã« blockDim.x == blockDim.y ã‚’ä»®å®š
+    const int	blk = blockDim.x;	// u_intã«ã™ã‚‹ã¨ãƒ€ãƒ¡ï¼CUDAã®ãƒã‚°ï¼Ÿ
     int		xy  = (blockIdx.y * blk + threadIdx.y) * stride_i 
-		    +  blockIdx.x * blk + threadIdx.x;	// Œ»İˆÊ’u
+		    +  blockIdx.x * blk + threadIdx.x;	// ç¾åœ¨ä½ç½®
     int		x   = 1 + threadIdx.x;
     const int	y   = 1 + threadIdx.y;
 
-  // Œ´‰æ‘œ‚ÌƒuƒƒbƒN“à•”‚¨‚æ‚Ñ‚»‚ÌŠO˜g1‰æ‘f•ª‚ğ‹¤—Lƒƒ‚ƒŠ‚É“]‘—
+  // åŸç”»åƒã®ãƒ–ãƒ­ãƒƒã‚¯å†…éƒ¨ãŠã‚ˆã³ãã®å¤–æ 1ç”»ç´ åˆ†ã‚’å…±æœ‰ãƒ¡ãƒ¢ãƒªã«è»¢é€
     __shared__ S	in_s[BlockDim+2][BlockDim+2];
-    in_s[y][x] = in[xy];				// “à•”
+    in_s[y][x] = in[xy];				// å†…éƒ¨
 
-    if (threadIdx.y == 0)	// ƒuƒƒbƒN‚Ìã’[?
+    if (threadIdx.y == 0)	// ãƒ–ãƒ­ãƒƒã‚¯ã®ä¸Šç«¯?
     {
-	const int	top = xy - stride_i;		// Œ»İˆÊ’u‚Ì’¼ã
-	const int	bot = xy + blk * stride_i;	// Œ»İˆÊ’u‚Ì‰º’[
-	in_s[	   0][x] = in[top];			// ã˜g
-	in_s[blk + 1][x] = in[bot];			// ‰º˜g
+	const int	top = xy - stride_i;		// ç¾åœ¨ä½ç½®ã®ç›´ä¸Š
+	const int	bot = xy + blk * stride_i;	// ç¾åœ¨ä½ç½®ã®ä¸‹ç«¯
+	in_s[	   0][x] = in[top];			// ä¸Šæ 
+	in_s[blk + 1][x] = in[bot];			// ä¸‹æ 
 
 	const int	lft = xy + threadIdx.x * (stride_i - 1);
-	in_s[x][      0] = in[lft -   1];		// ¶˜g
-	in_s[x][blk + 1] = in[lft + blk];		// ‰E˜g
+	in_s[x][      0] = in[lft -   1];		// å·¦æ 
+	in_s[x][blk + 1] = in[lft + blk];		// å³æ 
 
-	if (threadIdx.x == 0)	// ƒuƒƒbƒN‚Ì¶ã‹÷?
+	if (threadIdx.x == 0)	// ãƒ–ãƒ­ãƒƒã‚¯ã®å·¦ä¸Šéš…?
 	{
 	    if ((blockIdx.x != 0) || (blockIdx.y != 0))
-	  	in_s[0][0] = in[top - 1];		// ¶ã‹÷
+	  	in_s[0][0] = in[top - 1];		// å·¦ä¸Šéš…
 	    if ((blockIdx.x != gridDim.x - 1) || (blockIdx.y != gridDim.y - 1))
-		in_s[blk + 1][blk + 1] = in[bot + blk];	// ‰E‰º‹÷
-	    in_s[0][blk + 1] = in[top + blk];		// ‰Eã‹÷
-	    in_s[blk + 1][0] = in[bot -   1];		// ¶‰º‹÷
+		in_s[blk + 1][blk + 1] = in[bot + blk];	// å³ä¸‹éš…
+	    in_s[0][blk + 1] = in[top + blk];		// å³ä¸Šéš…
+	    in_s[blk + 1][0] = in[bot -   1];		// å·¦ä¸‹éš…
 	}
     }
     __syncthreads();
 
-  // ‹¤—Lƒƒ‚ƒŠ‚É•Û‘¶‚µ‚½Œ´‰æ‘œƒf[ƒ^‚©‚çŒ»İ‰æ‘f‚É‘Î‚·‚éƒtƒBƒ‹ƒ^o—Í‚ğŒvZ
+  // å…±æœ‰ãƒ¡ãƒ¢ãƒªã«ä¿å­˜ã—ãŸåŸç”»åƒãƒ‡ãƒ¼ã‚¿ã‹ã‚‰ç¾åœ¨ç”»ç´ ã«å¯¾ã™ã‚‹ãƒ•ã‚£ãƒ«ã‚¿å‡ºåŠ›ã‚’è¨ˆç®—
     xy = (blockIdx.y * blk + threadIdx.y) * stride_o
        +  blockIdx.x * blk + threadIdx.x;
     --x;
@@ -62,11 +65,11 @@ op3x3_kernel(const S* in, T* out, size_t stride_i, size_t stride_o, OP op)
 /************************************************************************
 *  global functions							*
 ************************************************************************/
-//! CUDA‚É‚æ‚Á‚Ä2ŸŒ³”z—ñ‚É‘Î‚µ‚Ä3x3‹ß–T‰‰Z‚ğs‚¤D
+//! CUDAã«ã‚ˆã£ã¦2æ¬¡å…ƒé…åˆ—ã«å¯¾ã—ã¦3x3è¿‘å‚æ¼”ç®—ã‚’è¡Œã†ï¼
 /*!
-  \param in	“ü—Í2ŸŒ³”z—ñ
-  \param out	o—Í2ŸŒ³”z—ñ
-  \param op	3x3‹ß–T‰‰Zq
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
+  \param op	3x3è¿‘å‚æ¼”ç®—å­
 */
 template <class S, class T, class OP> void
 op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
@@ -78,13 +81,13 @@ op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
     
     out.resize(in.nrow(), in.ncol());
 
-  // Å‰‚ÆÅŒã‚Ìs‚ğœ‚¢‚½ (out.nrow() - 2) x out.stride() ‚Ì”z—ñ‚Æ‚µ‚Äˆµ‚¤
+  // æœ€åˆã¨æœ€å¾Œã®è¡Œã‚’é™¤ã„ãŸ (out.nrow() - 2) x out.stride() ã®é…åˆ—ã¨ã—ã¦æ‰±ã†
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(out.stride()/threads.x, (out.nrow() - 2)/threads.y);
     op3x3_kernel<<<blocks, threads>>>(in[1].data().get(), out[1].data().get(),
 				      in.stride(), out.stride(), op);
 
-  // ¶‰º
+  // å·¦ä¸‹
     int	top = 1 + threads.y * blocks.y;
     threads.x = threads.y = out.nrow() - top - 1;
     if (threads.x == 0)
@@ -95,7 +98,7 @@ op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 				      out[top].data().get(),
 				      in.stride(), out.stride(), op);
 
-  // ‰E‰º
+  // å³ä¸‹
     if (threads.x * blocks.x == out.stride())
 	return;
     int	lft = out.stride() - threads.x;

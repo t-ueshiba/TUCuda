@@ -1,6 +1,9 @@
 /*
  * $Id: subsample.cu,v 1.3 2011-04-19 04:00:25 ueshiba Exp $
  */
+/*!
+  \file		subsample.cu
+*/
 #include "TU/cuda/utility.h"
 
 namespace TU
@@ -26,7 +29,7 @@ subsample_kernel(const T* in, T* out, uint stride_i, uint stride_o)
 		y  = blockIdx.y*blockDim.y + ty;
     const int	xy = 2*(y*stride_i + x0)   + tx;
     
-  // ¸¶²èÁü¤Î2x2¥Ö¥í¥Ã¥¯¤ò1¹Ô¤ª¤­¤Ë¶¦Í­¥á¥â¥ê¤Ë¥³¥Ô¡¼
+  // åŸç”»åƒã®2x2ãƒ–ãƒ­ãƒƒã‚¯ã‚’1è¡ŒãŠãã«å…±æœ‰ãƒ¡ãƒ¢ãƒªã«ã‚³ãƒ”ãƒ¼
     __shared__ T	in_s[BlockDimY][2*BlockDimX+1];
     in_s[ty][tx	    ] = in[xy     ];
     in_s[ty][tx + bw] = in[xy + bw];
@@ -38,10 +41,10 @@ subsample_kernel(const T* in, T* out, uint stride_i, uint stride_o)
 /************************************************************************
 *  global functions							*
 ************************************************************************/
-//! CUDA¤Ë¤è¤Ã¤Æ2¼¡¸µÇÛÎó¤ò¿åÊ¿¡¿¿âÄ¾Êı¸ş¤½¤ì¤¾¤ì1/2¤Ë´Ö°ú¤¯¡¥
+//! CUDAã«ã‚ˆã£ã¦2æ¬¡å…ƒé…åˆ—ã‚’æ°´å¹³ï¼å‚ç›´æ–¹å‘ãã‚Œãã‚Œ1/2ã«é–“å¼•ãï¼
 /*!
-  \param in	ÆşÎÏ2¼¡¸µÇÛÎó
-  \param out	½ĞÎÏ2¼¡¸µÇÛÎó
+  \param in	å…¥åŠ›2æ¬¡å…ƒé…åˆ—
+  \param out	å‡ºåŠ›2æ¬¡å…ƒé…åˆ—
 */
 template <class T> void
 subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
@@ -51,11 +54,11 @@ subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(out.ncol() / threads.x, out.nrow() / threads.y);
 
-  // º¸¾å
+  // å·¦ä¸Š
     subsample_kernel<<<blocks, threads>>>(in.data().get(), out.data().get(),
 					  in.stride(), out.stride());
 
-  // ²¼Ã¼
+  // ä¸‹ç«¯
     uint	bottom = blocks.y * threads.y;
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
@@ -64,7 +67,7 @@ subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
 	out.data().get() + bottom * out.stride(),
 	in.stride(), out.stride());
 
-  // ±¦Ã¼
+  // å³ç«¯
     uint	right = blocks.x * threads.x;
     threads.x = out.ncol() % threads.x;
     blocks.x  = 1;
@@ -74,7 +77,7 @@ subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
 	in.data().get() + right, out.data().get() + right,
 	in.stride(), out.stride());
 
-  // ±¦²¼
+  // å³ä¸‹
     threads.y = out.nrow() % threads.y;
     blocks.y  = 1;
     subsample_kernel<<<blocks, threads>>>(

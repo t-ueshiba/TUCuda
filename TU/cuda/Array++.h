@@ -89,25 +89,23 @@ class allocator
 
   public:
 			allocator()					{}
-    template <class U>	allocator(const allocator<U>&)		{}
+    template <class U>	allocator(const allocator<U>&)			{}
 
     static pointer	allocate(size_type n,
 				 typename std::allocator<void>
 					     ::const_pointer=nullptr)
 			{
-			    if (n > 0)
-			    {
-				auto	p = thrust::device_malloc<T>(n);
-				if (p.get() == nullptr)
-				    throw std::bad_alloc();
-				cudaMemset(p.get(), 0, n*sizeof(value_type));
-				return p;
-			    }
 			  // 長さ0のメモリを要求するとCUDAのアロケータの動作が
 			  // 混乱するので，対策が必要
-			    else
+			    if (n == 0)
 				return pointer((value_type*)nullptr);
-			    
+
+			    pointer	p = thrust::
+					    device_malloc<value_type>(n);
+			    if (p.get() == nullptr)
+				throw std::bad_alloc();
+			    cudaMemset(p.get(), 0, n*sizeof(value_type));
+			    return p;
 			}
     static void		deallocate(pointer p, size_type)
 			{

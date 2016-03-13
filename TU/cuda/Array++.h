@@ -132,12 +132,12 @@ template <class T>
 struct BufTraits<T, cuda::allocator<T> >
 {
     typedef cuda::allocator<T>				allocator_type;
-    typedef typename allocator_type::pointer		iterator;
-    typedef typename allocator_type::const_pointer	const_iterator;
+    typedef typename allocator_type::pointer		pointer;
+    typedef typename allocator_type::const_pointer	const_pointer;
+    typedef pointer					iterator;
+    typedef const_pointer				const_iterator;
 
   protected:
-    typedef typename allocator_type::pointer		pointer;
-    
     static pointer	null()
 			{
 			    return pointer((T*)nullptr);

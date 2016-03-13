@@ -114,6 +114,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/simd/x86/vec.h \
 		/usr/local/include/TU/simd/x86/zero.h \
 		/usr/local/include/TU/simd/zero.h \
+		/usr/local/include/TU/simd/zero.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		= filterImageGold.h
@@ -197,5 +198,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
 	/usr/local/include/TU/simd/row_vec_iterator.h \
-	/usr/local/include/TU/simd/BufTraits.h filterImageGold.h \
+	/usr/local/include/TU/simd/BufTraits.h \
+	/usr/local/include/TU/simd/zero.h filterImageGold.h \
 	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h

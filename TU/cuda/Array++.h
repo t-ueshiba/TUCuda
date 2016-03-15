@@ -37,8 +37,8 @@
   ライブラリである．以下のようなクラスおよび関数が実装されている．
 
   <b>デバイス側のグローバルメモリ領域にとられる1次元および2次元配列</b>
-  - #TU::CudaArray
-  - #TU::CudaArray2
+  - #TU::cuda::Array
+  - #TU::cuda::Array2
 
   <b>デバイス側のテクスチャメモリ</b>
   - #TU::cuda::Texture

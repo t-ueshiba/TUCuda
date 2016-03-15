@@ -6,7 +6,7 @@
 #include "TU/Profiler.h"
 #include "TU/GaussianConvolver.h"
 #include "filterImageGold.h"
-#include "TU/cuda/FIRFilter.h"
+#include "TU/cuda/FIRGaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -52,6 +52,8 @@ computeGaussianCoefficients(float sigma, u_int lobeSize)
 /************************************************************************
 *  Global fucntions							*
 ************************************************************************/
+#define CONVOLVE	smooth
+
 int
 main(int argc, char *argv[])
 {
@@ -79,27 +81,24 @@ main(int argc, char *argv[])
     
     try
     {
-	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
 	Image<in_t>	in;
 	in.restore(cin);				// 原画像を読み込む
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRFilter2	cudaFilter;
-	cudaFilter.initialize(coeff, coeff);
-	
-	CudaArray2<in_t>	in_d(in);
-	CudaArray2<out_t>	out_d;
+	cuda::FIRGaussianConvolver2	cudaFilter(sigma);
+	cuda::Array2<in_t>		in_d(in);
+	cuda::Array2<out_t>		out_d;
 
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cudaFilter.convolve(in_d, out_d);		// warm-up
+	cudaFilter.CONVOLVE(in_d, out_d);		// warm-up
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #if 1
-	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
+	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaFilter.convolve(in_d, out_d);		// フィルタをかける
+	    cudaFilter.CONVOLVE(in_d, out_d);		// フィルタをかける
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
@@ -114,6 +113,7 @@ main(int argc, char *argv[])
 	Profiler<>	profiler(1);
 	Image<out_t>	outGold(in.width(), in.height());
 #if 0
+	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);
@@ -134,8 +134,10 @@ main(int argc, char *argv[])
 
       // 結果を比較する．
 	for (u_int u = lobeSize; u < out.width() - lobeSize; ++u)
-	    cerr << ' ' << out[240][u] - outGold[240][u];
+	    cerr << ' ' << 100*(out[240][u] - outGold[240][u])
+			      / abs(outGold[240][u]);
 	cerr <<  endl;
+
     }
     catch (exception& err)
     {

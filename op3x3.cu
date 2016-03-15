@@ -72,7 +72,7 @@ op3x3_kernel(const S* in, T* out, size_t stride_i, size_t stride_o, OP op)
   \param op	3x3近傍演算子
 */
 template <class S, class T, class OP> void
-op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
+op3x3(const Array2<S>& in, Array2<T>& out, OP op)
 {
     using namespace	std;
     
@@ -109,81 +109,81 @@ op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)
 }
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       diffH3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       diffH3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       diffV3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       diffV3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       diffHH3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       diffHH3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       diffVV3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       diffVV3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       diffHV3x3<float, float> op)					;
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       diffHV3x3<u_char, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       sobelH3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       sobelH3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       sobelV3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       sobelV3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       sobelAbs3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       sobelAbs3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       laplacian3x3<u_char, float> op)					;
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       laplacian3x3<float, float> op)					;
 
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       det3x3<float, float> op)						;
 template void
-op3x3(const CudaArray2<u_char>& in, CudaArray2<float>& out,
+op3x3(const Array2<u_char>& in, Array2<float>& out,
       det3x3<u_char, float> op)						;
 
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       maximal3x3<float> op)						;
 
 template void
-op3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+op3x3(const Array2<float>& in, Array2<float>& out,
       minimal3x3<float> op)						;
 }
 }

@@ -19,11 +19,12 @@ NVCCFLAGS	= -O
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
-#  CPPFLAGS     += -DSSE3
+  CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m)
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m) \
+		  -lsvml -lintlc
 
 LINKER		= $(NVCC)
 
@@ -115,10 +116,11 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/simd/x86/vec.h \
 		/usr/local/include/TU/simd/x86/zero.h \
 		/usr/local/include/TU/simd/zero.h \
+		/usr/local/include/TU/simd/zero.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		=
-SRCS		= main.cu
+SRCS		= main.cc
 OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
@@ -199,4 +201,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
 	/usr/local/include/TU/simd/row_vec_iterator.h \
-	/usr/local/include/TU/simd/BufTraits.h
+	/usr/local/include/TU/simd/BufTraits.h \
+	/usr/local/include/TU/simd/zero.h

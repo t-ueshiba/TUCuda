@@ -23,7 +23,8 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m)
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m) \
+		  -lsvml -lintlc
 
 LINKER		= $(NVCC)
 
@@ -48,7 +49,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		=
-SRCS		= main.cu
+SRCS		= main.cc
 OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS

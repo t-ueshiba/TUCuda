@@ -26,17 +26,17 @@ class FIRFilter2
   public:
     FIRFilter2()							;
     
-    FIRFilter2&		initialize(const Array<float>& lobeH,
-				   const Array<float>& lobeV)		;
+    FIRFilter2&		initialize(const TU::Array<float>& lobeH,
+				   const TU::Array<float>& lobeV)	;
     template <class S, class T>
-    const FIRFilter2&	convolve(const CudaArray2<S>& in,
-				       CudaArray2<T>& out)	const	;
+    const FIRFilter2&	convolve(const Array2<S>& in,
+				       Array2<T>& out)		const	;
 
   private:
     cudaDeviceProp		_prop;		//!< デバイスの特性
     size_t			_lobeSizeH;	//!< 水平方向フィルタのローブ長
     size_t			_lobeSizeV;	//!< 垂直方向フィルタのローブ長
-    mutable CudaArray2<float>	_buf;		//!< 中間結果用のバッファ
+    mutable Array2<float>	_buf;		//!< 中間結果用のバッファ
 };
 
 }

@@ -160,16 +160,19 @@ struct BufTraits<T, cuda::allocator<T> >
 			}
 };
 
+namespace cuda
+{
 /************************************************************************
-*  CudaArray<T> and CudaArray2<T> type aliases				*
+*  cuda::Array<T> and cuda::Array2<T> type aliases			*
 ************************************************************************/
 //! 1次元CUDA配列
 template <class T>
-using CudaArray = Array<T, 0, cuda::allocator<T> >;
+using Array = TU::Array<T, 0, cuda::allocator<T> >;
     
 //! 2次元CUDA配列
 template <class T>
-using CudaArray2 = Array2<CudaArray<T> >;
+using Array2 = TU::Array2<cuda::Array<T> >;
 
+}	// namespace cuda
 }	// namespace TU
 #endif	// !__TU_CUDA_ARRAYPP_H

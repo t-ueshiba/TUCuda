@@ -197,7 +197,7 @@ filterV_kernel(const S* in, T* out, uint stride_i, uint stride_o)
 *  static functions							*
 ************************************************************************/
 template <size_t L, class S, class T> inline static void
-convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
+convolveH_dispatch(const Array2<S>& in, Array2<T>& out)
 {
     const size_t	lobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -248,7 +248,7 @@ convolveH_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
 }
     
 template <size_t L, class S, class T> inline static void
-convolveV_dispatch(const CudaArray2<S>& in, CudaArray2<T>& out)
+convolveV_dispatch(const Array2<S>& in, Array2<T>& out)
 {
     const size_t	lobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -303,7 +303,8 @@ FIRFilter2::FIRFilter2()
   \return	この2次元フィルタ
 */
 FIRFilter2&
-FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
+FIRFilter2::initialize(const TU::Array<float>& lobeH,
+		       const TU::Array<float>& lobeV)
 {
     using namespace	std;
     
@@ -325,7 +326,7 @@ FIRFilter2::initialize(const Array<float>& lobeH, const Array<float>& lobeV)
   \return	このフィルタ自身
 */
 template <class S, class T> const FIRFilter2&
-FIRFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
+FIRFilter2::convolve(const Array2<S>& in, Array2<T>& out) const
 {
     using namespace	std;
 
@@ -399,16 +400,12 @@ FIRFilter2::convolve(const CudaArray2<S>& in, CudaArray2<T>& out) const
 }
 
 template const FIRFilter2&
-FIRFilter2::convolve(const CudaArray2<u_char>& in,
-			   CudaArray2<u_char>& out)		const	;
+FIRFilter2::convolve(const Array2<u_char>& in, Array2<u_char>& out) const;
 template const FIRFilter2&
-FIRFilter2::convolve(const CudaArray2<u_char>& in,
-			   CudaArray2<float>&  out)		const	;
+FIRFilter2::convolve(const Array2<u_char>& in, Array2<float>&  out) const;
 template const FIRFilter2&
-FIRFilter2::convolve(const CudaArray2<float>& in,
-			   CudaArray2<u_char>& out)		const	;
+FIRFilter2::convolve(const Array2<float>& in,  Array2<u_char>& out) const;
 template const FIRFilter2&
-FIRFilter2::convolve(const CudaArray2<float>& in,
-			   CudaArray2<float>& out)		const	;
+FIRFilter2::convolve(const Array2<float>& in,  Array2<float>& out)  const;
 }
 }

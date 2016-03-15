@@ -8,6 +8,8 @@
 
 namespace TU
 {
+namespace cuda
+{
 template <class T> __device__ T
 interpolate_pixel(T s0, T s1, float r0, float r1)
 {
@@ -38,22 +40,21 @@ interpolate_kernel(const T* src0, const T* src1, T* dst,
 }
     
 template <class T> void
-interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
+interpolate(const CudaArray2<T>& d_image0,
+	    const CudaArray2<T>& d_image1, CudaArray2<T>& d_image2)
 {
     using namespace	std;
 
+    d_image2.resize(d_image0.nrow(), d_image0.ncol());
+    
   // timer
     u_int	timer = 0;
     CUT_SAFE_CALL(cutCreateTimer(&timer));
     CUT_SAFE_CALL(cutStartTimer(timer));
 
-  // allocate device memory and copy host memory to them
-    CudaArray2<T>	d_image0(image0), d_image1(image1),
-			d_image2(image0.height(), image0.width());
-    
   // setup execution parameters
     dim3  threads(16, 16, 1);
-    dim3  blocks(image0.width()/threads.x, image0.height()/threads.y, 1);
+    dim3  blocks(d_image0.ncol()/threads.x, d_image0.nrow()/threads.y, 1);
     cerr << blocks.x << 'x' << blocks.y << " blocks..." << endl;
     
   // execute the kernel
@@ -68,24 +69,22 @@ interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2)
   // check if kernel execution generated and error
     CUT_CHECK_ERROR("Kernel execution failed");
 
-  // copy result from device to host
-    d_image2.write(image2);
-
   // time
     CUT_SAFE_CALL(cutStopTimer(timer));
     cerr << "Processing time: " << cutGetTimerValue(timer) << " (ms)" << endl;
     CUT_SAFE_CALL(cutDeleteTimer(timer));
 }
 
-template void	interpolate(const Image<u_char>& image0,
-			    const Image<u_char>& image1,
-				  Image<u_char>& image2)	;
+template void	interpolate(const CudaArray2<u_char>& d_image0,
+			    const CudaArray2<u_char>& d_image1,
+				  CudaArray2<u_char>& d_image2)	;
   /*
-template void	interpolate(const Image<RGBA>&   image0,
-			    const Image<RGBA>&   image1,
-				  Image<RGBA>&   image2)	;
+template void	interpolate(const CudaArray2<RGBA>&   d_image0,
+			    const CudaArray2<RGBA>&   d_image1,
+				  CudaArray2<RGBA>&   d_image2)	;
   */
-template void	interpolate(const Image<float4>& image0,
-			    const Image<float4>& image1,
-				  Image<float4>& image2)	;
+template void	interpolate(const CudaArray2<float4>& d_image0,
+			    const CudaArray2<float4>& d_image1,
+				  CudaArray2<float4>& d_image2)	;
+}
 }

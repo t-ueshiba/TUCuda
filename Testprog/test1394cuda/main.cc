@@ -9,14 +9,19 @@
 #include <fstream>
 #include <stdexcept>
 #include "TU/Ieee1394CameraArray.h"
+#include "TU/cuda/Array++.h"
 
 #define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"
 #define DEFAULT_CAMERA_NAME	"IEEE1394Camera"
 
 namespace TU
 {
+namespace cuda
+{
 template <class T> void
-interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2);
+interpolate(const Array2<T>& d_image0,
+	    const Array2<T>& d_image1, Array2<T>& d_image2);
+}
 
 /************************************************************************
 *  static functions							*
@@ -42,16 +47,19 @@ doJob(const Ieee1394CameraArray& cameras)
     signal(SIGPIPE, handler);
 
   // 1フレームあたりの画像数とそのフォーマットを出力．
-    Array<Image<T> >	images(cameras.dim() + 1);
-    cout << 'M' << images.dim() << endl;
-    for (int i = 0; i < images.dim(); ++i)
+    Array<Image<T> >	images(cameras.size() + 1);
+    cout << 'M' << images.size() << endl;
+    for (int i = 0; i < images.size(); ++i)
     {
 	images[i].resize(cameras[0]->height(), cameras[0]->width());
 	images[i].saveHeader(cout);
     }
+
+  // デバイス画像の確保
+    Array<cuda::Array2<T> >	d_images(images.size());
     
   // カメラ出力の開始．
-    for (int i = 0; i < cameras.dim(); ++i)
+    for (int i = 0; i < cameras.size(); ++i)
 	cameras[i]->continuousShot();
 
     int		nframes = 0;
@@ -70,20 +78,24 @@ doJob(const Ieee1394CameraArray& cameras)
 	if (nframes++ == 0)
 	    gettimeofday(&start, NULL);
 
-	for (int i = 0; i < cameras.dim(); ++i)
+	for (int i = 0; i < cameras.size(); ++i)
 	    cameras[i]->snap();				// 撮影
-	for (int i = 0; i < cameras.dim(); ++i)
+	for (int i = 0; i < cameras.size(); ++i)
 	    *cameras[i] >> images[i];			// 主記憶への転送
+	for (int i = 0; i < cameras.size(); ++i)
+	    d_images[i] = images[i];			// デバイスへの転送
 
-	interpolate(images[0], images[1], images[2]);	// CUDAによる補間
+	cuda::interpolate(d_images[0],
+			  d_images[1], d_images[2]);	// CUDAによる補間
 
-	for (int i = 0; i < images.dim(); ++i)
+	d_images[2].write(images[2]);			// ホストへの転送
+	for (int i = 0; i < images.size(); ++i)
 	    if (!images[i].saveData(cout))		// stdoutへの出力
 		active = false;
     }
 
   // カメラ出力の停止．
-    for (int i = 0; i < cameras.dim(); ++i)
+    for (int i = 0; i < cameras.size(); ++i)
 	cameras[i]->stopContinuousShot();
 }
 
@@ -124,10 +136,10 @@ main(int argc, char *argv[])
       // IEEE1394カメラのオープン．
 	Ieee1394CameraArray	cameras(cameraName, configDirs,
 					speed, ncameras);
-	if (cameras.dim() == 0)
+	if (cameras.size() == 0)
 	    return 0;
 
-	for (int i = 0; i < cameras.dim(); ++i)
+	for (int i = 0; i < cameras.size(); ++i)
 	    cerr << "camera " << i << ": uniqId = "
 		 << hex << setw(16) << setfill('0')
 		 << cameras[i]->globalUniqueId() << dec << endl;

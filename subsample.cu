@@ -47,7 +47,7 @@ subsample_kernel(const T* in, T* out, uint stride_i, uint stride_o)
   \param out	出力2次元配列
 */
 template <class T> void
-subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
+subsample(const Array2<T>& in, Array2<T>& out)
 {
     out.resize(in.nrow()/2, in.ncol()/2);
 
@@ -86,13 +86,9 @@ subsample(const CudaArray2<T>& in, CudaArray2<T>& out)
 	in.stride(), out.stride());
 }
 
-template void	subsample(const CudaArray2<u_char>& in,
-				CudaArray2<u_char>& out)	;
-template void	subsample(const CudaArray2<short>& in,
-				CudaArray2<short>& out)		;
-template void	subsample(const CudaArray2<int>& in,
-				CudaArray2<int>& out)		;
-template void	subsample(const CudaArray2<float>& in,
-				CudaArray2<float>& out)		;
+template void	subsample(const Array2<u_char>& in, Array2<u_char>& out);
+template void	subsample(const Array2<short>& in,  Array2<short>& out)	;
+template void	subsample(const Array2<int>& in,    Array2<int>& out)	;
+template void	subsample(const Array2<float>& in,  Array2<float>& out)	;
 }
 }

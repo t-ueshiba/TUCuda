@@ -121,8 +121,7 @@ extrema3x3_kernel(const T* in, T* out,
   \param nulval	非極値をとる画素に割り当てる値
 */
 template <class T, class OP> void
-suppressNonExtrema3x3(const CudaArray2<T>& in,
-				CudaArray2<T>& out, OP op, T nulval)
+suppressNonExtrema3x3(const Array2<T>& in, Array2<T>& out, OP op, T nulval)
 {
     if (in.nrow() < 3 || in.ncol() < 3)
 	return;
@@ -162,16 +161,16 @@ suppressNonExtrema3x3(const CudaArray2<T>& in,
 }
 
 template  void
-suppressNonExtrema3x3(const CudaArray2<u_char>& in, CudaArray2<u_char>& out,
+suppressNonExtrema3x3(const Array2<u_char>& in, Array2<u_char>& out,
 		      thrust::greater<u_char> op, u_char nulval)	;
 template  void
-suppressNonExtrema3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+suppressNonExtrema3x3(const Array2<float>& in, Array2<float>& out,
 		      thrust::greater<float> op, float nulval)		;
 template  void
-suppressNonExtrema3x3(const CudaArray2<u_char>& in, CudaArray2<u_char>& out,
+suppressNonExtrema3x3(const Array2<u_char>& in, Array2<u_char>& out,
 		      thrust::less<u_char> op, u_char nulval)		;
 template  void
-suppressNonExtrema3x3(const CudaArray2<float>& in, CudaArray2<float>& out,
+suppressNonExtrema3x3(const Array2<float>& in, Array2<float>& out,
 		      thrust::less<float> op, float nulval)		;
 }
 }

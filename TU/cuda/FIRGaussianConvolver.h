@@ -26,22 +26,22 @@ class FIRGaussianConvolver2 : public FIRFilter2
     FIRGaussianConvolver2&	initialize(float sigma)			;
 
     template <class S, class T> FIRGaussianConvolver2&
-	smooth(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	smooth(const Array2<S>& in, Array2<T>& out)			;
     template <class S, class T> FIRGaussianConvolver2&
-	diffH(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	diffH(const Array2<S>& in, Array2<T>& out)			;
     template <class S, class T> FIRGaussianConvolver2&
-	diffV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	diffV(const Array2<S>& in, Array2<T>& out)			;
     template <class S, class T> FIRGaussianConvolver2&
-	diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	diffHH(const Array2<S>& in, Array2<T>& out)			;
     template <class S, class T> FIRGaussianConvolver2&
-	diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	diffHV(const Array2<S>& in, Array2<T>& out)			;
     template <class S, class T> FIRGaussianConvolver2&
-	diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)		;
+	diffVV(const Array2<S>& in, Array2<T>& out)			;
     
   private:
-    Array<float>	_lobe0;		//!< スムージングのためのローブ
-    Array<float>	_lobe1;		//!< 1階微分のためのローブ
-    Array<float>	_lobe2;		//!< 2階微分のためのローブ
+    TU::Array<float>	_lobe0;		//!< スムージングのためのローブ
+    TU::Array<float>	_lobe1;		//!< 1階微分のためのローブ
+    TU::Array<float>	_lobe2;		//!< 2階微分のためのローブ
 };
     
 //! Gauss核を生成する
@@ -61,7 +61,7 @@ FIRGaussianConvolver2::FIRGaussianConvolver2(float sigma)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::smooth(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe0, _lobe0).convolve(in, out);
 
@@ -75,7 +75,7 @@ FIRGaussianConvolver2::smooth(const CudaArray2<S>& in, CudaArray2<T>& out)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::diffH(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe1, _lobe0).convolve(in, out);
 
@@ -89,7 +89,7 @@ FIRGaussianConvolver2::diffH(const CudaArray2<S>& in, CudaArray2<T>& out)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::diffV(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe0, _lobe1).convolve(in, out);
 
@@ -103,7 +103,7 @@ FIRGaussianConvolver2::diffV(const CudaArray2<S>& in, CudaArray2<T>& out)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::diffHH(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe2, _lobe0).convolve(in, out);
 
@@ -117,7 +117,7 @@ FIRGaussianConvolver2::diffHH(const CudaArray2<S>& in, CudaArray2<T>& out)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::diffHV(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe1, _lobe1).convolve(in, out);
 
@@ -131,7 +131,7 @@ FIRGaussianConvolver2::diffHV(const CudaArray2<S>& in, CudaArray2<T>& out)
   \return	このGauss核自身
 */
 template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffVV(const CudaArray2<S>& in, CudaArray2<T>& out)
+FIRGaussianConvolver2::diffVV(const Array2<S>& in, Array2<T>& out)
 {
     FIRFilter2::initialize(_lobe0, _lobe2).convolve(in, out);
 

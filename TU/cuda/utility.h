@@ -186,13 +186,13 @@ copyToConstantMemory(Iterator begin, Iterator end, T* dst)
 }
 
 template <class T> void
-subsample(const CudaArray2<T>& in, CudaArray2<T>& out)			;
+subsample(const Array2<T>& in, Array2<T>& out)				;
 
 template <class S, class T, class OP> void
-op3x3(const CudaArray2<S>& in, CudaArray2<T>& out, OP op)		;
+op3x3(const Array2<S>& in, Array2<T>& out, OP op)			;
     
 template <class T, class OP> void
-suppressNonExtrema3x3(const CudaArray2<T>& in, CudaArray2<T>& out,
+suppressNonExtrema3x3(const Array2<T>& in, Array2<T>& out,
 		      OP op, T nulval=0)				;
 }
 }

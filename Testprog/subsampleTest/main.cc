@@ -24,7 +24,7 @@ main(int argc, char *argv[])
 	image.restore(cin);				// 原画像を読み込む
 	image.save(cout);
 	
-	CudaArray2<pixel_t>	in_d(image), out_d;
+	cuda::Array2<pixel_t>	in_d(image), out_d;
 	
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成

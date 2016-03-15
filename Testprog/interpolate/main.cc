@@ -4,11 +4,16 @@
 #include <fstream>
 #include <stdexcept>
 #include "TU/Image++.h"
+#include "TU/cuda/Array++.h"
 
 namespace TU
 {
+namespace cuda
+{
 template <class T> void
-interpolate(const Image<T>& image0, const Image<T>& image1, Image<T>& image2);
+interpolate(const CudaArray2<T>& d_image0,
+	    const CudaArray2<T>& d_image1, CudaArray2<T>& d_image2);
+}
 }
 
 /************************************************************************
@@ -22,27 +27,31 @@ main(int argc, char *argv[])
     
     try
     {
-      //Image<RGBA>	images[3];
-	Image<u_char>	images[3];
+	typedef u_char	pixel_type;
+	
+	Image<pixel_type>	image0, image1;
 
       // Restore a pair of input images.
 	fstream		in;
 	in.open("src0.ppm");
 	if (!in)
 	    throw runtime_error("Failed to open src1.ppm!!");
-	images[0].restore(in);
+	image0.restore(in);
 	in.close();
 	in.open("src1.ppm");
 	if (!in)
 	    throw runtime_error("Failed to open src2.ppm!!");
-	images[1].restore(in);
+	image1.restore(in);
 	in.close();
 
       // Do main job.
-	interpolate(images[0], images[1], images[2]);
+	CudaArray2<pixel_type>	d_image0(image0), d_image1(image1), d_image2;
+	cuda::interpolate(d_image0, d_image1, d_image2);
 
       // Save the obtained results.
-	images[2].save(cout);
+	Image<pixel_type>	image2;
+	d_image2.write(image2);
+	image2.save(cout);
     }
     catch (exception& err)
     {

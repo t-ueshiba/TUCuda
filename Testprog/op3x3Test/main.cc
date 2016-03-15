@@ -36,8 +36,8 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	CudaArray2<in_t>	in_d(in);
-	CudaArray2<out_t>	out_d;
+	cuda::Array2<in_t>	in_d(in);
+	cuda::Array2<out_t>	out_d;
 
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成

@@ -40,8 +40,8 @@ interpolate_kernel(const T* src0, const T* src1, T* dst,
 }
     
 template <class T> void
-interpolate(const CudaArray2<T>& d_image0,
-	    const CudaArray2<T>& d_image1, CudaArray2<T>& d_image2)
+interpolate(const Array2<T>& d_image0,
+	    const Array2<T>& d_image1, Array2<T>& d_image2)
 {
     using namespace	std;
 
@@ -75,16 +75,16 @@ interpolate(const CudaArray2<T>& d_image0,
     CUT_SAFE_CALL(cutDeleteTimer(timer));
 }
 
-template void	interpolate(const CudaArray2<u_char>& d_image0,
-			    const CudaArray2<u_char>& d_image1,
-				  CudaArray2<u_char>& d_image2)	;
+template void	interpolate(const Array2<u_char>& d_image0,
+			    const Array2<u_char>& d_image1,
+				  Array2<u_char>& d_image2)	;
   /*
-template void	interpolate(const CudaArray2<RGBA>&   d_image0,
-			    const CudaArray2<RGBA>&   d_image1,
-				  CudaArray2<RGBA>&   d_image2)	;
+template void	interpolate(const Array2<RGBA>&   d_image0,
+			    const Array2<RGBA>&   d_image1,
+				  Array2<RGBA>&   d_image2)	;
   */
-template void	interpolate(const CudaArray2<float4>& d_image0,
-			    const CudaArray2<float4>& d_image1,
-				  CudaArray2<float4>& d_image2)	;
+template void	interpolate(const Array2<float4>& d_image0,
+			    const Array2<float4>& d_image1,
+				  Array2<float4>& d_image2)	;
 }
 }

@@ -19,7 +19,7 @@ lobeSize(const float lobe[], bool even)
 {
     using namespace	std;
     
-    const size_t	sizMax  = FIRFilter2::LOBE_SIZE_MAX;
+    const size_t	sizMax  = FIRFilter2::LobeSizeMax;
     const float	epsilon = 0.01;			// 打ち切りのしきい値の比率
 
   // 打ち切りのしきい値を求める．
@@ -76,7 +76,7 @@ FIRGaussianConvolver2::initialize(float sigma)
     using namespace	std;
 
   // 0/1/2階微分のためのローブを計算する．
-    const size_t	sizMax = FIRFilter2::LOBE_SIZE_MAX;
+    const size_t	sizMax = FIRFilter2::LobeSizeMax;
     float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
     for (size_t i = 0; i < sizMax; ++i)
     {

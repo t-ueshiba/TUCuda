@@ -8,15 +8,14 @@
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/algorithm.h"
-#include "TU/GaussianConvolver.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
-#include <thrust/functional.h>
 
-#define OP_H	cuda::maximal3x3
-#define OP_D	thrust::greater
-//#define OP_H	cuda::minimal3x3
-//#define OP_D	thrust::less
+//#define OP	cuda::det3x3
+//#define OP	cuda::laplacian3x3
+//#define OP	cuda::sobelAbs3x3
+#define OP	cuda::maximal3x3
+//#define OP	cuda::minimal3x3
 
 /************************************************************************
 *  Global fucntions							*
@@ -40,25 +39,23 @@ main(int argc, char *argv[])
 
       // GPUによって計算する．
 	cuda::Array2<in_t>	in_d(in);
-	cuda::Array2<out_t>	out_d(in_d.nrow(), in_d.ncol());
+	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
 
-	u_int	timer = 0;
+	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
-				    out_d.begin(), OP_D<in_t>());
+	cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(), OP<in_t>());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if 1
+
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
-	for (u_int n = 0; n < NITER; ++n)
-	    cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
-					out_d.begin(), OP_D<in_t>());
+	for (u_int n = 0; n < NITER; ++n)		// フィルタリング
+	    cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(), OP<in_t>());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 
 	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
 	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
-#endif
+
 	Image<out_t>	out;
 	out_d.write(out);
 	out.save(cout);					// 結果画像をセーブ
@@ -70,7 +67,8 @@ main(int argc, char *argv[])
 	{
 	    outGold = in;
 	    profiler.start(0);
-	    op3x3(outGold.begin(), outGold.end(), OP_H<in_t>());
+	  //op3x3(outGold.begin(), outGold.end(), OP<in_t, out_t>());
+	    op3x3(outGold.begin(), outGold.end(), OP<in_t>());
 	    profiler.stop().nextFrame();
 	}
 	profiler.print(cerr);
@@ -78,13 +76,9 @@ main(int argc, char *argv[])
 
       // 結果を比較する．
 	const int	V = 160;
-	for (u_int u = 1; u < out.width() - 1; ++u)
-	    if (out[V][u] != outGold[V][u])
-	    {
-		cerr << ' ' << u << ":(" << out[V][u] << ',' << outGold[V][u]
-		     << ')' << endl;
-		cerr << Image<in_t>(in, u-1, V-1, 3, 3);
-	    }
+	for (u_int u = 0; u < out.width(); ++u)
+	    cerr << ' ' << (out[V][u] - outGold[V][u]);
+	cerr <<  endl;
 #endif
     }
     catch (exception& err)

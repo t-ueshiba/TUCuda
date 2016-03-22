@@ -88,17 +88,17 @@ main(int argc, char *argv[])
       // GPUによって計算する．
 	cuda::FIRGaussianConvolver2	cudaFilter(sigma);
 	cuda::Array2<in_t>		in_d(in);
-	cuda::Array2<out_t>		out_d;
+	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
 
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cudaFilter.CONVOLVE(in_d, out_d);		// warm-up
+	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #if 1
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	u_int	NITER = 1000;
 	for (u_int n = 0; n < NITER; ++n)
-	    cudaFilter.CONVOLVE(in_d, out_d);		// フィルタをかける
+	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 

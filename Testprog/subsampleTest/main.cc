@@ -3,7 +3,8 @@
  */
 #include <stdexcept>
 #include "TU/Image++.h"
-#include "TU/cuda/utility.h"
+#include "TU/cuda/Array++.h"
+#include "TU/cuda/algorithm.h"
 #include <cuda_runtime.h>
 #include <cutil.h>
 
@@ -24,17 +25,18 @@ main(int argc, char *argv[])
 	image.restore(cin);				// 原画像を読み込む
 	image.save(cout);
 	
-	cuda::Array2<pixel_t>	in_d(image), out_d;
+	cuda::Array2<pixel_t>	in_d(image),
+				out_d(in_d.nrow()/2, in_d.ncol()/2);
 	
 	u_int		timer = 0;
 	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
-	cuda::subsample(in_d, out_d);			// warp-up
+	cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	u_int		NITER = 1000;
 	CUT_SAFE_CALL(cutStartTimer(timer));
 	for (u_int n = 0; n < NITER; ++n)
-	    cuda::subsample(in_d, out_d);		// 実行
+	    cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 	CUT_SAFE_CALL(cutStopTimer(timer));
 

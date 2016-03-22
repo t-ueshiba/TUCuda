@@ -25,18 +25,12 @@ class FIRGaussianConvolver2 : public FIRFilter2
 
     FIRGaussianConvolver2&	initialize(float sigma)			;
 
-    template <class S, class T> FIRGaussianConvolver2&
-	smooth(const Array2<S>& in, Array2<T>& out)			;
-    template <class S, class T> FIRGaussianConvolver2&
-	diffH(const Array2<S>& in, Array2<T>& out)			;
-    template <class S, class T> FIRGaussianConvolver2&
-	diffV(const Array2<S>& in, Array2<T>& out)			;
-    template <class S, class T> FIRGaussianConvolver2&
-	diffHH(const Array2<S>& in, Array2<T>& out)			;
-    template <class S, class T> FIRGaussianConvolver2&
-	diffHV(const Array2<S>& in, Array2<T>& out)			;
-    template <class S, class T> FIRGaussianConvolver2&
-	diffVV(const Array2<S>& in, Array2<T>& out)			;
+    template <class IN, class OUT> void	smooth(IN in, IN ie, OUT out)	;
+    template <class IN, class OUT> void	diffH (IN in, IN ie, OUT out)	;
+    template <class IN, class OUT> void	diffV (IN in, IN ie, OUT out)	;
+    template <class IN, class OUT> void	diffHH(IN in, IN ie, OUT out)	;
+    template <class IN, class OUT> void	diffHV(IN in, IN ie, OUT out)	;
+    template <class IN, class OUT> void	diffVV(IN in, IN ie, OUT out)	;
     
   private:
     TU::Array<float>	_lobe0;		//!< スムージングのためのローブ
@@ -56,86 +50,74 @@ FIRGaussianConvolver2::FIRGaussianConvolver2(float sigma)
 
 //! Gauss核によるスムーシング
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::smooth(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::smooth(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe0).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe0, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による横方向1階微分(DOG)
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffH(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::diffH(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe1, _lobe0).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe1, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による縦方向1階微分(DOG)
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffV(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::diffV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe1).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe0, _lobe1).convolve(in, ie, out);
 }
     
 //! Gauss核による横方向2階微分
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffHH(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::diffHH(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe2, _lobe0).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe2, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による縦横両方向2階微分
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffHV(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::diffHV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe1, _lobe1).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe1, _lobe1).convolve(in, ie, out);
 }
     
 //! Gauss核による縦方向2階微分
 /*!
-  \param in	入力2次元配列
-  \param out	出力2次元配列
-  \return	このGauss核自身
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class S, class T> inline FIRGaussianConvolver2&
-FIRGaussianConvolver2::diffVV(const Array2<S>& in, Array2<T>& out)
+template <class IN, class OUT> inline void
+FIRGaussianConvolver2::diffVV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe2).convolve(in, out);
-
-    return *this;
+    FIRFilter2::initialize(_lobe0, _lobe2).convolve(in, ie, out);
 }
     
 }

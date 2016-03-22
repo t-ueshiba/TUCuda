@@ -47,11 +47,11 @@
   - #TU::cuda::FIRFilter2
   - #TU::cuda::FIRGaussianConvolver2
 
-  <b>ユティリティ</b>
-  - #TU::cuda::copyToConstantMemory()
-  - #TU::cuda::subsample()
-  - #TU::cuda::op3x3()
-  - #TU::cuda::suppressNonExtrema3x3()
+  <b>アルゴリズム</b>
+  - #TU::cuda::copyToConstantMemory(ITER, ITER, T*)
+  - #TU::cuda::subsample(IN, IN, OUT)
+  - #TU::cuda::op3x3(IN, IN, OUT, OP)
+  - #TU::cuda::suppressNonExtrema3x3(IN, IN, OUT, OP, typename std::iterator_traits<IN>::value_type::value_type)
   
   \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
@@ -172,7 +172,7 @@ using Array = TU::Array<T, 0, cuda::allocator<T> >;
 //! 2次元CUDA配列
 template <class T>
 using Array2 = TU::Array2<cuda::Array<T> >;
-
+    
 }	// namespace cuda
 }	// namespace TU
 #endif	// !__TU_CUDA_ARRAYPP_H

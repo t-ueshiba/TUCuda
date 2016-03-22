@@ -15,7 +15,7 @@ MOCHDRS		=
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
 CPPFLAGS	= -DNDEBUG #-DUSE_TBB
 CFLAGS		= -O3
-NVCCFLAGS	= -O3
+NVCCFLAGS	= -O
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
@@ -38,6 +38,7 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
+		../../TU/cuda/algorithm.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -119,7 +120,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		= filterImageGold.h
-SRCS		= main.cc
+SRCS		= main.cu
 OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
@@ -201,4 +202,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/row_vec_iterator.h \
 	/usr/local/include/TU/simd/BufTraits.h \
 	/usr/local/include/TU/simd/zero.h filterImageGold.h \
-	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h
+	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h \
+	../../TU/cuda/algorithm.h

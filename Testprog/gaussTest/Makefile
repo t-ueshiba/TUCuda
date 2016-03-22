@@ -39,6 +39,7 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
 		../../TU/cuda/FIRGaussianConvolver.h \
+		../../TU/cuda/algorithm.h \
 		../filterTest/filterImageGold.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
@@ -204,4 +205,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/BufTraits.h \
 	/usr/local/include/TU/simd/zero.h ../filterTest/filterImageGold.h \
 	../../TU/cuda/FIRGaussianConvolver.h ../../TU/cuda/FIRFilter.h \
-	../../TU/cuda/Array++.h
+	../../TU/cuda/Array++.h ../../TU/cuda/algorithm.h

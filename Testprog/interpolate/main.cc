@@ -11,8 +11,8 @@ namespace TU
 namespace cuda
 {
 template <class T> void
-interpolate(const CudaArray2<T>& d_image0,
-	    const CudaArray2<T>& d_image1, CudaArray2<T>& d_image2);
+interpolate(const Array2<T>& d_image0,
+	    const Array2<T>& d_image1, Array2<T>& d_image2);
 }
 }
 
@@ -45,7 +45,8 @@ main(int argc, char *argv[])
 	in.close();
 
       // Do main job.
-	CudaArray2<pixel_type>	d_image0(image0), d_image1(image1), d_image2;
+	cuda::Array2<pixel_type>	d_image0(image0),
+					d_image1(image1), d_image2;
 	cuda::interpolate(d_image0, d_image1, d_image2);
 
       // Save the obtained results.

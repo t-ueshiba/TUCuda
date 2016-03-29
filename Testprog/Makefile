@@ -1,4 +1,5 @@
-SUBDIR	= extremaTest		\
+SUBDIR	= boxFilterTest		\
+	  extremaTest		\
 	  filterTest		\
 	  gaussTest		\
 	  op3x3Test		\

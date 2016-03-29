@@ -3,6 +3,7 @@
  */
 /*!
   \file		FIRFilter.cu
+  \brief	finite impulse responseフィルタの実装
 */
 #include "TU/cuda/FIRFilter.h"
 

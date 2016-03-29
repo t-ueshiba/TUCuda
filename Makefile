@@ -37,17 +37,21 @@ EXTHDRS		= /home/ueshiba/src/TUTools++/TU/Array++.h \
 		/home/ueshiba/src/TUTools++/TU/pair.h \
 		/home/ueshiba/src/TUTools++/TU/tuple.h
 HDRS		= TU/cuda/Array++.h \
+		TU/cuda/BoxFilter.h \
 		TU/cuda/FIRFilter.h \
 		TU/cuda/FIRGaussianConvolver.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
+		TU/cuda/chrono.h \
 		TU/cuda/functional.h
 SRCS		= FIRFilter.cu \
 		FIRGaussianConvolver.cc \
-		TUCuda++.inst.cu
+		TUCuda++.inst.cu \
+		chrono.cc
 OBJS		= FIRFilter.o \
 		FIRGaussianConvolver.o \
-		TUCuda++.inst.o
+		TUCuda++.inst.o \
+		chrono.o
 
 #include $(PROJECT)/lib/rtc.mk		# modified: CPPFLAGS, LIBS
 #include $(PROJECT)/lib/cnoid.mk	# modified: CPPFLAGS, LIBS, LIBDIR
@@ -72,3 +76,4 @@ TUCuda++.inst.o: TU/cuda/Array++.h \
 	/home/ueshiba/src/TUTools++/TU/tuple.h \
 	/home/ueshiba/src/TUTools++/TU/functional.h \
 	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h
+chrono.o: TU/cuda/chrono.h

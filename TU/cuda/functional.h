@@ -3,6 +3,7 @@
  */
 /*!
   \file		functional.h
+  \brief	CUDAデバイス上で実行される関数オブジェクトの定義と実装
 */
 #ifndef __TU_CUDA_FUNCTIONAL_H
 #define __TU_CUDA_FUNCTIONAL_H

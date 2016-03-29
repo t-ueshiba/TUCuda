@@ -3,6 +3,7 @@
  */
 /*!
   \file		FIRGaussianConvolver.cc
+  \brief	Gauss核による畳み込みに関連するクラスの実装
 */
 #include "TU/cuda/FIRGaussianConvolver.h"
 #include <cmath>

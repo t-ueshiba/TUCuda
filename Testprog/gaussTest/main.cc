@@ -1,14 +1,12 @@
 /*
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include <stdexcept>
 #include "TU/Image++.h"
-#include "TU/Profiler.h"
 #include "TU/GaussianConvolver.h"
-#include "filterImageGold.h"
+#include "TU/Profiler.h"
 #include "TU/cuda/FIRGaussianConvolver.h"
-#include <cuda_runtime.h>
-#include <cutil.h>
+#include "TU/cuda/chrono.h"
+#include "filterImageGold.h"
 
 namespace TU
 {
@@ -89,22 +87,21 @@ main(int argc, char *argv[])
 	cuda::FIRGaussianConvolver2	cudaFilter(sigma);
 	cuda::Array2<in_t>		in_d(in);
 	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
-
-	u_int		timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
 	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if 1
-	CUT_SAFE_CALL(cutStartTimer(timer));
-	u_int	NITER = 1000;
-	for (u_int n = 0; n < NITER; ++n)
-	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-	CUT_SAFE_CALL(cutStopTimer(timer));
+	cudaThreadSynchronize();
 
-	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
-#endif
+	Profiler<cuda::clock>	cuProfiler(1);
+	constexpr size_t	NITER = 1000;
+
+	for (size_t n = 0; n < NITER; ++n)
+	{
+	    cuProfiler.start(0);
+	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
+	    cuProfiler.stop();
+	    cuProfiler.nextFrame();
+	}
+	cuProfiler.print(cerr);
+
 	Image<out_t>	out;
 	out_d.write(out);
 	out.save(cout);					// 結果画像をセーブ
@@ -126,7 +123,8 @@ main(int argc, char *argv[])
 	{
 	    profiler.start(0);
 	    convolver.smooth(in.begin(), in.end(), outGold.begin());
-	    profiler.stop().nextFrame();
+	    profiler.stop();
+	    profiler.nextFrame();
 	}
 #endif
 	profiler.print(cerr);

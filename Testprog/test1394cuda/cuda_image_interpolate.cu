@@ -1,9 +1,10 @@
 /*
  * $Id: cuda_image_interpolate.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include "TU/cuda/Array++.h"
 #include "TU/Image++.h"
-#include <cutil.h>
+#include "TU/Profiler.h"
+#include "TU/cuda/Array++.h"
+#include "TU/cuda/chrono.h"
 
 namespace TU
 {
@@ -45,10 +46,8 @@ interpolate(const Array2<T>& d_image0,
     d_image2.resize(d_image0.nrow(), d_image0.ncol());
     
 #ifdef PROFILE
-  // timer
-    u_int	timer = 0;
-    CUT_SAFE_CALL(cutCreateTimer(&timer));
-    CUT_SAFE_CALL(cutStartTimer(timer));
+    Profiler<clock>	cuProfiler(1);
+    cuProfiler.start(0);
 #endif
   // setup execution parameters
     dim3  threads(16, 16, 1);
@@ -59,15 +58,10 @@ interpolate(const Array2<T>& d_image0,
 					    d_image1.data().get(),
 					    d_image2.data().get(),
 					    d_image2.stride(), 0.5f);
-    
-  // check if kernel execution generated and error
-    CUT_CHECK_ERROR("Kernel execution failed");
-
 #ifdef PROFILE
-  // time
-    CUT_SAFE_CALL(cutStopTimer(timer));
-    cerr << "Processing time: " << cutGetTimerValue(timer) << " (ms)" << endl;
-    CUT_SAFE_CALL(cutDeleteTimer(timer));
+    cuProfiler.stop();
+    cuProfiler.nextFrame();
+    cuProfiler.print(cerr);
 #endif
 }
 

@@ -12,7 +12,7 @@ VPATH		=
 IDLS		=
 MOCHDRS		=
 
-INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
+INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
@@ -23,8 +23,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m) \
-		  -lsvml -lintlc
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lsvml -lintlc
 
 LINKER		= $(NVCC)
 
@@ -38,6 +37,7 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/chrono.h \
 		../../TU/cuda/functional.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -68,4 +68,4 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Profiler.h /usr/local/include/TU/algorithm.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/functional.h \
-	../../TU/cuda/algorithm.h
+	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h

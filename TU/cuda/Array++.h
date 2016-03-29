@@ -46,6 +46,7 @@
   <b>フィルタリング</b>
   - #TU::cuda::FIRFilter2
   - #TU::cuda::FIRGaussianConvolver2
+  - #TU::cuda::BoxFilter2
 
   <b>アルゴリズム</b>
   - #TU::cuda::copyToConstantMemory(ITER, ITER, T*)
@@ -53,6 +54,9 @@
   - #TU::cuda::op3x3(IN, IN, OUT, OP)
   - #TU::cuda::suppressNonExtrema3x3(IN, IN, OUT, OP, typename std::iterator_traits<IN>::value_type::value_type)
   
+  <b>時間計測</b>
+  - #TU::cuda::clock
+
   \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
 */

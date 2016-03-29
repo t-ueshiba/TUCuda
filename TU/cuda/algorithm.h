@@ -138,7 +138,7 @@ op3x3(IN in, IN ie, OUT out, OP op)					;
  *  device functions
  */
 template <class IN, class OUT, class OP> static __global__ void
-op3x3_kernel(IN in, OUT out, int stride_i, int stride_o, OP op)
+op3x3_kernel(IN in, OUT out, OP op, int stride_i, int stride_o)
 {
     typedef typename std::iterator_traits<IN>::value_type	value_type;
     
@@ -204,13 +204,13 @@ op3x3(IN in, IN ie, OUT out, OP op)
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     op3x3_kernel<<<blocks, threads>>>(in->begin() + 1, out->begin() + 1,
-				      stride_i, stride_o, op);
+				      op, stride_i, stride_o);
   // 右上
     const auto	x = 1 + blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     op3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
-				      stride_i, stride_o, op);
+				      op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -219,12 +219,12 @@ op3x3(IN in, IN ie, OUT out, OP op)
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     op3x3_kernel<<<blocks, threads>>>(in->begin() + 1, out->begin() + 1,
-				      stride_i, stride_o, op);
+				      op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     op3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
-				      stride_i, stride_o, op);
+				      op, stride_i, stride_o);
 }
 #endif
     
@@ -252,8 +252,9 @@ suppressNonExtrema3x3(
  *  device functions
  */
 template <class IN, class OUT, class OP> static __global__ void
-extrema3x3_kernel(IN in, OUT out, int stride_i, int stride_o, OP op,
-		  typename std::iterator_traits<IN>::value_type nulval)
+extrema3x3_kernel(IN in, OUT out, OP op,
+		  typename std::iterator_traits<IN>::value_type nulval,
+		  int stride_i, int stride_o)
 {
     typedef typename std::iterator_traits<IN>::value_type	value_type;
     
@@ -365,13 +366,13 @@ suppressNonExtrema3x3(
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     extrema3x3_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
-					   stride_i, stride_o, op, nulval);
+					   op, nulval, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     extrema3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
-					   stride_i, stride_o, op, nulval);
+					   op, nulval, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
     std::advance(out, blocks.y*(2*threads.y));
@@ -380,12 +381,12 @@ suppressNonExtrema3x3(
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     extrema3x3_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
-					   stride_i, stride_o, op, nulval);
+					   op, nulval, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     extrema3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
-					   stride_i, stride_o, op, nulval);
+					   op, nulval, stride_i, stride_o);
 }
 #endif
 }	// namespace cuda

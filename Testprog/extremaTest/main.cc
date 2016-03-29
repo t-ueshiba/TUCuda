@@ -8,9 +8,8 @@
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/algorithm.h"
+#include "TU/cuda/chrono.h"
 #include "TU/GaussianConvolver.h"
-#include <cuda_runtime.h>
-#include <cutil.h>
 #include <thrust/functional.h>
 
 #define OP_H	cuda::maximal3x3
@@ -42,23 +41,22 @@ main(int argc, char *argv[])
 	cuda::Array2<in_t>	in_d(in);
 	cuda::Array2<out_t>	out_d(in_d.nrow(), in_d.ncol());
 
-	u_int	timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
 	cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
 				    out_d.begin(), OP_D<in_t>());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if 1
-	CUT_SAFE_CALL(cutStartTimer(timer));
-	u_int	NITER = 1000;
-	for (u_int n = 0; n < NITER; ++n)
+	cudaThreadSynchronize();
+
+	Profiler<cuda::clock>	cuProfiler(1);
+	constexpr size_t	NITER = 1000;
+	for (size_t n = 0; n < NITER; ++n)
+	{
+	    cuProfiler.start(0);
 	    cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
 					out_d.begin(), OP_D<in_t>());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-	CUT_SAFE_CALL(cutStopTimer(timer));
+	    cuProfiler.stop();
+	    cuProfiler.nextFrame();
+	}
+	cuProfiler.print(cerr);
 
-	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
-#endif
 	Image<out_t>	out;
 	out_d.write(out);
 	out.save(cout);					// 結果画像をセーブ
@@ -71,7 +69,8 @@ main(int argc, char *argv[])
 	    outGold = in;
 	    profiler.start(0);
 	    op3x3(outGold.begin(), outGold.end(), OP_H<in_t>());
-	    profiler.stop().nextFrame();
+	    profiler.stop();
+	    profiler.nextFrame();
 	}
 	profiler.print(cerr);
 	outGold.save(cout);

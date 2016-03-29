@@ -12,7 +12,7 @@ VPATH		=
 IDLS		=
 MOCHDRS		=
 
-INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I$(CUDASDK)/common/inc
+INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O
@@ -23,8 +23,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lcutil_$(shell uname -m) \
-		  -lsvml -lintlc
+LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lsvml -lintlc
 
 LINKER		= $(NVCC)
 
@@ -39,6 +38,7 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -120,7 +120,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/types.h
 HDRS		= filterImageGold.h
-SRCS		= main.cu
+SRCS		= main.cc
 OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
@@ -134,7 +134,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/Profiler.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	/usr/local/include/TU/IIRFilter.h \
 	/usr/local/include/TU/SeparableFilter2.h \
@@ -201,6 +200,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
 	/usr/local/include/TU/simd/row_vec_iterator.h \
 	/usr/local/include/TU/simd/BufTraits.h \
-	/usr/local/include/TU/simd/zero.h filterImageGold.h \
+	/usr/local/include/TU/simd/zero.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/algorithm.h
+	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h filterImageGold.h

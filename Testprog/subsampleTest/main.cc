@@ -3,10 +3,10 @@
  */
 #include <stdexcept>
 #include "TU/Image++.h"
+#include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
-#include <cuda_runtime.h>
-#include <cutil.h>
+#include "TU/cuda/chrono.h"
 
 /************************************************************************
 *  Global fucntions							*
@@ -27,21 +27,19 @@ main(int argc, char *argv[])
 	
 	cuda::Array2<pixel_t>	in_d(image),
 				out_d(in_d.nrow()/2, in_d.ncol()/2);
-	
-	u_int		timer = 0;
-	CUT_SAFE_CALL(cutCreateTimer(&timer));		// タイマーを作成
 	cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-
-	u_int		NITER = 1000;
-	CUT_SAFE_CALL(cutStartTimer(timer));
-	for (u_int n = 0; n < NITER; ++n)
+	cudaThreadSynchronize();
+	
+	Profiler<cuda::clock>	cuProfiler(1);
+	constexpr size_t	NITER = 1000;
+	for (size_t n = 0; n < NITER; ++n)
+	{
+	    cuProfiler.start(0);
 	    cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
-	CUDA_SAFE_CALL(cudaThreadSynchronize());
-	CUT_SAFE_CALL(cutStopTimer(timer));
-
-	cerr << float(NITER * 1000) / cutGetTimerValue(timer) << "fps" << endl;
-	CUT_SAFE_CALL(cutDeleteTimer(timer));		// タイマーを消去
+	    cuProfiler.stop();
+	    cuProfiler.nextFrame();
+	}
+	cuProfiler.print(cerr);
 
 	out_d.write(image);
 	image.save(cout);

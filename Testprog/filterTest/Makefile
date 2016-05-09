@@ -15,7 +15,7 @@ MOCHDRS		=
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG #-DUSE_TBB
 CFLAGS		= -O3
-NVCCFLAGS	= -O
+NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
@@ -38,6 +38,7 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
@@ -202,4 +203,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/BufTraits.h \
 	/usr/local/include/TU/simd/zero.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h filterImageGold.h
+	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
+	../../TU/cuda/chrono.h filterImageGold.h

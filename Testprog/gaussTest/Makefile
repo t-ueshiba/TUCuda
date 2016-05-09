@@ -39,6 +39,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
 		../../TU/cuda/FIRGaussianConvolver.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		../filterTest/filterImageGold.h \
 		/usr/local/include/TU/Array++.h \
@@ -204,5 +205,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/simd/BufTraits.h \
 	/usr/local/include/TU/simd/zero.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/FIRGaussianConvolver.h ../../TU/cuda/FIRFilter.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/chrono.h ../filterTest/filterImageGold.h
+	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
+	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h \
+	../filterTest/filterImageGold.h

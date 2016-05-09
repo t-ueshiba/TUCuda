@@ -37,6 +37,7 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		../../TU/cuda/functional.h \
 		/usr/local/include/TU/Array++.h \
@@ -67,5 +68,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Profiler.h /usr/local/include/TU/algorithm.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/functional.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h
+	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
+	../../TU/cuda/functional.h ../../TU/cuda/algorithm.h \
+	../../TU/cuda/chrono.h

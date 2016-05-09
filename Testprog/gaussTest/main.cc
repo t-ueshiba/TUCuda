@@ -97,7 +97,6 @@ main(int argc, char *argv[])
 	{
 	    cuProfiler.start(0);
 	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
-	    cuProfiler.stop();
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
@@ -115,7 +114,7 @@ main(int argc, char *argv[])
 	{
 	    profiler.start(0);
 	    filterImageGold(in, outGold, coeff);
-	    profiler.stop().nextFrame();
+	    profiler.nextFrame();
 	}
 #else
 	GaussianConvolver2<float>	convolver(sigma);
@@ -123,7 +122,6 @@ main(int argc, char *argv[])
 	{
 	    profiler.start(0);
 	    convolver.smooth(in.begin(), in.end(), outGold.begin());
-	    profiler.stop();
 	    profiler.nextFrame();
 	}
 #endif

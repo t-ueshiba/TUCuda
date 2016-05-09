@@ -42,6 +42,7 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/FIRGaussianConvolver.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
+		TU/cuda/allocator.h \
 		TU/cuda/chrono.h \
 		TU/cuda/functional.h
 SRCS		= FIRFilter.cu \
@@ -58,19 +59,20 @@ OBJS		= FIRFilter.o \
 include $(PROJECT)/lib/lib.mk		# added:    PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h \
+FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
 	/home/ueshiba/src/TUTools++/TU/Array++.h \
 	/home/ueshiba/src/TUTools++/TU/iterator.h \
 	/home/ueshiba/src/TUTools++/TU/tuple.h \
 	/home/ueshiba/src/TUTools++/TU/functional.h \
 	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
-	TU/cuda/Array++.h /home/ueshiba/src/TUTools++/TU/Array++.h \
+	TU/cuda/Array++.h TU/cuda/allocator.h \
+	/home/ueshiba/src/TUTools++/TU/Array++.h \
 	/home/ueshiba/src/TUTools++/TU/iterator.h \
 	/home/ueshiba/src/TUTools++/TU/tuple.h \
 	/home/ueshiba/src/TUTools++/TU/functional.h \
 	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h
-TUCuda++.inst.o: TU/cuda/Array++.h \
+TUCuda++.inst.o: TU/cuda/Array++.h TU/cuda/allocator.h \
 	/home/ueshiba/src/TUTools++/TU/Array++.h \
 	/home/ueshiba/src/TUTools++/TU/iterator.h \
 	/home/ueshiba/src/TUTools++/TU/tuple.h \

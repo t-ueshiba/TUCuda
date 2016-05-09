@@ -51,7 +51,6 @@ main(int argc, char *argv[])
 	{
 	    cuProfiler.start(0);
 	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
-	    cuProfiler.stop();
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
@@ -68,7 +67,6 @@ main(int argc, char *argv[])
 	{
 	    profiler.start(0);
 	    filter.convolve(in.cbegin(), in.cend(), outGold.begin());
-	    profiler.stop();
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);

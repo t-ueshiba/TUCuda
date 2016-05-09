@@ -9,6 +9,7 @@
 #define __TU_CUDA_FUNCTIONAL_H
 
 #include <cmath>
+#include <thrust/functional.h>
 
 namespace TU
 {
@@ -196,6 +197,23 @@ class minimal3x3
     const T	_nonMinimal;
 };
 
+//! 2つの値の閾値付き差を表す関数オブジェクト
+template <class T>
+struct diff
+{
+    __host__ __device__
+    diff(T thresh)	:_thresh(thresh)			{}
+
+    __host__ __device__ T
+    operator ()(T x, T y) const
+    {
+	return thrust::minimum<T>()((x > y ? x - y : y - x), _thresh);
+    }
+    
+  private:
+    const T	_thresh;
+};
+    
 }	// namespace cuda
 }	// namespace TU
 #endif	// !__TU_CUDA_FUNCTIONAL_H

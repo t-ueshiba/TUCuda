@@ -36,7 +36,6 @@ main(int argc, char *argv[])
 	{
 	    cuProfiler.start(0);
 	    cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
-	    cuProfiler.stop();
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);

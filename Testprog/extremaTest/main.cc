@@ -52,7 +52,6 @@ main(int argc, char *argv[])
 	    cuProfiler.start(0);
 	    cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
 					out_d.begin(), OP_D<in_t>());
-	    cuProfiler.stop();
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
@@ -69,7 +68,6 @@ main(int argc, char *argv[])
 	    outGold = in;
 	    profiler.start(0);
 	    op3x3(outGold.begin(), outGold.end(), OP_H<in_t>());
-	    profiler.stop();
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);

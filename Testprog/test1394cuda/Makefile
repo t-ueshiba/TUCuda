@@ -37,6 +37,7 @@ INCDIR		= $(PREFIX)/include
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
+		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -69,11 +70,13 @@ cuda_image_interpolate.o: /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/functional.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/chrono.h
+	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
+	../../TU/cuda/chrono.h
 main.o: /usr/local/include/TU/Ieee1394CameraArray.h \
 	/usr/local/include/TU/Ieee1394++.h /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/types.h /usr/local/include/TU/Geometry++.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/functional.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Minimize.h ../../TU/cuda/Array++.h
+	/usr/local/include/TU/Minimize.h ../../TU/cuda/Array++.h \
+	../../TU/cuda/allocator.h

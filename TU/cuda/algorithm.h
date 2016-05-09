@@ -203,13 +203,15 @@ op3x3(IN in, IN ie, OUT out, OP op)
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    op3x3_kernel<<<blocks, threads>>>(in->begin() + 1, out->begin() + 1,
+    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + 1,
+				      out->begin().get() + 1,
 				      op, stride_i, stride_o);
   // 右上
     const auto	x = 1 + blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
+    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + x,
+				      out->begin().get() + x,
 				      op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -218,12 +220,14 @@ op3x3(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin() + 1, out->begin() + 1,
+    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + 1,
+				      out->begin().get() + 1,
 				      op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
+    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + x,
+				      out->begin().get() + x,
 				      op, stride_i, stride_o);
 }
 #endif

@@ -46,6 +46,8 @@ class FIRFilter2
 };
 
 #if defined(__NVCC__)
+namespace device
+{
 /************************************************************************
 *  __device__ functions							*
 ************************************************************************/
@@ -171,7 +173,7 @@ convolve<2>(const float* in_s, const float* lobe)
 *  __global__ functions							*
 ************************************************************************/
 template <size_t L, class IN, class OUT> static __global__ void
-fir_filterH_kernel(IN in, OUT out, int stride_i, int stride_o)
+fir_filterH(IN in, OUT out, int stride_i, int stride_o)
 {
     constexpr size_t	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -196,7 +198,7 @@ fir_filterH_kernel(IN in, OUT out, int stride_i, int stride_o)
 }
 
 template <size_t L, class IN, class OUT> static __global__ void
-fir_filterV_kernel(const IN in, OUT out, int stride_i, int stride_o)
+fir_filterV(const IN in, OUT out, int stride_i, int stride_o)
 {
     constexpr size_t	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -219,7 +221,7 @@ fir_filterV_kernel(const IN in, OUT out, int stride_i, int stride_o)
        +  blockIdx.x*blockDim.x + threadIdx.x;
     out[xy] = convolve<L>(&in_s[x][y], lobeV());
 }
-
+}	// namespace device
 /************************************************************************
 *  class FIRFilter2							*
 ************************************************************************/
@@ -237,16 +239,16 @@ FIRFilter2::convolveH(IN in, IN ie, OUT out)
     int		x = LobeSize;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    fir_filterH_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
   // 右上
     x += blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    fir_filterH_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -255,16 +257,16 @@ FIRFilter2::convolveH(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    fir_filterH_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
   // 右下
     x += blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    fir_filterH_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
 }
 
 template <size_t L, class IN, class OUT> void
@@ -282,15 +284,15 @@ FIRFilter2::convolveV(IN in, IN ie, OUT out)
     std::advance(out, LobeSize);
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    fir_filterV_kernel<L><<<blocks, threads>>>(in->begin(), out->begin(),
-					       stride_i, stride_o);
+    device::fir_filterV<L><<<blocks, threads>>>(in->begin(), out->begin(),
+						stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    fir_filterV_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterV<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -298,14 +300,14 @@ FIRFilter2::convolveV(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    fir_filterV_kernel<L><<<blocks, threads>>>(in->begin(), out->begin(),
-					       stride_i, stride_o);
+    device::fir_filterV<L><<<blocks, threads>>>(in->begin(), out->begin(),
+						stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    fir_filterV_kernel<L><<<blocks, threads>>>(in->begin()  + x,
-					       out->begin() + x,
-					       stride_i, stride_o);
+    device::fir_filterV<L><<<blocks, threads>>>(in->begin()  + x,
+						out->begin() + x,
+						stride_i, stride_o);
 }
 #endif	// __NVCC__
 

@@ -15,7 +15,7 @@ MOCHDRS		=
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -O3
-NVCCFLAGS	= -O
+NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
@@ -37,6 +37,7 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/BoxFilter.h \
 		../../TU/cuda/algorithm.h \
+		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/BoxFilter.h \
@@ -68,5 +69,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Profiler.h /usr/local/include/TU/BoxFilter.h \
 	/usr/local/include/TU/Filter2.h ../../TU/cuda/BoxFilter.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/chrono.h
+	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
+	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h

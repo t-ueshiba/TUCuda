@@ -11,6 +11,8 @@ namespace TU
 {
 namespace cuda
 {
+namespace device
+{
 /************************************************************************
 *  global __constatnt__ variables					*
 ************************************************************************/
@@ -22,6 +24,8 @@ static __constant__ float	_lobeV[FIRFilter2::LobeSizeMax];
 ************************************************************************/
 __host__ __device__ const float*	lobeH()		{ return _lobeH; }
 __host__ __device__ const float*	lobeV()		{ return _lobeV; }
+
+}	// namespace device
     
 //! 2次元フィルタのローブを設定する．
 /*!
@@ -40,10 +44,10 @@ FIRFilter2::initialize(const TU::Array<float>& lobeH,
     
     _lobeSizeH = lobeH.size();
     _lobeSizeV = lobeV.size();
-    cudaMemcpyToSymbol(_lobeH, lobeH.data(), lobeH.size()*sizeof(float),
-		       0, cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(_lobeV, lobeV.data(), lobeV.size()*sizeof(float),
-		       0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_lobeH, lobeH.data(),
+		       lobeH.size()*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_lobeV, lobeV.data(),
+		       lobeV.size()*sizeof(float), 0, cudaMemcpyHostToDevice);
 
     return *this;
 }

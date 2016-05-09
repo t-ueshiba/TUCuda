@@ -1,10 +1,10 @@
 /*
  * $Id: cuda_image_interpolate.cu,v 1.2 2012-08-30 12:19:21 ueshiba Exp $
  */
-#include "TU/cuda/Array++.h"
 #include "TU/Image++.h"
-#include <cutil.h>
-#include <cutil_math.h>
+#include "TU/Profiler.h"
+#include "TU/cuda/Array++.h"
+#include "TU/cuda/chrono.h"
 
 namespace TU
 {
@@ -48,9 +48,7 @@ interpolate(const Array2<T>& d_image0,
     d_image2.resize(d_image0.nrow(), d_image0.ncol());
     
   // timer
-    u_int	timer = 0;
-    CUT_SAFE_CALL(cutCreateTimer(&timer));
-    CUT_SAFE_CALL(cutStartTimer(timer));
+    Profiler<clock>	cuProfiler(1);
 
   // setup execution parameters
     dim3  threads(16, 16, 1);
@@ -60,19 +58,17 @@ interpolate(const Array2<T>& d_image0,
   // execute the kernel
     cerr << "Let's go!" << endl;
     for (int i = 0; i < 1000; ++i)
+    {
+	cuProfiler.start(0);
 	interpolate_kernel<<<blocks, threads>>>(d_image0.data().get(),
 						d_image1.data().get(),
 						d_image2.data().get(),
 						d_image2.stride(), 0.5f);
+	cuProfiler.stop();
+	cuProfiler.nextFrame();
+    }
     cerr << "Returned!" << endl;
-    
-  // check if kernel execution generated and error
-    CUT_CHECK_ERROR("Kernel execution failed");
-
-  // time
-    CUT_SAFE_CALL(cutStopTimer(timer));
-    cerr << "Processing time: " << cutGetTimerValue(timer) << " (ms)" << endl;
-    CUT_SAFE_CALL(cutDeleteTimer(timer));
+    cuProfiler.print(cerr);
 }
 
 template void	interpolate(const Array2<u_char>& d_image0,
@@ -82,9 +78,9 @@ template void	interpolate(const Array2<u_char>& d_image0,
 template void	interpolate(const Array2<RGBA>&   d_image0,
 			    const Array2<RGBA>&   d_image1,
 				  Array2<RGBA>&   d_image2)	;
-  */
 template void	interpolate(const Array2<float4>& d_image0,
 			    const Array2<float4>& d_image1,
 				  Array2<float4>& d_image2)	;
+  */
 }
 }

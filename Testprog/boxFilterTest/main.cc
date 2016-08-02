@@ -5,8 +5,12 @@
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
 #include "TU/BoxFilter.h"
-#include "TU/cuda/BoxFilter.h"
-#include "TU/cuda/chrono.h"
+
+namespace TU
+{
+template <class S, class T> void
+cudaJob(const Image<S>& in, Image<T>& out, size_t winSize)		;
+}
 
 /************************************************************************
 *  Global fucntions							*
@@ -39,26 +43,10 @@ main(int argc, char *argv[])
       //in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::BoxFilter2<out_t, 15>	cudaFilter(winSize, winSize);
-	cuda::Array2<in_t>		in_d(in);
-	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
-	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
-	cudaThreadSynchronize();
-
-	Profiler<cuda::clock>	cuProfiler(1);
-	constexpr size_t	NITER = 1000;
-	for (size_t n = 0; n < NITER; ++n)
-	{
-	    cuProfiler.start(0);
-	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
-	    cuProfiler.nextFrame();
-	}
-	cuProfiler.print(cerr);
-
 	Image<out_t>	out;
-	out_d.write(out);
+	TU::cudaJob(in, out, winSize);
 	out.save(cout);					// 結果画像をセーブ
-#if 0
+#if 1
       // CPUによって計算する．
 	Profiler<>	profiler(1);
 	Image<out_t>	outGold(in.width(), in.height());

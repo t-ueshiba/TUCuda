@@ -12,8 +12,8 @@ IDLS		=
 
 INCDIRS		= -I. -I$(HOME)/src/TUTools++ -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG #-DSSE3
-CFLAGS		= -O
-NVCCFLAGS	= -O
+CFLAGS		= -O3
+NVCCFLAGS	= -O3
 CCFLAGS		= $(CFLAGS)
 
 LIBS		=

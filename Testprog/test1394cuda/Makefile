@@ -18,13 +18,15 @@ CFLAGS		= -O3
 NVCCFLAGS	= -O
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
+else ifeq ($(shell arch), aarch64)
+  CPPFLAGS     += -DNEON
 else
   CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
 LIBS		= -lTUIeee1394++ -lTUTools++ -lTUCuda++ \
-		  -lraw1394 -ltbb -lintlc
+		  -lraw1394 -ltbb
 
 LINKER		= $(NVCC)
 

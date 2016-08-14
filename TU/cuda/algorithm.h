@@ -398,6 +398,15 @@ suppressNonExtrema3x3(
 /************************************************************************
 *  transpose(IN in, IN ie, OUT out)					*
 ************************************************************************/
+//! CUDAによって2次元配列の転置処理を行う．
+/*!
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最初の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
+*/
+template <class IN, class OUT> void
+transpose(IN in, IN ie, OUT out)					;
+    
 #if defined(__NVCC__)
 namespace detail
 {
@@ -449,19 +458,13 @@ transpose(IN in, IN ie, OUT out, size_t i, size_t j)
 }
 
 }	// namesapce detail
-#endif    
     
-//! CUDAによって2次元配列の転置処理を行う．
-/*!
-  \param in	入力2次元配列の最初の行を指す反復子
-  \param ie	入力2次元配列の最初の次の行を指す反復子
-  \param out	出力2次元配列の最初の行を指す反復子
-*/
 template <class IN, class OUT> void
 transpose(IN in, IN ie, OUT out)
 {
     detail::transpose(in, ie, out, 0, 0);
 }
+#endif    
 
 }	// namespace cuda
 }	// namespace TU

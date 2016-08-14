@@ -8,7 +8,7 @@
 #ifndef __TU_CUDA_ALGORITHM_H
 #define __TU_CUDA_ALGORITHM_H
 
-#include <algorithm>
+#include "TU/algorithm.h"
 #include "TU/iterator.h"
 
 namespace TU
@@ -20,6 +20,7 @@ namespace cuda
 ************************************************************************/
 static constexpr size_t	BlockDimX = 32;	//!< 1ブロックあたりのスレッド数(x方向)
 static constexpr size_t	BlockDimY = 16;	//!< 1ブロックあたりのスレッド数(y方向)
+static constexpr size_t	BlockDim  = 32;	//!< 1ブロックあたりのスレッド数(全方向)
     
 /************************************************************************
 *  stride(ROW row)							*
@@ -393,6 +394,75 @@ suppressNonExtrema3x3(
 					   op, nulval, stride_i, stride_o);
 }
 #endif
+
+/************************************************************************
+*  transpose(IN in, IN ie, OUT out)					*
+************************************************************************/
+#if defined(__NVCC__)
+namespace detail
+{
+template <class IN, class OUT> static __global__ void
+transpose_kernel(IN in, OUT out, int stride_i, int stride_o)
+{
+    typedef typename std::iterator_traits<IN>::value_type	value_type;
+
+    const auto			bx = blockIdx.x*blockDim.x;
+    const auto			by = blockIdx.y*blockDim.y;
+    __shared__ value_type	tile[BlockDim][BlockDim];
+    tile[threadIdx.y][threadIdx.x]
+	= in[(by + threadIdx.y)*stride_i + bx + threadIdx.x];
+    __syncthreads();
+    out[(bx + threadIdx.y)*stride_o + by + threadIdx.x]
+	= tile[threadIdx.x][threadIdx.y];
+}
+    
+template <class IN, class OUT> static void
+transpose(IN in, IN ie, OUT out, size_t i, size_t j)
+{
+    size_t	r = std::distance(in, ie);
+    if (r < 1)
+	return;
+
+    size_t	c = std::distance(std::cbegin(*in), std::cend(*in)) - j;
+    if (c < 1)
+	return;
+
+    const auto	stride_i = stride(in);
+    const auto	stride_o = stride(out);
+    const auto	blockDim = std::min(BlockDim, r, c);
+    const dim3	threads(blockDim, blockDim);
+    const dim3	blocks(c/threads.x, r/threads.y);
+    transpose_kernel<<<blocks, threads>>>(std::cbegin(*in) + j,
+					  std::begin(*out) + i,
+					  stride_i, stride_o);	// 左上
+
+    r = blocks.y*threads.y;
+    c = blocks.x*threads.x;
+
+    auto	in_n = in;
+    std::advance(in_n, r);
+    auto	out_n = out;
+    std::advance(out_n, c);
+    transpose(in,   ie, out_n, i,     j + c);			// 右上
+    transpose(in_n, ie, out,   i + r, j);			// 左下
+    transpose(in_n, ie, out_n, i + r, j + c);			// 右下
+}
+
+}	// namesapce detail
+#endif    
+    
+//! CUDAによって2次元配列の転置処理を行う．
+/*!
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最初の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
+*/
+template <class IN, class OUT> void
+transpose(IN in, IN ie, OUT out)
+{
+    detail::transpose(in, ie, out, 0, 0);
+}
+
 }	// namespace cuda
 }	// namespace TU
 #endif	// !__CUDA_ALGORITHM_H

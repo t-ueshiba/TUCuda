@@ -417,7 +417,7 @@ transpose_kernel(IN in, OUT out, int stride_i, int stride_o)
 
     const auto			bx = blockIdx.x*blockDim.x;
     const auto			by = blockIdx.y*blockDim.y;
-    __shared__ value_type	tile[BlockDim][BlockDim];
+    __shared__ value_type	tile[BlockDim][BlockDim + 1];
     tile[threadIdx.y][threadIdx.x]
 	= in[(by + threadIdx.y)*stride_i + bx + threadIdx.x];
     __syncthreads();

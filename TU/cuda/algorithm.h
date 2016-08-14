@@ -241,7 +241,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
 //! CUDAによって2次元配列に対して3x3非極値抑制処理を行う．
 /*!
   \param in	入力2次元配列の最初の行を指す反復子
-  \param ie	入力2次元配列の最初の次の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
   \param op	極大値を検出するときは thrust::greater<T> を，
 		極小値を検出するときは thrust::less<T> を与える
@@ -401,7 +401,7 @@ suppressNonExtrema3x3(
 //! CUDAによって2次元配列の転置処理を行う．
 /*!
   \param in	入力2次元配列の最初の行を指す反復子
-  \param ie	入力2次元配列の最初の次の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class IN, class OUT> void
@@ -452,14 +452,13 @@ transpose(IN in, IN ie, OUT out, size_t i, size_t j)
     std::advance(in_n, r);
     auto	out_n = out;
     std::advance(out_n, c);
-    transpose(in,   ie, out_n, i,     j + c);			// 右上
-    transpose(in_n, ie, out,   i + r, j);			// 左下
-    transpose(in_n, ie, out_n, i + r, j + c);			// 右下
+    transpose(in,   in_n, out_n, i,     j + c);			// 右上
+    transpose(in_n, ie,   out,   i + r, j);			// 下
 }
 
 }	// namesapce detail
     
-template <class IN, class OUT> void
+template <class IN, class OUT> inline void
 transpose(IN in, IN ie, OUT out)
 {
     detail::transpose(in, ie, out, 0, 0);

@@ -31,11 +31,11 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= /home/ueshiba/src/TUTools++/TU/Array++.h \
-		/home/ueshiba/src/TUTools++/TU/functional.h \
-		/home/ueshiba/src/TUTools++/TU/iterator.h \
-		/home/ueshiba/src/TUTools++/TU/pair.h \
-		/home/ueshiba/src/TUTools++/TU/tuple.h
+EXTHDRS		= /Users/ueshiba/src/TUTools++/TU/Array++.h \
+		/Users/ueshiba/src/TUTools++/TU/functional.h \
+		/Users/ueshiba/src/TUTools++/TU/iterator.h \
+		/Users/ueshiba/src/TUTools++/TU/pair.h \
+		/Users/ueshiba/src/TUTools++/TU/tuple.h
 HDRS		= TU/cuda/Array++.h \
 		TU/cuda/BoxFilter.h \
 		TU/cuda/FIRFilter.h \
@@ -46,13 +46,9 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/chrono.h \
 		TU/cuda/functional.h
 SRCS		= FIRFilter.cu \
-		FIRGaussianConvolver.cc \
-		TUCuda++.inst.cu \
-		chrono.cc
+		FIRGaussianConvolver.cc
 OBJS		= FIRFilter.o \
-		FIRGaussianConvolver.o \
-		TUCuda++.inst.o \
-		chrono.o
+		FIRGaussianConvolver.o
 
 #include $(PROJECT)/lib/rtc.mk		# modified: CPPFLAGS, LIBS
 #include $(PROJECT)/lib/cnoid.mk	# modified: CPPFLAGS, LIBS, LIBDIR
@@ -60,11 +56,11 @@ include $(PROJECT)/lib/lib.mk		# added:    PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
 FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/functional.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h
+	/Users/ueshiba/src/TUTools++/TU/Array++.h \
+	/Users/ueshiba/src/TUTools++/TU/iterator.h \
+	/Users/ueshiba/src/TUTools++/TU/tuple.h \
+	/Users/ueshiba/src/TUTools++/TU/functional.h \
+	/Users/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
 	TU/cuda/Array++.h TU/cuda/allocator.h \
 	/home/ueshiba/src/TUTools++/TU/Array++.h \

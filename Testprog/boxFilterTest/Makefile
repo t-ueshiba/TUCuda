@@ -13,13 +13,13 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG
+CPPFLAGS	= -DNDEBUG #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
-#  CPPFLAGS     += -DSSE3
+  CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
@@ -36,6 +36,8 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/BoxFilter.h \
+		../../TU/cuda/NeoBoxFilter.h \
+		../../TU/cuda/NewBoxFilter.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
@@ -47,6 +49,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Vector++.h \
+		/usr/local/include/TU/algorithm.h \
 		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
@@ -71,7 +74,9 @@ cudaJob.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Profiler.h ../../TU/cuda/BoxFilter.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h
+	../../TU/cuda/algorithm.h /usr/local/include/TU/algorithm.h \
+	../../TU/cuda/NewBoxFilter.h ../../TU/cuda/NeoBoxFilter.h \
+	../../TU/cuda/chrono.h
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
 	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \

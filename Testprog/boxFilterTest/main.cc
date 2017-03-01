@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 
   //typedef u_char	in_t;
     typedef float	in_t;
-  //typedef u_char	out_t;
+  //typedef short	out_t;
     typedef float	out_t;
     
     size_t		winSize = 3;
@@ -40,13 +40,12 @@ main(int argc, char *argv[])
     {
 	Image<in_t>	in;
 	in.restore(cin);				// 原画像を読み込む
-      //in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
 	Image<out_t>	out;
 	TU::cudaJob(in, out, winSize);
 	out.save(cout);					// 結果画像をセーブ
-#if 1
+
       // CPUによって計算する．
 	Profiler<>	profiler(1);
 	Image<out_t>	outGold(in.width(), in.height());
@@ -59,7 +58,6 @@ main(int argc, char *argv[])
 	}
 	profiler.print(cerr);
 	outGold.save(cout);
-#endif
     }
     catch (exception& err)
     {

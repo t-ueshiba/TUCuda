@@ -10,16 +10,13 @@ LIBRARY		= lib$(shell basename $(PWD))
 IDLDIR		= .
 IDLS		=
 
-INCDIRS		= -I. -I$(HOME)/src/TUTools++ -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG #-DSSE3
+INCDIRS		= -I. -I$(PREFIX)/include -I$(CUDAHOME)/include
+CPPFLAGS	= -DNDEBUG #-DSSE4
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
 CCFLAGS		= $(CFLAGS)
 
 LIBS		=
-ifneq ($(findstring darwin,$(OSTYPE)),)
-  LIBS	       += -framework IOKit -framework CoreFoundation -framework CoreServices
-endif
 
 LINKER		= $(NVCC)
 

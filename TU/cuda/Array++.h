@@ -85,67 +85,80 @@ namespace TU
 *  specialization for Buf<T, D, ALLOC> for CUDA				*
 ************************************************************************/
 template <class T>
-struct BufTraits<T, cuda::allocator<T> >
+class BufTraits<T, cuda::allocator<T> >
+    : public std::allocator_traits<cuda::allocator<T> >
 {
-    typedef cuda::allocator<T>				allocator_type;
-    typedef typename allocator_type::pointer		pointer;
-    typedef typename allocator_type::const_pointer	const_pointer;
-    typedef pointer					iterator;
-    typedef const_pointer				const_iterator;
+  private:
+    using super			= std::allocator_traits<cuda::allocator<T> >;
 
+  public:
+    using iterator		= typename super::pointer;
+    using const_iterator	= typename super::const_pointer;
+    
   protected:
-    static pointer	null()
-			{
-			    return pointer((T*)nullptr);
-			}
+    using pointer		= typename super::pointer;
+
+    static pointer		null()
+				{
+				    return pointer(static_cast<T*>(nullptr));
+				}
+    static T*			ptr(pointer p)
+				{
+				    return p.get();
+				}
 
     template <class IN_, class OUT_>
-    static OUT_		copy(IN_ ib, IN_ ie, OUT_ out)
-			{
-			    return thrust::copy(ib, ie, out);
-			}
+    static OUT_			copy(IN_ ib, IN_ ie, OUT_ out)
+				{
+				    return thrust::copy(ib, ie, out);
+				}
 
     template <class T_>
-    static void		fill(iterator ib, iterator ie, const T_& c)
-			{
-			    thrust::fill(ib, ie, c);
-			}
+    static void			fill(iterator ib, iterator ie, const T_& c)
+				{
+				    thrust::fill(ib, ie, c);
+				}
 
-    static void		init(iterator ib, iterator ie)
-			{
-			}
+    static void			init(iterator ib, iterator ie)
+				{
+				}
 };
 
 template <class T>
-struct BufTraits<T, cuda::mapped_allocator<T> >
+class BufTraits<T, cuda::mapped_allocator<T> >
+    : public std::allocator_traits<cuda::mapped_allocator<T> >
 {
-    typedef cuda::mapped_allocator<T>			allocator_type;
-    typedef typename allocator_type::pointer		pointer;
-    typedef typename allocator_type::const_pointer	const_pointer;
-    typedef pointer					iterator;
-    typedef const_pointer				const_iterator;
+  private:
+    using super			= std::allocator_traits<
+					cuda::mapped_allocator<T> >;
+
+  public:
+    using iterator		= typename super::pointer;
+    using const_iterator	= typename super::const_pointer;
 
   protected:
-    static pointer	null()
-			{
-			    return pointer((T*)nullptr);
-			}
+    using pointer		= typename super::pointer;
 
+    static T*			ptr(pointer p)
+				{
+				    return p.get();
+				}
+    
     template <class IN_, class OUT_>
-    static OUT_		copy(IN_ ib, IN_ ie, OUT_ out)
-			{
-			    return thrust::copy(ib, ie, out);
-			}
+    static OUT_			copy(IN_ ib, IN_ ie, OUT_ out)
+				{
+				    return thrust::copy(ib, ie, out);
+				}
 
     template <class T_>
-    static void		fill(iterator ib, iterator ie, const T_& c)
-			{
-			    thrust::fill(ib, ie, c);
-			}
+    static void			fill(iterator ib, iterator ie, const T_& c)
+				{
+				    thrust::fill(ib, ie, c);
+				}
 
-    static void		init(iterator ib, iterator ie)
-			{
-			}
+    static void			init(iterator ib, iterator ie)
+				{
+				}
 };
 
 //! 本ライブラリで定義されたクラスおよび関数を納める名前空間
@@ -156,19 +169,19 @@ namespace cuda
 ************************************************************************/
 //! 1次元CUDA配列
 template <class T>
-using Array = TU::Array<T, 0, cuda::allocator<T> >;
+using Array = array<T, cuda::allocator<T>, 0>;
     
 //! 2次元CUDA配列
 template <class T>
-using Array2 = TU::Array2<cuda::Array<T> >;
+using Array2 = array<T, cuda::allocator<T>, 0, 0>;
     
 //! CUDAデバイス空間にマップされた1次元配列
 template <class T>
-using MappedArray = TU::Array<T, 0, cuda::mapped_allocator<T> >;
+using MappedArray = array<T, cuda::mapped_allocator<T>, 0>;
     
 //! CUDAデバイス空間にマップされた2次元配列
 template <class T>
-using MappedArray2 = TU::Array2<cuda::MappedArray<T> >;
+using MappedArray2 = array<T, cuda::mapped_allocator<T>, 0, 0>;
     
 }	// namespace cuda
 }	// namespace TU

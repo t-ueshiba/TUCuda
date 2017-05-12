@@ -26,51 +26,41 @@ template <class T>
 class allocator
 {
   public:
-    typedef T						value_type;
-    typedef thrust::device_ptr<value_type>		pointer;
-    typedef thrust::device_ptr<const value_type>	const_pointer;
-    typedef thrust::device_reference<value_type>	reference;
-    typedef thrust::device_reference<const value_type>	const_reference;
-    typedef size_t					size_type;
-    typedef ptrdiff_t					difference_type;
+    using value_type	= T;
+    using pointer	= thrust::device_ptr<value_type>;
+    using const_pointer	= thrust::device_ptr<const value_type>;
+  //using reference		= thrust::device_reference<value_type>;
+  //using const_reference	= thrust::device_reference<const value_type>;
 
     template <class T_>	struct rebind	{ typedef allocator<T_> other; };
 
   public:
-			allocator()					{}
-    template <class U>	allocator(const allocator<U>&)			{}
+		allocator()					{}
+    template <class U>
+		allocator(const allocator<U>&)			{}
 
-    static pointer	allocate(size_type n,
-				 typename std::allocator<void>
-					     ::const_pointer=nullptr)
-			{
-			  // 長さ0のメモリを要求するとCUDAのアロケータが
-			  // 混乱するので，対策が必要
-			    if (n == 0)
-				return pointer((value_type*)nullptr);
+    pointer	allocate(std::size_t n)
+		{
+		  // 長さ0のメモリを要求するとCUDAのアロケータが
+		  // 混乱するので，対策が必要
+		    if (n == 0)
+			return pointer((value_type*)nullptr);
 
-			    pointer	p = thrust::
-					    device_malloc<value_type>(n);
-			    if (p.get() == nullptr)
-				throw std::bad_alloc();
-			    cudaMemset(p.get(), 0, n*sizeof(value_type));
-			    return p;
-			}
-    static void		deallocate(pointer p, size_type)
-			{
-			  // nullptrをfreeするとCUDAのアロケータが
-			  // 混乱するので，対策が必要
-			    if (p.get() != nullptr)
-				thrust::device_free(p);
-			}
-    static void		construct(pointer, const value_type&)		{}
-    static void		destroy(pointer)				{}
-    constexpr
-    static size_type	max_size()
-			{
-			    return std::numeric_limits<size_type>::max()
-				 / sizeof(value_type);
-			}
+		    auto	p = thrust::device_malloc<value_type>(n);
+		    if (p.get() == nullptr)
+			throw std::bad_alloc();
+		    cudaMemset(p.get(), 0, n*sizeof(value_type));
+		    return p;
+		}
+    void	deallocate(pointer p, std::size_t)
+		{
+		  // nullptrをfreeするとCUDAのアロケータが
+		  // 混乱するので，対策が必要
+		    if (p.get() != nullptr)
+			thrust::device_free(p);
+		}
+    void	construct(pointer, const value_type&)		{}
+    void	destroy(pointer)				{}
 };
 
 /************************************************************************
@@ -84,11 +74,11 @@ template <class T>
 class mapped_ptr : public boost::random_access_iterator_helper<mapped_ptr<T>, T>
 {
   private:
-    typedef boost::random_access_iterator_helper<mapped_ptr, T>	super;
+    using super		= boost::random_access_iterator_helper<mapped_ptr, T>;
 	
   public:
-    typedef typename std::remove_cv<T>::type		value_type;
-    typedef typename super::difference_type		difference_type;
+    using value_type	= typename std::remove_cv<T>::type;
+    using		typename super::difference_type;
 	
   public:
     mapped_ptr(T* p)			:_p(p)		{}
@@ -132,57 +122,42 @@ template <class T>
 class mapped_allocator
 {
   public:
-    
-    typedef T						value_type;
-    typedef mapped_ptr<T>				pointer;
-    typedef mapped_ptr<const T>				const_pointer;
-    typedef typename std::iterator_traits<pointer>::reference
-							reference;
-    typedef typename std::iterator_traits<const_pointer>::reference
-							const_reference;
-    typedef size_t					size_type;
-    typedef ptrdiff_t					difference_type;
-
-    template <class T_>	struct rebind	{ typedef mapped_allocator<T_> other; };
+    using value_type	= T;
+    using pointer	= mapped_ptr<T>;
+    using const_pointer	= mapped_ptr<const T>;
+  //using reference	= typename std::iterator_traits<pointer>::reference;
+  //using const_reference	= typename std::iterator_traits<const_pointer>
+  //					      ::reference;
 
   public:
-			mapped_allocator()				{}
-    template <class U>	mapped_allocator(const mapped_allocator<U>&)	{}
+		mapped_allocator()				{}
+    template <class U>
+		mapped_allocator(const mapped_allocator<U>&)	{}
 
-    static pointer	allocate(size_type n,
-				 typename std::allocator<void>
-					     ::const_pointer=nullptr)
-			{
-			  // 長さ0のメモリを要求するとCUDAのアロケータが
-			  // 混乱するので，対策が必要
-			    if (n == 0)
-				return pointer((value_type*)nullptr);
+    pointer	allocate(std::size_t n)
+		{
+		  // 長さ0のメモリを要求するとCUDAのアロケータが
+		  // 混乱するので，対策が必要
+		    if (n == 0)
+			return pointer((value_type*)nullptr);
 
-			    value_type*	q;
-			    if (cudaHostAlloc((void**)&q, n*sizeof(value_type),
-					      cudaHostAllocMapped)
-				!= cudaSuccess)
-				throw std::bad_alloc();
-			    pointer	p(q);
-			    cudaMemset(p.get(), 0, n*sizeof(value_type));
-			    return p;
-			}
-    static void		deallocate(pointer p, size_type)
-			{
-			  // nullptrをfreeするとCUDAのアロケータが
-			  // 混乱するので，対策が必要
-			    if (p.get() != nullptr)
-				cudaFreeHost(p.get());
-			}
-    static void		construct(pointer, const value_type&)		{}
-    static void		destroy(pointer)				{}
-    constexpr
-    static size_type	max_size()
-			{
-			    return std::numeric_limits<size_type>::max()
-				 / sizeof(value_type);
-			}
+		    value_type*	q;
+		    if (cudaHostAlloc((void**)&q, n*sizeof(value_type),
+				      cudaHostAllocMapped)
+			!= cudaSuccess)
+			throw std::bad_alloc();
+		    pointer	p(q);
+		    cudaMemset(p.get(), 0, n*sizeof(value_type));
+		    return p;
+		}
+    void	deallocate(pointer p, std::size_t)
+		{
+		  // nullptrをfreeするとCUDAのアロケータが混乱するので，対策が必要
+		    if (p.get() != nullptr)
+			cudaFreeHost(p.get());
+		}
 };
+
 }	// namespace cuda
 }	// namespace TU
 #endif	// !__TU_CUDA_ALLOCATOR_H

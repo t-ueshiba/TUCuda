@@ -28,18 +28,15 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= /home/ueshiba/src/TUTools++/TU/Array++.h \
-		/home/ueshiba/src/TUTools++/TU/algorithm.h \
-		/home/ueshiba/src/TUTools++/TU/functional.h \
-		/home/ueshiba/src/TUTools++/TU/iterator.h \
-		/home/ueshiba/src/TUTools++/TU/pair.h \
-		/home/ueshiba/src/TUTools++/TU/tuple.h
+EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/algorithm.h \
+		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/range.h \
+		/usr/local/include/TU/tuple.h
 HDRS		= TU/cuda/Array++.h \
 		TU/cuda/BoxFilter.h \
 		TU/cuda/FIRFilter.h \
 		TU/cuda/FIRGaussianConvolver.h \
-		TU/cuda/NeoBoxFilter.h \
-		TU/cuda/NewBoxFilter.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
 		TU/cuda/allocator.h \
@@ -60,25 +57,16 @@ include $(PROJECT)/lib/lib.mk		# added:    PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
 FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/functional.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/algorithm.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h TU/cuda/algorithm.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
-	TU/cuda/Array++.h TU/cuda/allocator.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/functional.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h
+	TU/cuda/Array++.h TU/cuda/allocator.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
+	TU/cuda/algorithm.h
 TUCuda++.inst.o: TU/cuda/Array++.h TU/cuda/allocator.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/functional.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h TU/cuda/algorithm.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/algorithm.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h TU/cuda/algorithm.h
 chrono.o: TU/cuda/chrono.h

@@ -82,7 +82,7 @@
 namespace TU
 {
 /************************************************************************
-*  specialization for Buf<T, D, ALLOC> for CUDA				*
+*  specialization for BufTraits<T, ALLOC> for CUDA			*
 ************************************************************************/
 template <class T>
 class BufTraits<T, cuda::allocator<T> >

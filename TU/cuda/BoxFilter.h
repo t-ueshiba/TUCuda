@@ -5,8 +5,8 @@
   \file		BoxFilter.h
   \brief	boxフィルタの定義と実装
 */ 
-#ifndef __TU_CUDA_BOXFILTER_H
-#define __TU_CUDA_BOXFILTER_H
+#ifndef TU_CUDA_BOXFILTER_H
+#define TU_CUDA_BOXFILTER_H
 
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
@@ -397,4 +397,4 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #endif	// __NVCC__
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__TU_CUDA_BOXFILTER_H
+#endif	// !TU_CUDA_BOXFILTER_H

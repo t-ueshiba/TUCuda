@@ -5,8 +5,8 @@
   \file		FIRFilter.h
   \brief	finite impulse responseフィルタの定義と実装
 */ 
-#ifndef __TU_CUDA_FIRFILTER_H
-#define __TU_CUDA_FIRFILTER_H
+#ifndef TU_CUDA_FIRFILTER_H
+#define TU_CUDA_FIRFILTER_H
 
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
@@ -395,4 +395,4 @@ FIRFilter2::convolve(IN in, IN ie, OUT out) const
 
 }
 }
-#endif	// !__TU_CUDA_FIRFILTER_H
+#endif	// !TU_CUDA_FIRFILTER_H

@@ -5,8 +5,8 @@
   \file		functional.h
   \brief	CUDAデバイス上で実行される関数オブジェクトの定義と実装
 */
-#ifndef __TU_CUDA_FUNCTIONAL_H
-#define __TU_CUDA_FUNCTIONAL_H
+#ifndef TU_CUDA_FUNCTIONAL_H
+#define TU_CUDA_FUNCTIONAL_H
 
 #include <cmath>
 #include <thrust/functional.h>
@@ -216,4 +216,4 @@ struct diff
     
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__TU_CUDA_FUNCTIONAL_H
+#endif	// !TU_CUDA_FUNCTIONAL_H

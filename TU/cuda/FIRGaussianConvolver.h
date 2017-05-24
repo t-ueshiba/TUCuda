@@ -5,8 +5,8 @@
   \file		FIRGaussianConvolver.h
   \brief	Gauss核による畳み込みに関連するクラスの定義と実装
 */ 
-#ifndef __TU_CUDA_FIRGAUSSIANCONVOLVER_H
-#define __TU_CUDA_FIRGAUSSIANCONVOLVER_H
+#ifndef TU_CUDA_FIRGAUSSIANCONVOLVER_H
+#define TU_CUDA_FIRGAUSSIANCONVOLVER_H
 
 #include "TU/cuda/FIRFilter.h"
 
@@ -122,4 +122,4 @@ FIRGaussianConvolver2::diffVV(IN in, IN ie, OUT out)
     
 }
 }
-#endif	// !__TU_CUDA_FIRGAUSSIANCONVOLVER_H
+#endif	// !TU_CUDA_FIRGAUSSIANCONVOLVER_H

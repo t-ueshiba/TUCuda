@@ -70,8 +70,8 @@
   \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
 */
-#ifndef __TU_CUDA_ARRAYPP_H
-#define __TU_CUDA_ARRAYPP_H
+#ifndef TU_CUDA_ARRAYPP_H
+#define TU_CUDA_ARRAYPP_H
 
 #include <thrust/copy.h>
 #include <thrust/fill.h>
@@ -185,4 +185,4 @@ using MappedArray2 = array<T, cuda::mapped_allocator<T>, 0, 0>;
     
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__TU_CUDA_ARRAYPP_H
+#endif	// !TU_CUDA_ARRAYPP_H

@@ -5,8 +5,8 @@
   \file		algorithm.h
   \brief	各種アルゴリズムの定義と実装
 */ 
-#ifndef __TU_CUDA_ALGORITHM_H
-#define __TU_CUDA_ALGORITHM_H
+#ifndef TU_CUDA_ALGORITHM_H
+#define TU_CUDA_ALGORITHM_H
 
 #include "TU/algorithm.h"
 #include "TU/iterator.h"

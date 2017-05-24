@@ -5,8 +5,8 @@
   \file		chrono.h
   \brief	GPUクロックの定義と実装
 */ 
-#ifndef __TU_CUDA_CHRONO_H
-#define __TU_CUDA_CHRONO_H
+#ifndef TU_CUDA_CHRONO_H
+#define TU_CUDA_CHRONO_H
 
 #include <chrono>
 #include <cuda_runtime.h>
@@ -66,5 +66,5 @@ class clock
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__TU_CUDA_CHRONO_H
+#endif	// !TU_CUDA_CHRONO_H
 

@@ -5,8 +5,8 @@
   \file		allocator.h
   \brief	アロケータの定義と実装
 */
-#ifndef __TU_CUDA_ALLOCATOR_H
-#define __TU_CUDA_ALLOCATOR_H
+#ifndef TU_CUDA_ALLOCATOR_H
+#define TU_CUDA_ALLOCATOR_H
 
 #include <thrust/device_allocator.h>
 #include <boost/operators.hpp>
@@ -160,4 +160,4 @@ class mapped_allocator
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__TU_CUDA_ALLOCATOR_H
+#endif	// !TU_CUDA_ALLOCATOR_H

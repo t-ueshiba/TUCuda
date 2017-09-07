@@ -98,6 +98,8 @@ class BufTraits<T, cuda::allocator<T> >
   protected:
     using pointer		= typename super::pointer;
 
+    constexpr static size_t	Alignment = 0;
+
     static pointer		null()
 				{
 				    return pointer(static_cast<T*>(nullptr));
@@ -105,22 +107,6 @@ class BufTraits<T, cuda::allocator<T> >
     static T*			ptr(pointer p)
 				{
 				    return p.get();
-				}
-
-    template <class IN_, class OUT_>
-    static OUT_			copy(IN_ ib, IN_ ie, OUT_ out)
-				{
-				    return thrust::copy(ib, ie, out);
-				}
-
-    template <class T_>
-    static void			fill(iterator ib, iterator ie, const T_& c)
-				{
-				    thrust::fill(ib, ie, c);
-				}
-
-    static void			init(iterator ib, iterator ie)
-				{
 				}
 };
 
@@ -139,25 +125,15 @@ class BufTraits<T, cuda::mapped_allocator<T> >
   protected:
     using pointer		= typename super::pointer;
 
+    constexpr static size_t	Alignment = 0;
+
+    static pointer		null()
+				{
+				    return pointer(static_cast<T*>(nullptr));
+				}
     static T*			ptr(pointer p)
 				{
 				    return p.get();
-				}
-    
-    template <class IN_, class OUT_>
-    static OUT_			copy(IN_ ib, IN_ ie, OUT_ out)
-				{
-				    return thrust::copy(ib, ie, out);
-				}
-
-    template <class T_>
-    static void			fill(iterator ib, iterator ie, const T_& c)
-				{
-				    thrust::fill(ib, ie, c);
-				}
-
-    static void			init(iterator ib, iterator ie)
-				{
 				}
 };
 

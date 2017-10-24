@@ -9,7 +9,7 @@
 namespace TU
 {
 template <class S, class T> void
-cudaJob(const Image<S>& in, Image<T>& out, size_t winSize)		;
+cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize)		;
 }
 
 /************************************************************************
@@ -44,12 +44,13 @@ main(int argc, char *argv[])
       // GPUによって計算する．
 	Image<out_t>	out;
 	TU::cudaJob(in, out, winSize);
+	out *= 1.0/(winSize*winSize);
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	Profiler<>	profiler(1);
-	Image<out_t>	outGold(in.width(), in.height());
-	BoxFilter2	filter(winSize, winSize);
+	Profiler<>		profiler(1);
+	Image<out_t>		outGold(in.width(), in.height());
+	BoxFilter2<out_t>	filter(winSize, winSize);
 	for (u_int n = 0; n < 10; ++n)
 	{
 	    profiler.start(0);
@@ -57,6 +58,7 @@ main(int argc, char *argv[])
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);
+	outGold *= 1.0/(winSize*winSize);
 	outGold.save(cout);
     }
     catch (exception& err)

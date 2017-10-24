@@ -41,18 +41,15 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
-		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Image++.h \
-		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/algorithm.h \
-		/usr/local/include/TU/functional.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
-		/usr/local/include/TU/tuple.h \
-		/usr/local/include/TU/types.h
-HDRS		= algorithm.h
+		/usr/local/include/TU/range.h \
+		/usr/local/include/TU/tuple.h
+HDRS		=
 SRCS		= cudaJob.cu \
 		main.cc
 OBJS		= cudaJob.o \
@@ -64,17 +61,15 @@ OBJS		= cudaJob.o \
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-cudaJob.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
-	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
+cudaJob.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
 	/usr/local/include/TU/Profiler.h ../../TU/cuda/Array++.h \
 	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
-	/usr/local/include/TU/algorithm.h ../../TU/cuda/chrono.h
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/types.h \
-	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/functional.h \
-	/usr/local/include/TU/pair.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/Profiler.h /usr/local/include/TU/algorithm.h
+	../../TU/cuda/chrono.h
+main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/Profiler.h

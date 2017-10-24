@@ -101,8 +101,7 @@ main(int argc, char *argv[])
 	}
 	cuProfiler.print(cerr);
 
-	Image<out_t>	out;
-	out_d.write(out);
+	Image<out_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．

@@ -95,13 +95,15 @@ subsample(IN in, IN ie, OUT out)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    subsample_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
+    subsample_kernel<<<blocks, threads>>>(std::cbegin(*in).get(),
+					  std::begin(*out).get(),
 					  stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    subsample_kernel<<<blocks, threads>>>(in->begin() + 2*x, out->begin() + x,
+    subsample_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + 2*x,
+					  std::begin(*out).get() + x,
 					  stride_i, stride_o);
   // 左下
     std::advance(in, 2*blocks.y*threads.y);
@@ -110,13 +112,15 @@ subsample(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    subsample_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
+    subsample_kernel<<<blocks, threads>>>(std::cbegin(*in).get(),
+					  std::begin(*out).get(),
 					  stride_i, stride_o);
 
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    subsample_kernel<<<blocks, threads>>>(in->begin() + 2*x, out->begin() + x,
+    subsample_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + 2*x,
+					  std::begin(*out).get() + x,
 					  stride_i, stride_o);
 }
 #endif
@@ -204,15 +208,15 @@ op3x3(IN in, IN ie, OUT out, OP op)
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + 1,
-				      out->begin().get() + 1,
+    op3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + 1,
+				      std::begin(*out).get() + 1,
 				      op, stride_i, stride_o);
   // 右上
     const auto	x = 1 + blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + x,
-				      out->begin().get() + x,
+    op3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + x,
+				      std::begin(*out).get() + x,
 				      op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -221,14 +225,14 @@ op3x3(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + 1,
-				      out->begin().get() + 1,
+    op3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + 1,
+				      std::begin(*out).get() + 1,
 				      op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    op3x3_kernel<<<blocks, threads>>>(in->begin().get() + x,
-				      out->begin().get() + x,
+    op3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + x,
+				      std::begin(*out).get() + x,
 				      op, stride_i, stride_o);
 }
 #endif
@@ -358,7 +362,7 @@ suppressNonExtrema3x3(
     if (nrow < 1)
 	return;
 
-    const auto	ncol = (std::distance(in->begin(), in->end()) - 1)/2;
+    const auto	ncol = (std::distance(std::cbegin(*in), std::cend(*in)) - 1)/2;
     if (ncol < 1)
 	return;
     
@@ -370,13 +374,15 @@ suppressNonExtrema3x3(
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    extrema3x3_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
+    extrema3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get(),
+					   std::begin(*out).get(),
 					   op, nulval, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    extrema3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
+    extrema3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + x,
+					   std::begin(*out).get() + x,
 					   op, nulval, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
@@ -385,12 +391,14 @@ suppressNonExtrema3x3(
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    extrema3x3_kernel<<<blocks, threads>>>(in->begin(), out->begin(),
+    extrema3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get(),
+					   std::begin(*out).get(),
 					   op, nulval, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    extrema3x3_kernel<<<blocks, threads>>>(in->begin() + x, out->begin() + x,
+    extrema3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + x,
+					   std::begin(*out).get() + x,
 					   op, nulval, stride_i, stride_o);
 }
 #endif
@@ -438,11 +446,11 @@ transpose(IN in, IN ie, OUT out, size_t i, size_t j)
 
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
-    const auto	blockDim = std::min(BlockDim, r, c);
+    const auto	blockDim = std::min({BlockDim, r, c});
     const dim3	threads(blockDim, blockDim);
     const dim3	blocks(c/threads.x, r/threads.y);
-    transpose_kernel<<<blocks, threads>>>(std::cbegin(*in) + j,
-					  std::begin(*out) + i,
+    transpose_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + j,
+					  std::begin(*out).get() + i,
 					  stride_i, stride_o);	// 左上
 
     r = blocks.y*threads.y;

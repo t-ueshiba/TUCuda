@@ -9,7 +9,7 @@
 namespace TU
 {
 template <class S, class T> void
-cudaJob(const Image<S>& in, Image<T>& out)				;
+cudaJob(const Array2<S>& in, Array2<T>& out)				;
 }
 
 /************************************************************************

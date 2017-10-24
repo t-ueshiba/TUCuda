@@ -15,7 +15,7 @@ filter1D(const Array2<T1, R1, C1>& in, Array2<T2, R2, C2>& out,
     out.resize(in.ncol(), in.nrow());
     out = 0;
 
-    const u_int	tailWidth = coeff.dim() - 1;
+    const u_int	tailWidth = coeff.size() - 1;
     
     for (u_int i = 0; i < in.nrow(); ++i)
     {

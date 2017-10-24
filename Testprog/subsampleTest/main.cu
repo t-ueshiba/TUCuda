@@ -24,12 +24,12 @@ main(int argc, char *argv[])
 	Image<pixel_t>	image;
 	image.restore(cin);				// 原画像を読み込む
 	image.save(cout);
-	
+
 	cuda::Array2<pixel_t>	in_d(image),
 				out_d(in_d.nrow()/2, in_d.ncol()/2);
 	cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaThreadSynchronize();
-	
+
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 	for (size_t n = 0; n < NITER; ++n)
@@ -40,7 +40,7 @@ main(int argc, char *argv[])
 	}
 	cuProfiler.print(cerr);
 
-	out_d.write(image);
+	image = out_d;
 	image.save(cout);
     }
     catch (exception& err)

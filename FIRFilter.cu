@@ -71,6 +71,5 @@ template void
 FIRFilter2::convolve(Array2<float>::const_iterator in,
 		     Array2<float>::const_iterator ie,
 		     Array2<float>::iterator out)		const	;
-
 }
 }

@@ -1,7 +1,6 @@
 /*
  *  $Id$
  */
-#include "TU/Image++.h"
 #include "TU/Profiler.h"
 #if 1
 #  include "TU/cuda/BoxFilter.h"
@@ -15,12 +14,12 @@
 namespace TU
 {
 template <class S, class T> void
-cudaJob(const Image<S>& in, Image<T>& out, size_t winSize)
+cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize)
 {
     cuda::BoxFilter2<T, 15>	cudaFilter(winSize, winSize);
-    cuda::Array2<S>		in_d(in.nrow(), in.ncol(), 32);
+    cuda::Array2<S>		in_d(in.nrow(), in.ncol());
     in_d = in;
-    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol(), 32);
+    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
     cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
     cudaThreadSynchronize();
 
@@ -34,12 +33,12 @@ cudaJob(const Image<S>& in, Image<T>& out, size_t winSize)
     }
     cudaProfiler.print(std::cerr);
 
-    out_d.write(out);
+    out = out_d;
 }
 
 template void
-cudaJob(const Image<float>& in, Image<float>& out, size_t winSize)	;
+cudaJob(const Array2<float>& in, Array2<float>& out, size_t winSize)	;
 template void
-cudaJob(const Image<u_char>& in, Image<short>& out, size_t winSize)	;
+cudaJob(const Array2<u_char>& in, Array2<short>& out, size_t winSize)	;
     
 }

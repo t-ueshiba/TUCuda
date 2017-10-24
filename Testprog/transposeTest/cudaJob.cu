@@ -1,7 +1,6 @@
 /*
  *  $Id$
  */
-#include "TU/Image++.h"
 #include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
@@ -10,7 +9,7 @@
 namespace TU
 {
 template <class S, class T> void
-cudaJob(const Image<S>& in, Image<T>& out)
+cudaJob(const Array2<S>& in, Array2<T>& out)
 {
   // GPUによって計算する．
     cuda::Array2<S>	in_d(in);
@@ -29,8 +28,8 @@ cudaJob(const Image<S>& in, Image<T>& out)
     }
     cuProfiler.print(std::cerr);
 	
-    out_d.write(out);
+    out = out_d;
 }
 
-template void	cudaJob(const Image<float>& in, Image<float>& out)	;
+template void	cudaJob(const Array2<float>& in, Array2<float>& out)	;
 }

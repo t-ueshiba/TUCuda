@@ -271,7 +271,7 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     if (nrow < _rowWinSize)
 	return;
 
-    auto	ncol = std::distance(row->cbegin(), row->cend());
+    auto	ncol = std::distance(std::cbegin(*row), std::cend(*row));
     if (ncol < _colWinSize)
 	return;
 
@@ -284,15 +284,16 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::box_filter<WMAX><<<blocks, threads>>>(row->cbegin(), rowO->begin(),
+    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get(),
+						  std::begin(*rowO).get(),
 						  _rowWinSize, _colWinSize,
 						  strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol - x;
     blocks.x  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(row->cbegin() + x,
-						  rowO->begin() + x,
+    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get() + x,
+						  std::begin(*rowO).get() + x,
 						  _rowWinSize, _colWinSize,
 						  strideI, strideO);
   // 左下
@@ -303,14 +304,15 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.x  = ncol/threads.x;
     threads.y = nrow - y;
     blocks.y  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(row->cbegin(), rowO->begin(),
+    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get(),
+						  std::begin(*rowO).get(),
 						  _rowWinSize, _colWinSize,
 						  strideI, strideO);
   // 右下
     threads.x = ncol - x;
     blocks.x  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(row->cbegin() + x,
-						  rowO->begin() + x,
+    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get() + x,
+						  std::begin(*rowO).get() + x,
 						  _rowWinSize, _colWinSize,
 						  strideI, strideO);
 }
@@ -322,13 +324,14 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     typedef typename std::iterator_traits<ROW_O>::value_type
 	::value_type	value_type;
 
-    auto	nrow = std::distance(rowL, rowLe);		    // 行数
+    auto	nrow = std::distance(rowL, rowLe);		// 行数
     if (nrow < _rowWinSize)
 	return;
 
     nrow -= (_rowWinSize - 1);
 
-    auto	ncol = std::distance(rowL->cbegin(), rowL->cend()); // 列数
+    auto	ncol = std::distance(std::cbegin(*rowL),
+				     std::cend(*rowL));		// 列数
     if (ncol < _colWinSize)
 	return;
 
@@ -343,7 +346,8 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(disparitySearchWidth/threads.x, ncol/threads.y);
     device::box_filterV<WMAX><<<blocks, threads>>>(
-	rowL->cbegin(), rowR->cbegin(), nrow, _buf[0].begin(),
+	std::cbegin(*rowL).get(), std::cbegin(*rowR).get(), nrow,
+	_buf[0].begin().get(),
 	op, _rowWinSize, disparitySearchWidth, strideL, strideR, strideB);
 
   // 縦方向畳み込み：視差右半かつ画像左半
@@ -351,7 +355,8 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     threads.x = disparitySearchWidth%threads.x;
     blocks.x  = 1;
     device::box_filterV<WMAX><<<blocks, threads>>>(
-	rowL->cbegin(), rowR->cbegin() + d, nrow, _buf[0].begin() + d,
+	std::cbegin(*rowL).get(), std::cbegin(*rowR).get() + d, nrow,
+	_buf[0].begin().get() + d,
 	op, _rowWinSize, disparitySearchWidth, strideL, strideR, strideB);
 
   // 縦方向畳み込み：視差左半かつ画像右半
@@ -361,16 +366,16 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     threads.y = ncol%threads.y;
     blocks.y  = 1;
     device::box_filterV<WMAX><<<blocks, threads>>>(
-	rowL->cbegin() + x, rowR->cbegin() + x, nrow,
-	_buf[0].begin() + x*disparitySearchWidth,
+	std::cbegin(*rowL).get() + x, std::cbegin(*rowR).get() + x, nrow,
+	_buf[0].begin().get() + x*disparitySearchWidth,
 	op, _rowWinSize, disparitySearchWidth, strideL, strideR, strideB);
 
   // 縦方向畳み込み：視差右半かつ画像右半
     threads.x = disparitySearchWidth%threads.x;
     blocks.x  = 1;
     device::box_filterV<WMAX><<<blocks, threads>>>(
-	rowL->cbegin() + x, rowR->cbegin() + x + d, nrow,
-	_buf[0].begin() + x*disparitySearchWidth + d,
+	std::cbegin(*rowL).get() + x, std::cbegin(*rowR).get() + x + d, nrow,
+	_buf[0].begin().get() + x*disparitySearchWidth + d,
 	op, _rowWinSize, disparitySearchWidth, strideL, strideR, strideB);
 
   // 横方向畳み込み：前半
@@ -380,7 +385,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     threads.y = 1;
     blocks.y  = 1;
     device::box_filterH<WMAX><<<blocks, threads>>>(
-	_buf[0].cbegin(), ncol, rowO->begin(),
+	_buf[0].cbegin().get(), ncol, std::begin(*rowO).get(),
 	_colWinSize, disparitySearchWidth, strideB, strideO);
     
   // 横方向畳み込み：後半
@@ -391,7 +396,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     threads.x = (disparitySearchWidth*nrow)%threads.x;
     blocks.x  = 1;
     device::box_filterH<WMAX><<<blocks, threads>>>(
-	_buf[y].cbegin() + d, ncol, rowO->begin() + d,
+	_buf[y].cbegin().get() + d, ncol, std::begin(*rowO).get() + d,
 	_colWinSize, disparitySearchWidth, strideB, strideO);
 }
 #endif	// __NVCC__

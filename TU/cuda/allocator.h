@@ -27,29 +27,27 @@ class allocator
 {
   public:
     using value_type	= T;
-    using pointer	= thrust::device_ptr<value_type>;
-    using const_pointer	= thrust::device_ptr<const value_type>;
-  //using reference		= thrust::device_reference<value_type>;
-  //using const_reference	= thrust::device_reference<const value_type>;
+    using pointer	= thrust::device_ptr<T>;
+    using const_pointer	= thrust::device_ptr<const T>;
 
-    template <class T_>	struct rebind	{ typedef allocator<T_> other; };
+    template <class T_>	struct rebind	{ using other = allocator<T_>; };
 
   public:
 		allocator()					{}
-    template <class U>
-		allocator(const allocator<U>&)			{}
+    template <class T_>
+		allocator(const allocator<T_>&)			{}
 
     pointer	allocate(std::size_t n)
 		{
 		  // 長さ0のメモリを要求するとCUDAのアロケータが
 		  // 混乱するので，対策が必要
 		    if (n == 0)
-			return pointer((value_type*)nullptr);
+			return pointer(static_cast<T*>(nullptr));
 
-		    auto	p = thrust::device_malloc<value_type>(n);
+		    auto	p = thrust::device_malloc<T>(n);
 		    if (p.get() == nullptr)
 			throw std::bad_alloc();
-		    cudaMemset(p.get(), 0, n*sizeof(value_type));
+		    cudaMemset(p.get(), 0, n*sizeof(T));
 		    return p;
 		}
     void	deallocate(pointer p, std::size_t)
@@ -59,8 +57,8 @@ class allocator
 		    if (p.get() != nullptr)
 			thrust::device_free(p);
 		}
-    void	construct(pointer, const value_type&)		{}
-    void	destroy(pointer)				{}
+    void	construct(T*, const value_type&)		{}
+    void	destroy(T*)					{}
 };
 
 /************************************************************************
@@ -125,29 +123,25 @@ class mapped_allocator
     using value_type	= T;
     using pointer	= mapped_ptr<T>;
     using const_pointer	= mapped_ptr<const T>;
-  //using reference	= typename std::iterator_traits<pointer>::reference;
-  //using const_reference	= typename std::iterator_traits<const_pointer>
-  //					      ::reference;
 
   public:
 		mapped_allocator()				{}
-    template <class U>
-		mapped_allocator(const mapped_allocator<U>&)	{}
+    template <class T_>
+		mapped_allocator(const mapped_allocator<T_>&)	{}
 
     pointer	allocate(std::size_t n)
 		{
 		  // 長さ0のメモリを要求するとCUDAのアロケータが
 		  // 混乱するので，対策が必要
 		    if (n == 0)
-			return pointer((value_type*)nullptr);
+			return pointer(static_cast<T*>(nullptr));
 
-		    value_type*	q;
-		    if (cudaHostAlloc((void**)&q, n*sizeof(value_type),
-				      cudaHostAllocMapped)
-			!= cudaSuccess)
+		    T*	q;
+		    if (cudaHostAlloc((void**)&q, n*sizeof(T),
+				      cudaHostAllocMapped) != cudaSuccess)
 			throw std::bad_alloc();
 		    pointer	p(q);
-		    cudaMemset(p.get(), 0, n*sizeof(value_type));
+		    cudaMemset(p.get(), 0, n*sizeof(T));
 		    return p;
 		}
     void	deallocate(pointer p, std::size_t)

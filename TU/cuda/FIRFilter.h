@@ -231,7 +231,8 @@ FIRFilter2::convolveH(IN in, IN ie, OUT out)
     constexpr size_t	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
     const auto	nrow = std::distance(in, ie);
-    const auto	ncol = std::distance(in->begin(), in->end()) - 2*LobeSize;
+    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in))
+		     - 2*LobeSize;
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
 
@@ -239,15 +240,15 @@ FIRFilter2::convolveH(IN in, IN ie, OUT out)
     int		x = LobeSize;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterH<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
   // 右上
     x += blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterH<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -257,15 +258,15 @@ FIRFilter2::convolveH(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterH<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
   // 右下
     x += blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterH<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
 }
 
@@ -275,7 +276,7 @@ FIRFilter2::convolveV(IN in, IN ie, OUT out)
     constexpr size_t	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
 
     const auto	nrow = std::distance(in, ie) - 2*LobeSize;
-    const auto	ncol = std::distance(in->begin(), in->end());
+    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in));
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
 
@@ -284,14 +285,15 @@ FIRFilter2::convolveV(IN in, IN ie, OUT out)
     std::advance(out, LobeSize);
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterV<L><<<blocks, threads>>>(in->begin(), out->begin(),
+    device::fir_filterV<L><<<blocks, threads>>>(std::cbegin(*in).get(),
+						std::begin(*out).get(),
 						stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterV<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -300,13 +302,14 @@ FIRFilter2::convolveV(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterV<L><<<blocks, threads>>>(in->begin(), out->begin(),
+    device::fir_filterV<L><<<blocks, threads>>>(std::cbegin(*in).get(),
+						std::begin(*out).get(),
 						stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<L><<<blocks, threads>>>(in->begin()  + x,
-						out->begin() + x,
+    device::fir_filterV<L><<<blocks, threads>>>(std::cbegin(*in).get() + x,
+						std::begin(*out).get() + x,
 						stride_i, stride_o);
 }
 #endif	// __NVCC__
@@ -324,7 +327,7 @@ FIRFilter2::convolve(IN in, IN ie, OUT out) const
     if (nrow < 4*(_lobeSizeV/2) + 1)
 	return;
 
-    const auto	ncol = std::distance(in->begin(), in->end());
+    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in));
     if (ncol < 4*(_lobeSizeH/2) + 1)
 	return;
     

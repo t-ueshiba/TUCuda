@@ -4,12 +4,13 @@
 #include "TU/Image++.h"
 #include "TU/GaussianConvolver.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/FIRFilter.h"
-#include "TU/cuda/chrono.h"
 #include "filterImageGold.h"
 
 namespace TU
 {
+template <class S, class T> void
+cudaJob(const Array2<S>& in, Array2<T>& out, const Array<float>& coeff)	;
+    
 /************************************************************************
 *  static fucntions							*
 ************************************************************************/
@@ -56,10 +57,8 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-  //typedef u_char	in_t;
-    typedef float	in_t;
-  //typedef u_char	out_t;
-    typedef float	out_t;
+    using in_t	= float;
+    using out_t	= float;
     
     float		sigma	 = 1.0;
     u_int		lobeSize = 16;
@@ -83,27 +82,8 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRFilter2	cudaFilter;
-	cudaFilter.initialize(coeff, coeff);
-	
-	cuda::Array2<in_t>	in_d(in);
-	cuda::Array2<out_t>	out_d(in_d.nrow(), in_d.ncol());
-	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
-	cudaThreadSynchronize();
-
-	Profiler<cuda::clock>	cuProfiler(1);
-	constexpr size_t	NITER = 1000;
-
-	for (size_t n = 0; n < NITER; ++n)
-	{
-	    cuProfiler.start(0);
-	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
-	    cuProfiler.nextFrame();
-	}
-	cuProfiler.print(cerr);
-
 	Image<out_t>	out;
-	out_d.write(out);
+	cudaJob(in, out, coeff);
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．

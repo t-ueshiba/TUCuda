@@ -8,11 +8,8 @@
 #include <string>
 #include <fstream>
 #include <stdexcept>
-#include "TU/Ieee1394CameraArray.h"
+#include "TU/IIDCCameraArray.h"
 #include "TU/cuda/Array++.h"
-
-#define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"
-#define DEFAULT_CAMERA_NAME	"IEEE1394Camera"
 
 namespace TU
 {
@@ -38,7 +35,7 @@ handler(int sig)
 }
 
 template <class T> static void
-doJob(const Ieee1394CameraArray& cameras)
+doJob(IIDCCameraArray& cameras)
 {
     using namespace	std;
     
@@ -51,7 +48,7 @@ doJob(const Ieee1394CameraArray& cameras)
     cout << 'M' << images.size() << endl;
     for (int i = 0; i < images.size(); ++i)
     {
-	images[i].resize(cameras[0]->height(), cameras[0]->width());
+	images[i].resize(cameras[0].height(), cameras[0].width());
 	images[i].saveHeader(cout);
     }
 
@@ -59,8 +56,8 @@ doJob(const Ieee1394CameraArray& cameras)
     Array<cuda::Array2<T> >	d_images(images.size());
     
   // カメラ出力の開始．
-    for (int i = 0; i < cameras.size(); ++i)
-	cameras[i]->continuousShot();
+    for (size_t i = 0; i < cameras.size(); ++i)
+	cameras[i].continuousShot(true);
 
     int		nframes = 0;
     timeval	start;
@@ -78,25 +75,25 @@ doJob(const Ieee1394CameraArray& cameras)
 	if (nframes++ == 0)
 	    gettimeofday(&start, NULL);
 
-	for (int i = 0; i < cameras.size(); ++i)
-	    cameras[i]->snap();				// 撮影
-	for (int i = 0; i < cameras.size(); ++i)
-	    *cameras[i] >> images[i];			// 主記憶への転送
-	for (int i = 0; i < cameras.size(); ++i)
+	for (size_t i = 0; i < cameras.size(); ++i)
+	    cameras[i].snap();				// 撮影
+	for (size_t i = 0; i < cameras.size(); ++i)
+	    cameras[i] >> images[i];			// 主記憶への転送
+	for (size_t i = 0; i < cameras.size(); ++i)
 	    d_images[i] = images[i];			// デバイスへの転送
 
 	cuda::interpolate(d_images[0],
 			  d_images[1], d_images[2]);	// CUDAによる補間
+	images[2] = d_images[2];			// ホストへの転送
 
-	d_images[2].write(images[2]);			// ホストへの転送
-	for (int i = 0; i < images.size(); ++i)
+	for (size_t i = 0; i < images.size(); ++i)
 	    if (!images[i].saveData(cout))		// stdoutへの出力
 		active = false;
     }
 
   // カメラ出力の停止．
-    for (int i = 0; i < cameras.size(); ++i)
-	cameras[i]->stopContinuousShot();
+    for (size_t i = 0; i < cameras.size(); ++i)
+	cameras[i].continuousShot(false);
 }
 
 }
@@ -109,22 +106,18 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
     
-    const char*		configDirs = DEFAULT_CONFIG_DIRS;
-    const char*		cameraName = DEFAULT_CAMERA_NAME;
-    Ieee1394Node::Speed	speed	   = Ieee1394Node::SPD_400M;
+    const char*		cameraName = IIDCCameraArray::DEFAULT_CAMERA_NAME;
+    IIDCCamera::Speed	speed	   = IIDCCamera::SPD_400M;
     int			ncameras   = 2;
     extern char*	optarg;
-    for (int c; (c = getopt(argc, argv, "d:c:Bn:")) != EOF; )
+    for (int c; (c = getopt(argc, argv, "c:Bn:")) != EOF; )
 	switch (c)
 	{
-	  case 'd':
-	    configDirs = optarg;
-	    break;
 	  case 'c':
 	    cameraName = optarg;
 	    break;
 	  case 'B':
-	    speed = Ieee1394Node::SPD_800M;
+	    speed = IIDCCamera::SPD_800M;
 	    break;
 	  case 'n':
 	    ncameras = atoi(optarg);
@@ -133,16 +126,17 @@ main(int argc, char *argv[])
     
     try
     {
-      // IEEE1394カメラのオープン．
-	Ieee1394CameraArray	cameras(cameraName, configDirs,
-					speed, ncameras);
+      // IIDCカメラのオープン．
+	IIDCCameraArray	cameras;
+	cameras.restore(cameraName, speed);
+	
 	if (cameras.size() == 0)
 	    return 0;
 
-	for (int i = 0; i < cameras.size(); ++i)
+	for (size_t i = 0; i < cameras.size(); ++i)
 	    cerr << "camera " << i << ": uniqId = "
 		 << hex << setw(16) << setfill('0')
-		 << cameras[i]->globalUniqueId() << dec << endl;
+		 << cameras[i].globalUniqueId() << dec << endl;
 
       // 画像のキャプチャと出力．
 	doJob<u_char>(cameras);

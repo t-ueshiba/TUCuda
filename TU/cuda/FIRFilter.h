@@ -49,11 +49,14 @@ class FIRFilter2
 namespace device
 {
 /************************************************************************
+*  global __constatnt__ variables					*
+************************************************************************/
+static __constant__ float	_lobeH[FIRFilter2::LobeSizeMax];
+static __constant__ float	_lobeV[FIRFilter2::LobeSizeMax];
+
+/************************************************************************
 *  __device__ functions							*
 ************************************************************************/
-__host__ __device__ const float*	lobeH()				;
-__host__ __device__ const float*	lobeV()				;
-
 template <size_t L> static __device__ float
 convolve(const float* in_s, const float* lobe)	;
     
@@ -194,7 +197,7 @@ fir_filterH(IN in, OUT out, int stride_i, int stride_o)
   // 積和演算
     xy = (blockIdx.y*blockDim.y + threadIdx.y)*stride_o
        +  blockIdx.x*blockDim.x + threadIdx.x;
-    out[xy] = convolve<L>(&in_s[y][x], lobeH());
+    out[xy] = convolve<L>(&in_s[y][x], _lobeH);
 }
 
 template <size_t L, class IN, class OUT> static __global__ void
@@ -219,12 +222,38 @@ fir_filterV(const IN in, OUT out, int stride_i, int stride_o)
   // 積和演算
     xy = (blockIdx.y*blockDim.y + threadIdx.y)*stride_o
        +  blockIdx.x*blockDim.x + threadIdx.x;
-    out[xy] = convolve<L>(&in_s[x][y], lobeV());
+    out[xy] = convolve<L>(&in_s[x][y], _lobeV);
 }
 }	// namespace device
+    
 /************************************************************************
 *  class FIRFilter2							*
 ************************************************************************/
+//! 2次元フィルタのローブを設定する．
+/*!
+  与えるローブの長さは，畳み込みカーネルが偶関数の場合2^n + 1, 奇関数の場合2^n
+  (n = 1, 2, 3, 4)でなければならない．
+  \param lobeH	横方向ローブ
+  \param lobeV	縦方向ローブ
+  \return	この2次元フィルタ
+*/
+FIRFilter2&
+FIRFilter2::initialize(const TU::Array<float>& lobeH,
+		       const TU::Array<float>& lobeV)
+{
+    if (lobeH.size() > LobeSizeMax || lobeV.size() > LobeSizeMax)
+	throw std::runtime_error("FIRFilter2::initialize: too large lobe size!");
+    
+    _lobeSizeH = lobeH.size();
+    _lobeSizeV = lobeV.size();
+    cudaMemcpyToSymbol(device::_lobeH, lobeH.data(),
+		       lobeH.size()*sizeof(float), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_lobeV, lobeV.data(),
+		       lobeV.size()*sizeof(float), 0, cudaMemcpyHostToDevice);
+
+    return *this;
+}
+
 template <size_t L, class IN, class OUT> void
 FIRFilter2::convolveH(IN in, IN ie, OUT out)
 {

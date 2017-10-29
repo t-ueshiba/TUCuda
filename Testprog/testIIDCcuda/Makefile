@@ -25,8 +25,8 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUIeee1394++ -lTUTools++ -lTUCuda++ \
-		  -lraw1394 -ltbb
+LIBS		= -lusb-1.0 -lTUIIDC++ -lTUTools++ -lTUCuda++ \
+		  -lraw1394 -ltbb -lusb-1.0
 
 LINKER		= $(NVCC)
 
@@ -42,21 +42,23 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
 		/usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/Geometry++.h \
-		/usr/local/include/TU/Ieee1394++.h \
-		/usr/local/include/TU/Ieee1394CameraArray.h \
+		/usr/local/include/TU/IIDC++.h \
+		/usr/local/include/TU/IIDCCameraArray.h \
 		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Manip.h \
 		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Vector++.h \
-		/usr/local/include/TU/functional.h \
+		/usr/local/include/TU/algorithm.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
-		/usr/local/include/TU/tuple.h \
-		/usr/local/include/TU/types.h
+		/usr/local/include/TU/range.h \
+		/usr/local/include/TU/tuple.h
 HDRS		=
 SRCS		= cuda_image_interpolate.cu \
-		main.cc
+		main.cu
 OBJS		= cuda_image_interpolate.o \
 		main.o
 
@@ -67,18 +69,20 @@ OBJS		= cuda_image_interpolate.o \
 include $(PROJECT)/lib/common.mk
 ###
 cuda_image_interpolate.o: /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/types.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
+	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/functional.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Profiler.h \
+	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
 	../../TU/cuda/chrono.h
-main.o: /usr/local/include/TU/Ieee1394CameraArray.h \
-	/usr/local/include/TU/Ieee1394++.h /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/types.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+main.o: /usr/local/include/TU/IIDCCameraArray.h \
+	/usr/local/include/TU/IIDC++.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
+	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/functional.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Minimize.h ../../TU/cuda/Array++.h \
+	/usr/local/include/TU/algorithm.h ../../TU/cuda/Array++.h \
 	../../TU/cuda/allocator.h

@@ -50,8 +50,7 @@ main(int argc, char *argv[])
 	cuda::interpolate(d_image0, d_image1, d_image2);
 
       // Save the obtained results.
-	Image<pixel_type>	image2;
-	d_image2.write(image2);
+	Image<pixel_type>	image2(d_image2);
 	image2.save(cout);
     }
     catch (exception& err)

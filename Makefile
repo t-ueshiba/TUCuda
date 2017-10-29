@@ -46,11 +46,9 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/functional.h
 SRCS		= FIRFilter.cu \
 		FIRGaussianConvolver.cc \
-		TUCuda++.inst.cu \
 		chrono.cc
 OBJS		= FIRFilter.o \
 		FIRGaussianConvolver.o \
-		TUCuda++.inst.o \
 		chrono.o
 
 #include $(PROJECT)/lib/rtc.mk		# modified: CPPFLAGS, LIBS
@@ -67,8 +65,4 @@ FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
 	TU/cuda/algorithm.h
-TUCuda++.inst.o: TU/cuda/Array++.h TU/cuda/allocator.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h TU/cuda/algorithm.h
 chrono.o: TU/cuda/chrono.h

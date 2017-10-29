@@ -43,9 +43,13 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/chrono.h \
 		../../TU/cuda/functional.h \
 		/usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
+		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/IIRFilter.h \
 		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Manip.h \
+		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/SeparableFilter2.h \
 		/usr/local/include/TU/Vector++.h \
@@ -55,7 +59,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/range.h \
 		/usr/local/include/TU/tuple.h
 HDRS		=
-SRCS		= main.cc
+SRCS		= main.cu
 OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
@@ -65,6 +69,8 @@ OBJS		= main.o
 include $(PROJECT)/lib/common.mk
 ###
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \

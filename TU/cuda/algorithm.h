@@ -145,14 +145,14 @@ op3x3(IN in, IN ie, OUT out, OP op)					;
 template <class IN, class OUT, class OP> static __global__ void
 op3x3_kernel(IN in, OUT out, OP op, int stride_i, int stride_o)
 {
-    typedef typename std::iterator_traits<IN>::value_type	value_type;
+    using	value_type = typename std::iterator_traits<IN>::value_type;
     
-    const int	bx = blockDim.x;
-    const int	by = blockDim.y;
-    int		xy = (blockIdx.y*by + threadIdx.y)*stride_i 
+    const auto	bx = blockDim.x;
+    const auto	by = blockDim.y;
+    auto	xy = (blockIdx.y*by + threadIdx.y)*stride_i 
 		   +  blockIdx.x*bx + threadIdx.x;	// 現在位置
-    int		x  = 1 + threadIdx.x;
-    const int	y  = 1 + threadIdx.y;
+    auto	x  = 1 + threadIdx.x;
+    const auto	y  = 1 + threadIdx.y;
     
   // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
     __shared__ value_type	in_s[BlockDimY+2][BlockDimX+2];
@@ -166,8 +166,8 @@ op3x3_kernel(IN in, OUT out, OP op, int stride_i, int stride_o)
     
     if (threadIdx.y == 0)	// ブロックの上端?
     {
-	const int	top = xy - stride_i;		// 現在位置の直上
-	const int	bot = xy + by*stride_i;		// 現在位置の下端
+	const auto	top = xy - stride_i;		// 現在位置の直上
+	const auto	bot = xy + by*stride_i;		// 現在位置の下端
 
 	in_s[0     ][x] = in[top];			// 上枠
 	in_s[1 + by][x] = in[bot];			// 下枠
@@ -265,14 +265,14 @@ extrema3x3_kernel(IN in, OUT out, OP op,
 		  typename std::iterator_traits<IN>::value_type nulval,
 		  int stride_i, int stride_o)
 {
-    typedef typename std::iterator_traits<IN>::value_type	value_type;
+    using	value_type = typename std::iterator_traits<IN>::value_type;
     
-    const int	bx2 = 2*blockDim.x;
-    const int	by2 = 2*blockDim.y;
-    int		xy  = 2*((blockIdx.y*blockDim.y + threadIdx.y)*stride_i +
+    const auto	bx2 = 2*blockDim.x;
+    const auto	by2 = 2*blockDim.y;
+    auto	xy  = 2*((blockIdx.y*blockDim.y + threadIdx.y)*stride_i +
 			  blockIdx.x*blockDim.x + threadIdx.x);
-    const int	x   = 1 + 2*threadIdx.x;
-    const int	y   = 1 + 2*threadIdx.y;
+    const auto	x   = 1 + 2*threadIdx.x;
+    const auto	y   = 1 + 2*threadIdx.y;
 
   // 原画像の (2*blockDim.x)x(2*blockDim.y) 矩形領域を共有メモリにコピー
     __shared__ value_type	in_s[2*BlockDimY + 2][2*BlockDimX + 3];
@@ -284,8 +284,8 @@ extrema3x3_kernel(IN in, OUT out, OP op,
   // 2x2ブロックの外枠を共有メモリ領域にコピー
     if (threadIdx.x == 0)	// ブロックの左端?
     {
-	const int	lft = xy - 1;
-	const int	rgt = xy + bx2;
+	const auto	lft = xy - 1;
+	const auto	rgt = xy + bx2;
 	
 	in_s[y    ][0      ] = in[lft		];	// 左枠上
 	in_s[y + 1][0      ] = in[lft + stride_i];	// 左枠下
@@ -295,8 +295,8 @@ extrema3x3_kernel(IN in, OUT out, OP op,
     
     if (threadIdx.y == 0)	// ブロックの上端?
     {
-	const int	top  = xy - stride_i;		// 現在位置の直上
-	const int	bot  = xy + by2*stride_i;	// 現在位置の下端
+	const auto	top  = xy - stride_i;		// 現在位置の直上
+	const auto	bot  = xy + by2*stride_i;	// 現在位置の下端
 
 	in_s[0	    ][x    ] = in[top    ];		// 上枠左
 	in_s[0	    ][x + 1] = in[top + 1];		// 上枠右
@@ -316,18 +316,18 @@ extrema3x3_kernel(IN in, OUT out, OP op,
   // このスレッドの処理対象である2x2ウィンドウ中で最大/最小となる画素の座標を求める．
   //const int	i01 = (op(in_s[y    ][x], in_s[y    ][x + 1]) ? 0 : 1);
   //const int	i23 = (op(in_s[y + 1][x], in_s[y + 1][x + 1]) ? 2 : 3);
-    const int	i01 = op(in_s[y    ][x + 1], in_s[y    ][x]);
-    const int	i23 = op(in_s[y + 1][x + 1], in_s[y + 1][x]) + 2;
-    const int	iex = (op(in_s[y][x + i01], in_s[y + 1][x + (i23 & 0x1)]) ?
+    const auto	i01 = op(in_s[y    ][x + 1], in_s[y    ][x]);
+    const auto	i23 = op(in_s[y + 1][x + 1], in_s[y + 1][x]) + 2;
+    const auto	iex = (op(in_s[y][x + i01], in_s[y + 1][x + (i23 & 0x1)]) ?
 		       i01 : i23);
-    const int	xx  = x + (iex & 0x1);		// 最大/最小点のx座標
-    const int	yy  = y + (iex >> 1);		// 最大/最小点のy座標
+    const auto	xx  = x + (iex & 0x1);		// 最大/最小点のx座標
+    const auto	yy  = y + (iex >> 1);		// 最大/最小点のy座標
 
   // 最大/最小となった画素が，残り5つの近傍点よりも大きい/小さいか調べる．
   //const int	dx  = (iex & 0x1 ? 1 : -1);
   //const int	dy  = (iex & 0x2 ? 1 : -1);
-    const int	dx  = ((iex & 0x1) << 1) - 1;
-    const int	dy  = (iex & 0x2) - 1;
+    const auto	dx  = ((iex & 0x1) << 1) - 1;
+    const auto	dy  = (iex & 0x2) - 1;
     auto	val = in_s[yy][xx];
     val = (op(val, in_s[yy + dy][xx - dx]) &
 	   op(val, in_s[yy + dy][xx     ]) &
@@ -378,7 +378,7 @@ suppressNonExtrema3x3(
 					   std::begin(*out).get(),
 					   op, nulval, stride_i, stride_o);
   // 右上
-    const auto	x = blocks.x*threads.x;
+    const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     extrema3x3_kernel<<<blocks, threads>>>(std::cbegin(*in).get() + x,
@@ -421,7 +421,7 @@ namespace detail
 template <class IN, class OUT> static __global__ void
 transpose_kernel(IN in, OUT out, int stride_i, int stride_o)
 {
-    typedef typename std::iterator_traits<IN>::value_type	value_type;
+    using	value_type = typename std::iterator_traits<IN>::value_type;
 
     const auto			bx = blockIdx.x*blockDim.x;
     const auto			by = blockIdx.y*blockDim.y;

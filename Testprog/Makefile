@@ -4,7 +4,8 @@ SUBDIR	= boxFilterTest		\
 	  gaussTest		\
 	  op3x3Test		\
 	  subsampleTest		\
-	  test1394cuda
+	  testIIDCcuda		\
+	  transposeTest
 
 TARGETS	= all clean depend
 

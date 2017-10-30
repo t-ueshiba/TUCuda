@@ -73,8 +73,42 @@
 #ifndef TU_CUDA_ARRAYPP_H
 #define TU_CUDA_ARRAYPP_H
 
+#include <thrust/copy.h>
+#include <thrust/fill.h>
 #include "TU/cuda/allocator.h"
 #include "TU/Array++.h"
+
+//! thrust::device_ptr<S> 型の引数に対しADLによって名前解決を行う関数を収める名前空間
+namespace thrust
+{
+/************************************************************************
+*  algorithms overloaded for thrust::pointer, thrust::const_pointer	*
+************************************************************************/
+template <size_t N, class S, class T> inline void
+copy(thrust::device_ptr<S> p, size_t n, thrust::device_ptr<T> q)
+{
+    thrust::copy_n(p, (N ? N : n), q);
+}
+    
+template <size_t N, class S, class T> inline void
+copy(thrust::device_ptr<S> p, size_t n, T* q)
+{
+    thrust::copy_n(p, (N ? N : n), q);
+}
+    
+template <size_t N, class S, class T> inline void
+copy(const S* p, size_t n, thrust::device_ptr<T> q)
+{
+    thrust::copy_n(p, (N ? N : n), q);
+}
+
+template <size_t N, class T, class S> inline void
+fill(thrust::device_ptr<T> q, size_t n, const S& val)
+{
+    thrust::fill_n(q, (N ? N : n), val);
+}
+
+}	// namespace thrust
 
 //! 植芝によって開発されたクラスおよび関数を納める名前空間
 namespace TU

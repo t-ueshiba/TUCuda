@@ -1,13 +1,13 @@
 /*
  *  $Id: main.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
+#include "TU/Image++.h"
+#include "TU/GaussianConvolver.h"
+#include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
-#include "TU/Image++.h"
-#include "TU/Profiler.h"
-#include "TU/GaussianConvolver.h"
 #include <thrust/functional.h>
 
 #define OP_H	cuda::maximal3x3

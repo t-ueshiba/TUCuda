@@ -1,12 +1,12 @@
 /*
  *  $Id: main.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
+#include "TU/Image++.h"
+#include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
-#include "TU/Image++.h"
-#include "TU/Profiler.h"
 
 //#define OP	cuda::det3x3
 //#define OP	cuda::laplacian3x3

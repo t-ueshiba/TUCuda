@@ -1,17 +1,17 @@
 /*
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
+#include "TU/Image++.h"
+#include "TU/BoxFilter.h"
+#include "TU/Profiler.h"
+#include "TU/cuda/chrono.h"
 #if 1
 #  include "TU/cuda/BoxFilter.h"
-#elif 0
+#elif 1
 #  include "TU/cuda/NewBoxFilter.h"
 #else
 #  include "TU/cuda/NeoBoxFilter.h"
 #endif
-#include "TU/cuda/chrono.h"
-#include "TU/Image++.h"
-#include "TU/Profiler.h"
-#include "TU/BoxFilter.h"
 
 /************************************************************************
 *  Global fucntions							*

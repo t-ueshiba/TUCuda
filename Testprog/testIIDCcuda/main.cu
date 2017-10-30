@@ -1,7 +1,7 @@
 /*
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include <stdlib.h>
+#include <cstdlib>
 #include <signal.h>
 #include <sys/time.h>
 #include <iomanip>

@@ -1,11 +1,11 @@
 /*
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include "TU/cuda/FIRFilter.h"
-#include "TU/cuda/chrono.h"
 #include "TU/Image++.h"
 #include "TU/GaussianConvolver.h"
 #include "TU/Profiler.h"
+#include "TU/cuda/FIRFilter.h"
+#include "TU/cuda/chrono.h"
 #include "filterImageGold.h"
 
 namespace TU

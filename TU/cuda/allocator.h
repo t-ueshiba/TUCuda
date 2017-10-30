@@ -8,7 +8,8 @@
 #ifndef TU_CUDA_ALLOCATOR_H
 #define TU_CUDA_ALLOCATOR_H
 
-#include <thrust/device_allocator.h>
+#include <thrust/device_malloc.h>
+#include <thrust/device_free.h>
 #include <boost/operators.hpp>
 
 namespace TU

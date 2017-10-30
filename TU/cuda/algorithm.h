@@ -43,6 +43,12 @@ copyToConstantMemory(ITER begin, ITER end, T* dst)
 /************************************************************************
 *  subsample(IN in, IN ie, OUT out)					*
 ************************************************************************/
+//! CUDAによって2次元配列を水平／垂直方向それぞれ1/2に間引く．
+/*!
+  \param in	入力2次元配列の最初の行を指す反復子
+  \param ie	入力2次元配列の最後の次の行を指す反復子
+  \param out	出力2次元配列の最初の行を指す反復子
+*/
 template <class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)					;
 
@@ -59,12 +65,6 @@ namespace device
   }
 }	// namespace device
     
-//! CUDAによって2次元配列を水平／垂直方向それぞれ1/2に間引く．
-/*!
-  \param in	入力2次元配列の最初の行を指す反復子
-  \param ie	入力2次元配列の最後の次の行を指す反復子
-  \param out	出力2次元配列の最初の行を指す反復子
-*/
 template <class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {

@@ -2,6 +2,7 @@ SUBDIR	= boxFilterTest		\
 	  extremaTest		\
 	  filterTest		\
 	  gaussTest		\
+	  mapTest		\
 	  op3x3Test		\
 	  subsampleTest		\
 	  testIIDCcuda		\

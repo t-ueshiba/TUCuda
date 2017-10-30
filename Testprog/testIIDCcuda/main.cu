@@ -53,7 +53,7 @@ doJob(IIDCCameraArray& cameras)
     }
 
   // デバイス画像の確保
-    Array<cuda::Array2<T> >	d_images(images.size());
+    cuda::Array2<T>	d_images[3];
     
   // カメラ出力の開始．
     for (size_t i = 0; i < cameras.size(); ++i)

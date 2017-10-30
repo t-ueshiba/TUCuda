@@ -1,14 +1,12 @@
 /*
- *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
+ *  $Id: main.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
-#include <stdexcept>
+#include "TU/cuda/Array++.h"
+#include "TU/cuda/algorithm.h"
+#include "TU/cuda/functional.h"
+#include "TU/cuda/chrono.h"
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/algorithm.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/functional.h"
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/chrono.h"
 #include "TU/GaussianConvolver.h"
 #include <thrust/functional.h>
 
@@ -58,7 +56,7 @@ main(int argc, char *argv[])
 
 	Image<out_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
-#if 1
+
       // CPUによって計算する．
 	Profiler<>	profiler(1);
 	Image<out_t>	outGold;
@@ -79,9 +77,8 @@ main(int argc, char *argv[])
 	    {
 		cerr << ' ' << u << ":(" << out[V][u] << ',' << outGold[V][u]
 		     << ')' << endl;
-		cerr << Image<in_t>(in, u-1, V-1, 3, 3);
+		cerr << slice<3, 3>(in, u-1, V-1);
 	    }
-#endif
     }
     catch (exception& err)
     {

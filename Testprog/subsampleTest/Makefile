@@ -14,8 +14,8 @@ MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
-CFLAGS		= -O
-NVCCFLAGS	= -O
+CFLAGS		= -O3
+NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else ifeq ($(shell arch), aarch64)

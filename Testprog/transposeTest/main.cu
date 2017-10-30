@@ -16,17 +16,22 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-    typedef float	pixel_t;
+  //using	in_t  = u_char;
+    using	in_t  = float;
+  //using	out_t = u_char;
+    using	out_t = float;
     
     try
     {
-	Image<pixel_t>	image;
-	image.restore(cin);				// 原画像を読み込む
-	image.save(cout);
+	Image<in_t>	in;
+	in.restore(cin);				// 原画像を読み込む
+	in.save(cout);					// 原画像をセーブ
 
-	cuda::Array2<pixel_t>	in_d(image),
-				out_d(in_d.nrow()/2, in_d.ncol()/2);
-	cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
+      // GPUによって計算する．
+	cuda::Array2<in_t>	in_d(in);
+	cuda::Array2<out_t>	out_d(in_d.ncol(), in_d.nrow());
+
+	cuda::transpose(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaThreadSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -34,13 +39,13 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)
 	{
 	    cuProfiler.start(0);
-	    cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
+	    cuda::transpose(in_d.cbegin(), in_d.cend(), out_d.begin());
 	    cuProfiler.nextFrame();
 	}
-	cuProfiler.print(cerr);
-
-	image = out_d;
-	image.save(cout);
+	cuProfiler.print(std::cerr);
+	
+	Image<out_t>	out(out_d);
+	out.save(cout);					// 結果画像をセーブ
     }
     catch (exception& err)
     {

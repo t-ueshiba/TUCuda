@@ -1,6 +1,8 @@
 /*
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
+#include "TU/cuda/FIRFilter.h"
+#include "TU/cuda/chrono.h"
 #include "TU/Image++.h"
 #include "TU/GaussianConvolver.h"
 #include "TU/Profiler.h"
@@ -8,9 +10,6 @@
 
 namespace TU
 {
-template <class S, class T> void
-cudaJob(const Array2<S>& in, Array2<T>& out, const Array<float>& coeff)	;
-    
 /************************************************************************
 *  static fucntions							*
 ************************************************************************/
@@ -82,8 +81,25 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	Image<out_t>	out;
-	cudaJob(in, out, coeff);
+	cuda::FIRFilter2	cudaFilter;
+	cudaFilter.initialize(coeff, coeff);
+    
+	cuda::Array2<in_t>	in_d(in);
+	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
+	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+	cudaThreadSynchronize();
+
+	Profiler<cuda::clock>	cuProfiler(1);
+	constexpr size_t	NITER = 1000;
+	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
+	{
+	    cuProfiler.start(0);
+	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+	    cuProfiler.nextFrame();
+	}
+	cuProfiler.print(std::cerr);
+	
+	Image<out_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．

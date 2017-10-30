@@ -43,7 +43,11 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/chrono.h \
 		../../TU/cuda/functional.h \
 		/usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Camera++.h \
+		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Manip.h \
+		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/algorithm.h \
@@ -52,10 +56,8 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/range.h \
 		/usr/local/include/TU/tuple.h
 HDRS		=
-SRCS		= cudaJob.cu \
-		main.cc
-OBJS		= cudaJob.o \
-		main.o
+SRCS		= main.cu
+OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
 #include $(PROJECT)/lib/qt.mk		# MOCSRCS, OBJS
@@ -63,15 +65,12 @@ OBJS		= cudaJob.o \
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-cudaJob.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	/usr/local/include/TU/Profiler.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/allocator.h ../../TU/cuda/functional.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/chrono.h
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	/usr/local/include/TU/Profiler.h ../../TU/cuda/functional.h
+main.o: ../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
+	/usr/local/include/TU/algorithm.h ../../TU/cuda/algorithm.h \
+	../../TU/cuda/functional.h ../../TU/cuda/chrono.h \
+	/usr/local/include/TU/Profiler.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
+	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h

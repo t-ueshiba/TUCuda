@@ -85,27 +85,27 @@ namespace thrust
 *  algorithms overloaded for thrust::pointer, thrust::const_pointer	*
 ************************************************************************/
 template <size_t N, class S, class T> inline void
-copy(thrust::device_ptr<S> p, size_t n, thrust::device_ptr<T> q)
+copy(device_ptr<S> p, size_t n, device_ptr<T> q)
 {
-    thrust::copy_n(p, (N ? N : n), q);
+    copy_n(p, (N ? N : n), q);
 }
     
 template <size_t N, class S, class T> inline void
-copy(thrust::device_ptr<S> p, size_t n, T* q)
+copy(device_ptr<S> p, size_t n, T* q)
 {
-    thrust::copy_n(p, (N ? N : n), q);
+    copy_n(p, (N ? N : n), q);
 }
     
 template <size_t N, class S, class T> inline void
-copy(const S* p, size_t n, thrust::device_ptr<T> q)
+copy(const S* p, size_t n, device_ptr<T> q)
 {
-    thrust::copy_n(p, (N ? N : n), q);
+    copy_n(p, (N ? N : n), q);
 }
 
 template <size_t N, class T, class S> inline void
-fill(thrust::device_ptr<T> q, size_t n, const S& val)
+fill(device_ptr<T> q, size_t n, const S& val)
 {
-    thrust::fill_n(q, (N ? N : n), val);
+    fill_n(q, (N ? N : n), val);
 }
 
 }	// namespace thrust

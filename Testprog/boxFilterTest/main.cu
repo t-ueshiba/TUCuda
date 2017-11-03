@@ -7,7 +7,7 @@
 #include "TU/cuda/chrono.h"
 #if 1
 #  include "TU/cuda/BoxFilter.h"
-#elif 1
+#elif 0
 #  include "TU/cuda/NewBoxFilter.h"
 #else
 #  include "TU/cuda/NeoBoxFilter.h"
@@ -22,10 +22,10 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-  //typedef u_char	in_t;
-    typedef float	in_t;
-  //typedef short	out_t;
-    typedef float	out_t;
+    using in_t	= u_char;
+  //using out_t	= short;
+  //using in_t	= float;
+    using out_t	= float;
     
     size_t		winSize = 3;
     extern char*	optarg;

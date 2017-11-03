@@ -109,12 +109,11 @@ template <size_t WMAX, class COL, class COL_O> static __global__ void
 box_filter(COL col, COL_O colO,
 	   int rowWinSize, int colWinSize, int strideI, int strideO)
 {
-    typedef typename std::iterator_traits<COL>::value_type	in_type;
-    typedef typename std::iterator_traits<COL_O>::value_type	out_type;
+    using	out_type = typename std::iterator_traits<COL_O>::value_type;
 
     constexpr auto	BlockDimX = BoxFilter2<out_type, WMAX>::BlockDimX;
     constexpr auto	BlockDimY = BoxFilter2<out_type, WMAX>::BlockDimY;
-    __shared__ in_type	in_s[BlockDimY + WMAX][BlockDimX + WMAX];
+    __shared__ out_type	in_s[ BlockDimY + WMAX][BlockDimX + WMAX];
     __shared__ out_type	mid_s[BlockDimY + WMAX][BlockDimX];
 
     const auto	u = blockIdx.x*blockDim.x + threadIdx.x;
@@ -138,8 +137,8 @@ box_filter(COL col, COL_O colO,
     if (threadIdx.x == 0)	// 横方向に積算
     {
 	const auto	p   = in_s[threadIdx.y];
-	out_type	val = 0;
-	for (int x = 0; x != colWinSize; ++x)
+	auto		val = p[0];
+	for (int x = 1; x != colWinSize; ++x)
 	    val += p[x];
 
 	for (int x = 0; x != blockDim.x; ++x)
@@ -151,8 +150,8 @@ box_filter(COL col, COL_O colO,
 	if (threadIdx.y < rowWinSize - 1)
 	{
 	    const auto	p   = in_s[blockDim.y + threadIdx.y];
-	    out_type	val = 0;
-	    for (int x = 0; x != colWinSize; ++x)
+	    auto	val = p[0];
+	    for (int x = 1; x != colWinSize; ++x)
 		val += p[x];
 
 	    for (int x = 0; x != blockDim.x; ++x)
@@ -167,8 +166,8 @@ box_filter(COL col, COL_O colO,
 
     if (threadIdx.y == 0)	// 縦方向に積算
     {
-	out_type	val = 0;
-	for (int y = 0; y != rowWinSize; ++y)
+	auto	val = mid_s[0][threadIdx.x];
+	for (int y = 1; y != rowWinSize; ++y)
 	    val += mid_s[y][threadIdx.x];
 
 	colO += (v*strideO + u);
@@ -186,13 +185,12 @@ template <size_t WMAX, class COL, class COL_O, class OP> static __global__ void
 box_filterV(COL colL, COL colR, int nrow, COL_O colO, OP op, int rowWinSize,
 	    int disparitySearchWidth, int strideL, int strideR, int strideO)
 {
-    typedef typename std::iterator_traits<COL>::value_type	in_type;
-    typedef typename std::iterator_traits<COL_O>::value_type	out_type;
+    using	out_type = typename std::iterator_traits<COL_O>::value_type;
 
     constexpr auto	BlockDimX = BoxFilter2<out_type, WMAX>::BlockDimX;
     constexpr auto	BlockDimY = BoxFilter2<out_type, WMAX>::BlockDimY;
-    __shared__ in_type	inL[WMAX][BlockDimY + 1];
-    __shared__ in_type	inR[WMAX][BlockDimY + BlockDimX + 1];
+    __shared__ out_type	inL[WMAX][BlockDimY + 1];
+    __shared__ out_type	inR[WMAX][BlockDimY + BlockDimX + 1];
 
     const auto	d = blockIdx.x*blockDim.x + threadIdx.x;
     const auto	x = blockIdx.y*blockDim.y + threadIdx.y;

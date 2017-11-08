@@ -28,8 +28,12 @@ class BoxFilter2
     \param rowWinSize	boxフィルタのウィンドウの行幅(高さ)
     \param colWinSize	boxフィルタのウィンドウの列幅(幅)
    */	
-    BoxFilter2(size_t rowWinSize, size_t colWinSize)
-	:_rowWinSize(rowWinSize), _colWinSize(colWinSize)		{}
+		BoxFilter2(size_t rowWinSize, size_t colWinSize)
+		    :_rowWinSize(rowWinSize), _colWinSize(colWinSize)
+		{
+		    if (_rowWinSize > WMAX || _colWinSize > WMAX)
+			throw std::runtime_error("Too large window size!");
+		}
 
   //! boxフィルタのウィンドウ行幅(高さ)を返す．
   /*!
@@ -105,7 +109,17 @@ namespace device
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template <size_t WMAX, class COL, class COL_O> static __global__ void
+//! スレッドブロックの縦横両方向にフィルタを適用する
+/*!
+  sliding windowを使用しないのでウィンドウ幅が小さいときのみ高効率
+  \param col		入力2次元配列の左上隅を指す反復子
+  \param colO		出力2次元配列の左上隅を指す反復子
+  \param rowWinSize	boxフィルタのウィンドウの行幅(高さ)
+  \param colWinSize	boxフィルタのウィンドウの列幅(幅)
+  \param strideI	入力2次元配列の行を1つ進めるためにインクリメントするべき要素数
+  \param strideO	出力2次元配列の行を1つ進めるためにインクリメントするべき要素数
+*/
+template <size_t WMAX, class COL, class COL_O> __global__ static void
 box_filter(COL col, COL_O colO,
 	   int rowWinSize, int colWinSize, int strideI, int strideO)
 {
@@ -113,75 +127,38 @@ box_filter(COL col, COL_O colO,
 
     constexpr auto	BlockDimX = BoxFilter2<out_type, WMAX>::BlockDimX;
     constexpr auto	BlockDimY = BoxFilter2<out_type, WMAX>::BlockDimY;
-    __shared__ out_type	in_s[ BlockDimY + WMAX][BlockDimX + WMAX];
-    __shared__ out_type	mid_s[BlockDimY + WMAX][BlockDimX];
+    __shared__ out_type	in_s[ BlockDimY + WMAX - 1][BlockDimX + WMAX - 1];
+    __shared__ out_type	mid_s[BlockDimY + WMAX - 1][BlockDimX];
 
-    const auto	u = blockIdx.x*blockDim.x + threadIdx.x;
-    const auto	v = blockIdx.y*blockDim.y + threadIdx.y;
-    col += (v*strideI + u);
-    
-    in_s[threadIdx.y][threadIdx.x] = *col;
-    if (threadIdx.y < rowWinSize - 1)
-    {
-	in_s[blockDim.y + threadIdx.y][threadIdx.x]
-	    = *(col + blockDim.y*strideI);
-	if (threadIdx.x < colWinSize - 1)
-	    in_s[blockDim.y + threadIdx.y][blockDim.x + threadIdx.x]
-		= *(col + blockDim.y*strideI + blockDim.x);
-    }
-    if (threadIdx.x < colWinSize - 1)
-	in_s[threadIdx.y][blockDim.x + threadIdx.x] = *(col + blockDim.x);
+    const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
+    const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
 
+  // スレッドブロックの幅と高さをそれぞれ(ウィンドウ幅 - 1)だけ
+  // 伸ばした矩形領域を共有メモリにロードする
+    loadTile(col + __mul24(y0, strideI) + x0, strideI, in_s,
+	     colWinSize - 1, rowWinSize - 1);
     __syncthreads();
 
-    if (threadIdx.x == 0)	// 横方向に積算
+  // 横方向に積算
+    const auto	height = blockDim.y + rowWinSize - 1;
+    for (auto y = threadIdx.y; y < height; y += blockDim.y)
     {
-	const auto	p   = in_s[threadIdx.y];
-	auto		val = p[0];
+	const auto	p = &in_s[y][threadIdx.x];
+	auto&		q = mid_s[y][threadIdx.x];
+	q = *p;
 	for (int x = 1; x != colWinSize; ++x)
-	    val += p[x];
-
-	for (int x = 0; x != blockDim.x; ++x)
-	{
-	    mid_s[threadIdx.y][x] = val;
-	    val += (p[x + colWinSize] - p[x]);
-	}
-
-	if (threadIdx.y < rowWinSize - 1)
-	{
-	    const auto	p   = in_s[blockDim.y + threadIdx.y];
-	    auto	val = p[0];
-	    for (int x = 1; x != colWinSize; ++x)
-		val += p[x];
-
-	    for (int x = 0; x != blockDim.x; ++x)
-	    {
-		mid_s[blockDim.y + threadIdx.y][x] = val;
-		val += (p[x + colWinSize] - p[x]);
-	    }
-	}
+	    q += *(p + x);
     }
-
     __syncthreads();
 
-    if (threadIdx.y == 0)	// 縦方向に積算
-    {
-	auto	val = mid_s[0][threadIdx.x];
-	for (int y = 1; y != rowWinSize; ++y)
-	    val += mid_s[y][threadIdx.x];
-
-	colO += (v*strideO + u);
-
-	for (int y = 0; y != blockDim.y; ++y)
-	{
-	    *colO = val;
-	    val += (mid_s[y + rowWinSize][threadIdx.x] - mid_s[y][threadIdx.x]);
-	    colO += strideO;
-	}
-    }
+  // 縦方向に積算
+    auto	val = mid_s[threadIdx.y][threadIdx.x];
+    for (auto y = 1; y != rowWinSize; ++y)
+	val += mid_s[threadIdx.y + y][threadIdx.x];
+    *(colO + __mul24(y0 + threadIdx.y, strideO) + x0 + threadIdx.x) = val;
 }
 
-template <size_t WMAX, class COL, class COL_O, class OP> static __global__ void
+template <size_t WMAX, class COL, class COL_O, class OP> __global__ static void
 box_filterV(COL colL, COL colR, int nrow, COL_O colO, OP op, int rowWinSize,
 	    int disparitySearchWidth, int strideL, int strideR, int strideO)
 {
@@ -221,7 +198,7 @@ box_filterV(COL colL, COL colR, int nrow, COL_O colO, OP op, int rowWinSize,
     }
 }
 
-template <size_t WMAX, class COL, class COL_O> static __global__ void
+template <size_t WMAX, class COL, class COL_O> __global__ static void
 box_filterH(COL col, int ncol, COL_O colO,
 	    int colWinSize, int disparitySearchWidth, int strideI, int strideO)
 {

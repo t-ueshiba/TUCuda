@@ -22,9 +22,9 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-    using in_t	= u_char;
+  //using in_t	= u_char;
   //using out_t	= short;
-  //using in_t	= float;
+    using in_t	= float;
     using out_t	= float;
     
     size_t		winSize = 3;
@@ -43,9 +43,9 @@ main(int argc, char *argv[])
 	in.restore(cin);				// 原画像を読み込む
 
       // GPUによって計算する．
-	cuda::BoxFilter2<out_t, 15>	cudaFilter(winSize, winSize);
-	cuda::Array2<in_t>		in_d(in);
-	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
+	cuda::BoxFilter2<out_t>	cudaFilter(winSize, winSize);
+	cuda::Array2<in_t>	in_d(in);
+	cuda::Array2<out_t>	out_d(in_d.nrow(), in_d.ncol());
 	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaThreadSynchronize();
 

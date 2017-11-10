@@ -183,6 +183,10 @@ using Array = array<T, cuda::allocator<T>, 0>;
 template <class T>
 using Array2 = array<T, cuda::allocator<T>, 0, 0>;
     
+//! 3次元CUDA配列
+template <class T>
+using Array3 = array<T, cuda::allocator<T>, 0, 0, 0>;
+    
 //! CUDAデバイス空間にマップされた1次元配列
 template <class T>
 using MappedArray = array<T, cuda::mapped_allocator<T>, 0>;
@@ -190,6 +194,10 @@ using MappedArray = array<T, cuda::mapped_allocator<T>, 0>;
 //! CUDAデバイス空間にマップされた2次元配列
 template <class T>
 using MappedArray2 = array<T, cuda::mapped_allocator<T>, 0, 0>;
+    
+//! CUDAデバイス空間にマップされた3次元配列
+template <class T>
+using MappedArray3 = array<T, cuda::mapped_allocator<T>, 0, 0, 0>;
     
 }	// namespace cuda
 }	// namespace TU

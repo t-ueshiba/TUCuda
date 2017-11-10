@@ -210,7 +210,7 @@ fir_filterV(const IN in, OUT out, int stride_i, int stride_o)
 
   // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
     __shared__ float	in_s[BlockDimX][BlockDimY + 2*LobeSize + 1];
-    loadTileV(in + __mul24(y0, stride_i) + x0, stride_i, in_s, 2*LobeSize);
+    loadTileVt(in + __mul24(y0, stride_i) + x0, stride_i, in_s, 2*LobeSize);
     __syncthreads();
     
   // 積和演算

@@ -15,15 +15,33 @@ namespace TU
 namespace cuda
 {
 #if defined(__NVCC__)
+//! デバイス関数を納める名前空間
 namespace device
 {
   /**********************************************************************
   *  __device__ functions						*
   **********************************************************************/
+  //! スレッドブロック中のラインに指定された長さを付加した1次元領域をコピーする
+  /*!
+    \param src		コピー元のラインの左端を指すポインタ
+    \param dst		コピー先の1次元配列
+    \param dx		コピー元のライン幅に付加される長さ
+  */
+  template <class S, class T> __device__ static inline void
+  loadLine(const S* src, T dst[], int dx)
+  {
+      auto	tx = threadIdx.x;
+      dx += blockDim.x;
+      do
+      {
+	  dst[tx] = src[tx];
+      } while ((tx += blockDim.x) < dx);
+  }
+    
   //! スレッドブロックの横方向に指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指すポインタ
-    \param stride	コピー元の行を1つ進めるためにインクリメントするべき要素数
+    \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dx		ブロック幅に付加される長さ
   */
@@ -38,15 +56,13 @@ namespace device
       do
       {
 	  q[tx] = src[tx];
-	  tx += blockDim.x;
-      } while (tx < dx);
+      } while ((tx += blockDim.x) < dx);
   }
     
-  //! スレッドブロックの縦方向にそれぞれ指定された長さを付加した領域を転置してコピーする
+  //! スレッドブロックの縦方向にそれぞれ指定された長さを付加した領域をコピーする
   /*!
-    コピー先の矩形領域のサイズは blockDim.x * (blockDim.y + dy) となる．
     \param src		コピー元の矩形領域の左上隅を指すポインタ
-    \param stride	コピー元の行を1つ進めるためにインクリメントするべき要素数
+    \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dy		ブロック高に付加される長さ
   */
@@ -56,20 +72,41 @@ namespace device
       auto		ty = threadIdx.y;
       src += (__mul24(ty, stride) + threadIdx.x);
 
+      dy += blockDim.y;
+      do
+      {
+	  dst[ty][threadIdx.x] = *src;
+	  src += __mul24(blockDim.y, stride);
+      } while ((ty += blockDim.y) < dy);
+  }
+
+  //! スレッドブロックの縦方向にそれぞれ指定された長さを付加した領域を転置してコピーする
+  /*!
+    コピー先の矩形領域のサイズは blockDim.x * (blockDim.y + dy) となる．
+    \param src		コピー元の矩形領域の左上隅を指すポインタ
+    \param stride	コピー元の行を1つ進めるためのインクリメント数
+    \param dst		コピー先の2次元配列
+    \param dy		ブロック高に付加される長さ
+  */
+  template <class S, class T, size_t W> __device__ static inline void
+  loadTileVt(const S* src, int stride, T dst[][W], int dy)
+  {
+      auto		ty = threadIdx.y;
+      src += (__mul24(ty, stride) + threadIdx.x);
+
       const auto	q = dst[threadIdx.x];
       dy += blockDim.y;
       do
       {
 	  q[ty] = *src;
-	  ty  += blockDim.y;
 	  src += __mul24(blockDim.y, stride);
-      } while (ty < dy);
+      } while ((ty += blockDim.y) < dy);
   }
 
   //! スレッドブロックの横方向と縦方向にそれぞれ指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指すポインタ
-    \param stride	コピー元の行を1つ進めるためにインクリメントするべき要素数
+    \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dx		ブロック幅に付加される長さ
     \param dy		ブロック高に付加される長さ
@@ -88,11 +125,9 @@ namespace device
 	  do
 	  {
 	      dst[ty][tx] = src[tx];
-	      tx += blockDim.x;
-	  } while (tx < dx);
-	  ty  += blockDim.y;
+	  } while ((tx += blockDim.x) < dx);
 	  src += __mul24(blockDim.y, stride);
-      } while (ty < dy);
+      } while ((ty += blockDim.y) < dy);
   }
 }	// namespace device
 #endif

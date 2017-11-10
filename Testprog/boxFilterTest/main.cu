@@ -7,10 +7,10 @@
 #include "TU/cuda/chrono.h"
 #if 1
 #  include "TU/cuda/BoxFilter.h"
-#elif 0
-#  include "TU/cuda/NewBoxFilter.h"
+#elif 1
+#  include "TU/cuda/NonRecursiveBoxFilter.h"
 #else
-#  include "TU/cuda/NeoBoxFilter.h"
+#  include "TU/cuda/NewBoxFilter.h"
 #endif
 
 /************************************************************************

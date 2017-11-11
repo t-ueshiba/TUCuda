@@ -17,9 +17,9 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& scores,
 	size_t winSize, size_t disparitySearchWidth)
 {
   // スコアを計算する．
-    cuda::BoxFilter2<S, 32>	cudaFilter(winSize, winSize);
+    cuda::BoxFilter2<S, 20>	cudaFilter(winSize, winSize);
     cuda::Array2<S>		imageL_d(imageL), imageR_d(imageR);
-    cuda::Array3<S>		scores_d(imageL_d.nrow(), imageL_d.ncol(),
+    cuda::Array3<S>		scores_d(32, imageL_d.nrow(), imageL_d.ncol(),
 					 disparitySearchWidth);
     cudaFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 			imageR_d.cbegin(), scores_d.begin(),

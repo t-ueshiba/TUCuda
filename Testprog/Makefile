@@ -4,6 +4,7 @@ SUBDIR	= boxFilterTest		\
 	  gaussTest		\
 	  mapTest		\
 	  op3x3Test		\
+	  stereoTest		\
 	  subsampleTest		\
 	  testIIDCcuda		\
 	  transposeTest

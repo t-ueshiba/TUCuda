@@ -2,7 +2,7 @@ SUBDIR	= boxFilterTest		\
 	  extremaTest		\
 	  filterTest		\
 	  gaussTest		\
-	  mapTest		\
+	  mappedMemoryTest	\
 	  op3x3Test		\
 	  stereoTest		\
 	  subsampleTest		\

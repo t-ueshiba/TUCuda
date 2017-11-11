@@ -22,8 +22,8 @@
 namespace TU
 {
 template <class T, class S> void
-cudaJob(const Array2<T>& imageL, const Array2<T>& imageR,
-	Array3<S>& scores, size_t winSize, size_t disparitySearchWidth)	;
+cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& scores,
+	size_t winSize, size_t disparitySearchWidth, size_t intensityDiffMax);
 
 /************************************************************************
 *  static functions							*
@@ -50,8 +50,8 @@ doJob(const Image<T>& imageL,
     
   // スコアを計算する．
     Array3<S>	scores;
-    cudaJob(rectifiedImageL, rectifiedImageR, scores,
-	    params.windowSize, params.disparitySearchWidth);
+    cudaJob(rectifiedImageL, rectifiedImageR, scores, params.windowSize,
+	    params.disparitySearchWidth, params.intensityDiffMax);
     
   // ステレオマッチングを行う．
     Image<S>	disparityMap(rectify.width(0), rectify.height(0));
@@ -81,18 +81,19 @@ main(int argc, char* argv[])
     using namespace	TU;
 
     using pixel_type	= u_char;
-  //using score_type	= short;
-    using score_type	= float;
+    using score_type	= u_short;
+  //using score_type	= float;
     
     std::string	paramFile		= DEFAULT_PARAM_FILE;
     std::string	configDirs		= DEFAULT_CONFIG_DIRS;
     size_t	windowSize		= 0;
     size_t	disparitySearchWidth	= 0;
     size_t	disparityMax		= 0;
+    size_t	intensityDiffMax	= 0;
     
   // コマンド行の解析．
     extern char*	optarg;
-    for (int c; (c = getopt(argc, argv, "p:c:w:d:m:")) != EOF; )
+    for (int c; (c = getopt(argc, argv, "p:c:w:d:m:i:")) != EOF; )
 	switch (c)
 	{
 	  case 'p':
@@ -110,6 +111,9 @@ main(int argc, char* argv[])
 	  case 'm':
 	    disparityMax = atoi(optarg);
 	    break;
+	  case 'i':
+	    intensityDiffMax = atoi(optarg);
+	    break;
 	}
     
   // 本当のお仕事．
@@ -125,7 +129,9 @@ main(int argc, char* argv[])
 	if (disparityMax != 0)
 	    params.disparityMax		= disparityMax;
 	if (disparitySearchWidth != 0)
-	    params.disparitySearchWidth = disparitySearchWidth;
+	    params.disparitySearchWidth	= disparitySearchWidth;
+	if (intensityDiffMax != 0)
+	    params.intensityDiffMax	= intensityDiffMax;
 
       // ステレオマッチングパラメータを表示．
 	std::cerr << "--- Stereo matching parameters ---\n";

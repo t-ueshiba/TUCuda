@@ -19,7 +19,7 @@ namespace cuda
 *  class BoxFilter2<T, WMAX>						*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T, size_t WMAX=32>
+template <class T, size_t WMAX=23>
 class BoxFilter2
 {
   public:

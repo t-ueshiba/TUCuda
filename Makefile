@@ -41,6 +41,7 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/algorithm.h \
 		TU/cuda/allocator.h \
 		TU/cuda/chrono.h \
+		TU/cuda/fp16.h \
 		TU/cuda/functional.h
 SRCS		= FIRFilter.cu \
 		FIRGaussianConvolver.cc \

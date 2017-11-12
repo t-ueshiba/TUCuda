@@ -1,6 +1,7 @@
 SUBDIR	= boxFilterTest		\
 	  extremaTest		\
 	  filterTest		\
+	  fp16Test		\
 	  gaussTest		\
 	  mappedMemoryTest	\
 	  op3x3Test		\

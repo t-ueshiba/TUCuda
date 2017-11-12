@@ -2,18 +2,9 @@
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <cstdlib>
-#include "TU/algorithm.h"
 #include "TU/io.h"
 #include "TU/Rectify.h"
 #include "TU/StereoUtility.h"
-#include "TU/Profiler.h"
-#if 1
-#  include "TU/cuda/BoxFilter.h"
-#else
-#  include "TU/cuda/NewBoxFilter.h"
-#endif
-#include "TU/cuda/functional.h"
-#include "TU/cuda/chrono.h"
 
 #define DEFAULT_PARAM_FILE	"stereo"
 #define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"
@@ -81,7 +72,7 @@ main(int argc, char* argv[])
     using namespace	TU;
 
     using pixel_type	= u_char;
-    using score_type	= u_short;
+    using score_type	= short;
   //using score_type	= float;
     
     std::string	paramFile		= DEFAULT_PARAM_FILE;

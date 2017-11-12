@@ -5,6 +5,7 @@
 #include "TU/cuda/BoxFilter.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
+#include "TU/cuda/fp16.h"
 
 namespace TU
 {
@@ -13,8 +14,8 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& scores,
 	size_t winSize, size_t disparitySearchWidth, size_t intensityDiffMax)
 {
   // スコアを計算する．
+    cuda::Array2<T>	imageL_d(imageL), imageR_d(imageR);
     cuda::BoxFilter2<S>	cudaFilter(winSize, winSize);
-    cuda::Array2<S>	imageL_d(imageL), imageR_d(imageR);
     cuda::Array3<S>	scores_d(32, imageL_d.nrow(), imageL_d.ncol(),
 				 disparitySearchWidth);
     cudaFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
@@ -35,12 +36,12 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& scores,
     }
     cudaProfiler.print(std::cerr);
 #endif
-    scores = scores_d;;
+    scores = scores_d;
 }
 
 template void
 cudaJob(const Array2<u_char>& imageL,
-	const Array2<u_char>& imageR, Array3<u_short>& out,
+	const Array2<u_char>& imageR, Array3<short>& out,
 	size_t winSize, size_t disparitySearchWidth, size_t intensityDiffMax);
     
 template void

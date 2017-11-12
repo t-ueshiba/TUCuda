@@ -82,7 +82,7 @@
 namespace thrust
 {
 /************************************************************************
-*  algorithms overloaded for thrust::pointer, thrust::const_pointer	*
+*  algorithms overloaded for thrust::device_ptr<T>			*
 ************************************************************************/
 template <size_t N, class S, class T> inline void
 copy(device_ptr<S> p, size_t n, device_ptr<T> q)

@@ -5,111 +5,48 @@
   \file		fp16.h
   \brief	半精度浮動小数点に燗する各種アルゴリズムの定義と実装
 
-  本ヘッダを使用する場合，nvccに -arch=sm_53 以上を，g++に -mf16c を与える．
+  本ヘッダを使用する場合，nvccに -arch=sm_53 以上を，g++に -mf16c を指定する．
 */ 
 #ifndef TU_CUDA_FP16_H
 #define TU_CUDA_FP16_H
 
-#include <cuda_fp16.h>
-#include <emmintrin.h>
-#include <boost/iterator/iterator_adaptor.hpp>
+#include <cuda_fp16.h>		// for __half
+#include <emmintrin.h>		// for _cvtss_sh() and _cvtsh_ss()
 #include <thrust/device_ptr.h>
+#include "TU/Array++.h"
 
 namespace TU
 {
-namespace cuda
-{
 /************************************************************************
-*  class to_half<T>							*
+*  struct to_half							*
 ************************************************************************/
-//! 指定された型から半精度浮動小数点数へ変換する反復子クラス
-/*!
-  \param T	変換元の型
-*/
-template <class T>
-class to_half : public boost::iterator_adaptor<to_half<T>,
-					       const T*,
-					       __half,
-					       boost::use_default,
-					       __half>
+//! 指定された型から半精度浮動小数点数へ変換する関数オブジェクト
+struct to_half
 {
-  private:
-    using	super = boost::iterator_adaptor<to_half,
-						const T*,
-						__half,
-						boost::use_default,
-						__half>;
-    friend	class boost::iterator_core_access;
-    
-  public:
-    using	typename super::reference;
-	
-  public:
-		to_half(const T* p)	:super(p)		{}
-
-  private:
-    reference	dereference() const
+    template <class T>
+    __half	operator ()(T x) const
 		{
-		    const auto	tmp = _cvtss_sh(*super::base(), 0);
-		    return *(reinterpret_cast<const __half*>(&tmp));
+		    const auto	y = _cvtss_sh(x, 0);
+		    return *(reinterpret_cast<const __half*>(&y));
 		}
 };
 
 /************************************************************************
-*  class from_half<T>							*
+*  struct from_half<T>							*
 ************************************************************************/
-namespace detail
-{
-  template <class T>
-  class from_half_proxy
-  {
-    public:
-      from_half_proxy(T* p)	:_p(p)				{}
-
-      from_half_proxy&
-      operator =(__half val)
-      {
-	  *_p = T(_cvtsh_ss(*reinterpret_cast<const unsigned short*>(&val)));
-	  return *this;
-      }
-
-    private:
-      T* const	_p;
-  };
-}	// namespace detail
-    
-//! 半精度浮動小数点数から指定された型へ変換する反復子クラス
+//! 半精度浮動小数点数から指定された型へ変換する関数オブジェクト
 /*!
   \param T	変換先の型
 */
 template <class T>
-class from_half
-    : public boost::iterator_adaptor<from_half<T>,
-				     T*,
-				     T,
-				     thrust::input_host_iterator_tag,
-				     detail::from_half_proxy<T> >
+struct from_half
 {
-  private:
-    using	super = boost::iterator_adaptor<
-				from_half,
-				T*,
-				T,
-				thrust::input_host_iterator_tag,
-				detail::from_half_proxy<T> >;
-    friend	class boost::iterator_core_access;
-    
-  public:
-    using	typename super::reference;
-
-  public:
-    from_half(T* p)	:super(p)	{}
-    
-  private:
-    reference	dereference()	const	{ return {super::base()}; }
+    T	operator ()(__half x) const
+	{
+	    return T(_cvtsh_ss(*reinterpret_cast<const unsigned short*>(&x)));
+	}
 };
 
-}	// namespace cuda
 }	// namespace TU
 
 namespace thrust
@@ -120,13 +57,21 @@ namespace thrust
 template <size_t N, class S> inline void
 copy(const S* p, size_t n, device_ptr<__half> q)
 {
-    copy_n(TU::cuda::to_half<S>(p), (N ? N : n), q);
+    copy_n(TU::make_map_iterator(TU::to_half(), p), (N ? N : n), q);
 }
 
 template <size_t N, class T> inline void
 copy(device_ptr<const __half> p, size_t n, T* q)
 {
-    copy_n(p, (N ? N : n), TU::cuda::from_half<T>(q));
+#if 0
+    copy_n(p, (N ? N : n),
+	   TU::make_assignment_iterator(q, TU::from_half<T>()));
+#else
+    TU::Array<__half, N>	tmp(n);
+    copy_n(p, (N ? N : n), tmp.begin());
+    std::copy_n(tmp.cbegin(), (N ? N : n),
+		TU::make_assignment_iterator(q, TU::from_half<T>()));
+#endif
 }
 
 }	// namespace thrust

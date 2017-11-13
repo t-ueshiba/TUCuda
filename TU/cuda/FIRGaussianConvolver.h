@@ -14,12 +14,20 @@ namespace TU
 {
 namespace cuda
 {
+namespace detail
+{
+  size_t	lobeSize(const float lobe[], bool even)			;
+}
 /************************************************************************
-*  class FIRGaussianConvolver2						*
+*  class FIRGaussianConvolver2<T>					*
 ************************************************************************/
 //! CUDAを用いてGauss核により2次元配列畳み込みを行うクラス
-class FIRGaussianConvolver2 : public FIRFilter2
+template <class T=float>
+class FIRGaussianConvolver2 : public FIRFilter2<T>
 {
+  private:
+    using super	= FIRFilter2<T>;
+    
   public:
     FIRGaussianConvolver2(float sigma=1.0)				;
 
@@ -42,10 +50,66 @@ class FIRGaussianConvolver2 : public FIRFilter2
 /*!
   \param sigma	Gauss核のスケール
 */
-inline
-FIRGaussianConvolver2::FIRGaussianConvolver2(float sigma)
+template <class T> inline
+FIRGaussianConvolver2<T>::FIRGaussianConvolver2(float sigma)
 {
     initialize(sigma);
+}
+
+//! Gauss核を初期化する
+/*!
+  \param sigma	Gauss核のスケール
+  \return	このGauss核
+*/
+template <class T>
+FIRGaussianConvolver2<T>&
+FIRGaussianConvolver2<T>::initialize(float sigma)
+{
+    using namespace	std;
+
+  // 0/1/2階微分のためのローブを計算する．
+    const size_t	sizMax = super::LobeSizeMax;
+    float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
+    for (size_t i = 0; i < sizMax; ++i)
+    {
+	float	dx = float(i) / sigma, dxdx = dx*dx;
+	
+	lobe0[i] = exp(-0.5f * dxdx);
+	lobe1[i] = -dx * lobe0[i];
+	lobe2[i] = (dxdx - 1.0f) * lobe0[i];
+    }
+
+  // 0階微分用のローブを正規化して格納する．
+    _lobe0.resize(detail::lobeSize(lobe0, true));
+    float	sum = lobe0[0];
+    for (size_t i = 1; i < _lobe0.size(); ++i)
+	sum += (2.0f * lobe0[i]);
+    for (size_t i = 0; i < _lobe0.size(); ++i)
+	_lobe0[i] = lobe0[_lobe0.size() - 1 - i] / abs(sum);
+
+  // 1階微分用のローブを正規化して格納する．
+    _lobe1.resize(detail::lobeSize(lobe1, false));
+    sum = 0.0f;
+    for (size_t i = 0; i < _lobe1.size(); ++i)
+	sum += (2.0f * i * lobe1[i]);
+    for (size_t i = 0; i < _lobe1.size(); ++i)
+	_lobe1[i] = lobe1[_lobe1.size() - i] / abs(sum);
+
+  // 2階微分用のローブを正規化して格納する．
+    _lobe2.resize(detail::lobeSize(lobe2, true));
+    sum = 0.0f;
+    for (size_t i = 1; i < _lobe2.size(); ++i)
+	sum += (i * i * lobe2[i]);
+    for (size_t i = 0; i < _lobe2.size(); ++i)
+	_lobe2[i] = lobe2[_lobe2.size() - 1 - i] / abs(sum);
+
+#ifdef _DEBUG
+    cerr << "lobe0: " << _lobe0;
+    cerr << "lobe1: " << _lobe1;
+    cerr << "lobe2: " << _lobe2;
+#endif
+    
+    return *this;
 }
 
 //! Gauss核によるスムーシング
@@ -54,10 +118,10 @@ FIRGaussianConvolver2::FIRGaussianConvolver2(float sigma)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::smooth(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による横方向1階微分(DOG)
@@ -66,10 +130,10 @@ FIRGaussianConvolver2::smooth(IN in, IN ie, OUT out)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::diffH(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe1, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe1, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による縦方向1階微分(DOG)
@@ -78,10 +142,10 @@ FIRGaussianConvolver2::diffH(IN in, IN ie, OUT out)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::diffV(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe1).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe1).convolve(in, ie, out);
 }
     
 //! Gauss核による横方向2階微分
@@ -90,10 +154,10 @@ FIRGaussianConvolver2::diffV(IN in, IN ie, OUT out)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::diffHH(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe2, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe2, _lobe0).convolve(in, ie, out);
 }
     
 //! Gauss核による縦横両方向2階微分
@@ -102,10 +166,10 @@ FIRGaussianConvolver2::diffHH(IN in, IN ie, OUT out)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::diffHV(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe1, _lobe1).convolve(in, ie, out);
+    super::initialize(_lobe1, _lobe1).convolve(in, ie, out);
 }
     
 //! Gauss核による縦方向2階微分
@@ -114,10 +178,10 @@ FIRGaussianConvolver2::diffHV(IN in, IN ie, OUT out)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> inline void
-FIRGaussianConvolver2::diffVV(IN in, IN ie, OUT out)
+template <class T> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<T>::diffVV(IN in, IN ie, OUT out)
 {
-    FIRFilter2::initialize(_lobe0, _lobe2).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe2).convolve(in, ie, out);
 }
     
 }

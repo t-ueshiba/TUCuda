@@ -12,15 +12,17 @@ namespace TU
 {
 namespace cuda
 {
+namespace detail
+{
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-static size_t
+size_t
 lobeSize(const float lobe[], bool even)
 {
     using namespace	std;
     
-    const size_t	sizMax  = FIRFilter2::LobeSizeMax;
+    const size_t	sizMax  = FIRFilter2_traits::LobeSizeMax;
     const float	epsilon = 0.01;			// 打ち切りのしきい値の比率
 
   // 打ち切りのしきい値を求める．
@@ -63,63 +65,6 @@ lobeSize(const float lobe[], bool even)
     }
 }
     
-/************************************************************************
-*  class FIRGaussianConvolver2						*
-************************************************************************/
-//! Gauss核を初期化する
-/*!
-  \param sigma	Gauss核のスケール
-  \return	このGauss核
-*/
-FIRGaussianConvolver2&
-FIRGaussianConvolver2::initialize(float sigma)
-{
-    using namespace	std;
-
-  // 0/1/2階微分のためのローブを計算する．
-    const size_t	sizMax = FIRFilter2::LobeSizeMax;
-    float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
-    for (size_t i = 0; i < sizMax; ++i)
-    {
-	float	dx = float(i) / sigma, dxdx = dx*dx;
-	
-	lobe0[i] = exp(-0.5f * dxdx);
-	lobe1[i] = -dx * lobe0[i];
-	lobe2[i] = (dxdx - 1.0f) * lobe0[i];
-    }
-
-  // 0階微分用のローブを正規化して格納する．
-    _lobe0.resize(lobeSize(lobe0, true));
-    float	sum = lobe0[0];
-    for (size_t i = 1; i < _lobe0.size(); ++i)
-	sum += (2.0f * lobe0[i]);
-    for (size_t i = 0; i < _lobe0.size(); ++i)
-	_lobe0[i] = lobe0[_lobe0.size() - 1 - i] / abs(sum);
-
-  // 1階微分用のローブを正規化して格納する．
-    _lobe1.resize(lobeSize(lobe1, false));
-    sum = 0.0f;
-    for (size_t i = 0; i < _lobe1.size(); ++i)
-	sum += (2.0f * i * lobe1[i]);
-    for (size_t i = 0; i < _lobe1.size(); ++i)
-	_lobe1[i] = lobe1[_lobe1.size() - i] / abs(sum);
-
-  // 2階微分用のローブを正規化して格納する．
-    _lobe2.resize(lobeSize(lobe2, true));
-    sum = 0.0f;
-    for (size_t i = 1; i < _lobe2.size(); ++i)
-	sum += (i * i * lobe2[i]);
-    for (size_t i = 0; i < _lobe2.size(); ++i)
-	_lobe2[i] = lobe2[_lobe2.size() - 1 - i] / abs(sum);
-
-#ifdef _DEBUG
-    cerr << "lobe0: " << _lobe0;
-    cerr << "lobe1: " << _lobe1;
-    cerr << "lobe2: " << _lobe2;
-#endif
-    
-    return *this;
-}
-    
-}
-}
+}	// namespace detail
+}	// namespace cuda
+}	// namespace TU

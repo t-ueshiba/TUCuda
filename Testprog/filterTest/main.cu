@@ -6,6 +6,7 @@
 #include "TU/Profiler.h"
 #include "TU/cuda/FIRFilter.h"
 #include "TU/cuda/chrono.h"
+#include "TU/cuda/vec.h"
 #include "filterImageGold.h"
 
 namespace TU
@@ -55,10 +56,15 @@ main(int argc, char *argv[])
 {
     using namespace	std;
     using namespace	TU;
-
+#if 0
     using in_t	= float;
+    using mid_t	= float;
     using out_t	= float;
-    
+#else
+    using in_t	= RGBA;
+    using mid_t = float4;
+    using out_t	= RGBA;
+#endif
     float		sigma	 = 1.0;
     u_int		lobeSize = 16;
     extern char*	optarg;
@@ -81,11 +87,11 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRFilter2	cudaFilter;
+	cuda::FIRFilter2<mid_t>	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
     
-	cuda::Array2<in_t>	in_d(in);
-	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
+	cuda::Array2<mid_t>	in_d(in);
+	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
 	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaThreadSynchronize();
 

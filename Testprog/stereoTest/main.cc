@@ -72,8 +72,8 @@ main(int argc, char* argv[])
     using namespace	TU;
 
     using pixel_type	= u_char;
-    using score_type	= short;
-  //using score_type	= float;
+  //using score_type	= short;
+    using score_type	= float;
     
     std::string	paramFile		= DEFAULT_PARAM_FILE;
     std::string	configDirs		= DEFAULT_CONFIG_DIRS;

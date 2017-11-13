@@ -28,10 +28,10 @@ template <class T>
 class Texture
 {
   public:
-    typedef T					value_type;
-    typedef CudaArray<T>			array_type;
-    typedef CudaArray2<T>			array2_type;
-    typedef textureReference			texref_type;
+    using value_type	= T;
+    using array_type	= Array<T>;
+    using array2_type	= Array2<T>;
+    using texref_type	= textureReference;
     
   public:
     template <enum cudaTextureReadMode M>
@@ -65,17 +65,16 @@ Texture<T>::Texture(const array_type& a, texture<T, 1, M>& texref,
 		    bool wrap, bool interpolate, bool normalized)
     :_texref(texref)
 {
-    using namespace	std;
-
-    _texref.addressMode[0] = (wrap ? cudaAddressModeWrap : cudaAddressModeClamp);
+    _texref.addressMode[0] = (wrap ? cudaAddressModeWrap
+				   : cudaAddressModeClamp);
     _texref.filterMode	   = (interpolate ? cudaFilterModeLinear
 					  : cudaFilterModePoint);
     _texref.normalized	   = normalized;
     
-    cudaError_t	err = cudaBindTexture(0, &_texref, (const T*)a,
+    const auto	err = cudaBindTexture(0, &_texref, a.data(),
 				      &_texref.channelDesc, a.size());
     if (err != cudaSuccess)
-	throw runtime_error("Texture::Texture(): failed to bind texture to the given 1D array!");
+	throw std::runtime_error("Texture::Texture(): failed to bind texture to the given 1D array!");
 }
 
 //! 2次元CUDA配列から2次元テクスチャを作る．
@@ -95,19 +94,19 @@ Texture<T>::Texture(const array2_type& a, texture<T, 2, M>& texref,
 		    bool wrap, bool interpolate, bool normalized)
     :_texref(texref)
 {
-    using namespace	std;
-    
-    _texref.addressMode[0] = (wrap ? cudaAddressModeWrap : cudaAddressModeClamp);
+    _texref.addressMode[0] = (wrap ? cudaAddressModeWrap
+				   : cudaAddressModeClamp);
     _texref.addressMode[1] = _texref.addressMode[0];
     _texref.filterMode	   = (interpolate ? cudaFilterModeLinear
 					  : cudaFilterModePoint);
     _texref.normalized	   = normalized;
     
-    cudaError_t	err = cudaBindTexture2D(0, &_texref, (const T*)a,
+    const auto	err = cudaBindTexture2D(0, &_texref, a.data(),
 					&_texref.channelDesc,
-					a.ncol(), a.nrow(), a.stride()*sizeof(T));
+					a.ncol(), a.nrow(),
+					a.stride()*sizeof(T));
     if (err != cudaSuccess)
-	throw runtime_error("Texture::Texture(): failed to bind texture to the given 2D array!");
+	throw std::runtime_error("Texture::Texture(): failed to bind texture to the given 2D array!");
 }
 
 //! テクスチャを破壊する．

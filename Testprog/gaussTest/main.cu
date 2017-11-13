@@ -84,7 +84,7 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRGaussianConvolver2	cudaFilter(sigma);
+	cuda::FIRGaussianConvolver2<>	cudaFilter(sigma);
 	cuda::Array2<in_t>		in_d(in);
 	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
 	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());

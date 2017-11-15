@@ -102,48 +102,48 @@ namespace detail
 			double		element_t(double1)	;
 			double		element_t(double2)	;
 
-  template <class T, size_t N>	struct vec_t;
+  template <class T, size_t N>	struct vec;
 
-  template <>	struct vec_t<int8_t,   1>	{ using type = char1;	};
-  template <>	struct vec_t<int8_t,   2>	{ using type = char2;	};
-  template <>	struct vec_t<int8_t,   3>	{ using type = char3;	};
-  template <>	struct vec_t<int8_t,   4>	{ using type = char4;	};
+  template <>		struct vec<int8_t,   1>	{ using type = char1;	};
+  template <>		struct vec<int8_t,   2>	{ using type = char2;	};
+  template <>		struct vec<int8_t,   3>	{ using type = char3;	};
+  template <>		struct vec<int8_t,   4>	{ using type = char4;	};
     
-  template <>	struct vec_t<uint8_t,  1>	{ using type = uchar1;	};
-  template <>	struct vec_t<uint8_t,  2>	{ using type = uchar2;	};
-  template <>	struct vec_t<uint8_t,  3>	{ using type = uchar3;	};
-  template <>	struct vec_t<uint8_t,  4>	{ using type = uchar4;	};
+  template <>		struct vec<uint8_t,  1>	{ using type = uchar1;	};
+  template <>		struct vec<uint8_t,  2>	{ using type = uchar2;	};
+  template <>		struct vec<uint8_t,  3>	{ using type = uchar3;	};
+  template <>		struct vec<uint8_t,  4>	{ using type = uchar4;	};
 
-  template <>	struct vec_t<int16_t,  1>	{ using type = short1;	};
-  template <>	struct vec_t<int16_t,  2>	{ using type = short2;	};
-  template <>	struct vec_t<int16_t,  3>	{ using type = short3;	};
-  template <>	struct vec_t<int16_t,  4>	{ using type = short4;	};
+  template <>		struct vec<int16_t,  1>	{ using type = short1;	};
+  template <>		struct vec<int16_t,  2>	{ using type = short2;	};
+  template <>		struct vec<int16_t,  3>	{ using type = short3;	};
+  template <>		struct vec<int16_t,  4>	{ using type = short4;	};
 
-  template <>	struct vec_t<uint16_t, 1>	{ using type = ushort1;	};
-  template <>	struct vec_t<uint16_t, 2>	{ using type = ushort2;	};
-  template <>	struct vec_t<uint16_t, 3>	{ using type = ushort3;	};
-  template <>	struct vec_t<uint16_t, 4>	{ using type = ushort4;	};
+  template <>		struct vec<uint16_t, 1>	{ using type = ushort1;	};
+  template <>		struct vec<uint16_t, 2>	{ using type = ushort2;	};
+  template <>		struct vec<uint16_t, 3>	{ using type = ushort3;	};
+  template <>		struct vec<uint16_t, 4>	{ using type = ushort4;	};
 
-  template <>	struct vec_t<int32_t,  1>	{ using type = int1;	};
-  template <>	struct vec_t<int32_t,  2>	{ using type = int2;	};
-  template <>	struct vec_t<int32_t,  3>	{ using type = int3;	};
-  template <>	struct vec_t<int32_t,  4>	{ using type = int4;	};
+  template <>		struct vec<int32_t,  1>	{ using type = int1;	};
+  template <>		struct vec<int32_t,  2>	{ using type = int2;	};
+  template <>		struct vec<int32_t,  3>	{ using type = int3;	};
+  template <>		struct vec<int32_t,  4>	{ using type = int4;	};
 
-  template <>	struct vec_t<uint32_t, 1>	{ using type = uint1;	};
-  template <>	struct vec_t<uint32_t, 2>	{ using type = uint2;	};
-  template <>	struct vec_t<uint32_t, 3>	{ using type = uint3;	};
-  template <>	struct vec_t<uint32_t, 4>	{ using type = uint4;	};
+  template <>		struct vec<uint32_t, 1>	{ using type = uint1;	};
+  template <>		struct vec<uint32_t, 2>	{ using type = uint2;	};
+  template <>		struct vec<uint32_t, 3>	{ using type = uint3;	};
+  template <>		struct vec<uint32_t, 4>	{ using type = uint4;	};
 
-  template <>	struct vec_t<float,    1>	{ using type = float1;	};
-  template <>	struct vec_t<float,    2>	{ using type = float2;	};
-  template <>	struct vec_t<float,    3>	{ using type = float3;	};
-  template <>	struct vec_t<float,    4>	{ using type = float4;	};
+  template <>		struct vec<float,    1>	{ using type = float1;	};
+  template <>		struct vec<float,    2>	{ using type = float2;	};
+  template <>		struct vec<float,    3>	{ using type = float3;	};
+  template <>		struct vec<float,    4>	{ using type = float4;	};
 
-  template <>	struct vec_t<int64_t,  1>	{ using type = longlong1; };
-  template <>	struct vec_t<int64_t,  2>	{ using type = longlong2; };
+  template <>		struct vec<int64_t,  1>	{ using type = longlong1; };
+  template <>		struct vec<int64_t,  2>	{ using type = longlong2; };
 
-  template <>	struct vec_t<double,   1>	{ using type = double1;	};
-  template <>	struct vec_t<double,   2>	{ using type = double2;	};
+  template <>		struct vec<double,   1>	{ using type = double1;	};
+  template <>		struct vec<double,   2>	{ using type = double2;	};
 }	// namespace detail
     
 template <class VEC>
@@ -153,7 +153,7 @@ template <class VEC>
 constexpr static size_t	size()	{ return detail::size<std::decay_t<VEC> >(); }
 
 template <class T, size_t N>
-using vec	= typename detail::vec_t<T, N>::type;
+using vec	= typename detail::vec<T, N>::type;
 }	// namespace cuda
 }	// namespace TU
 

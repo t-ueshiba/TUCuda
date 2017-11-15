@@ -37,7 +37,6 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/BoxFilter.h \
 		TU/cuda/FIRFilter.h \
 		TU/cuda/FIRGaussianConvolver.h \
-		TU/cuda/Image++.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
 		TU/cuda/allocator.h \

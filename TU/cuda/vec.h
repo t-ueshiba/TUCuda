@@ -7,125 +7,100 @@
 #define TU_CUDA_VEC_H
 
 #include <cstdint>
-#include "TU/Image++.h"
+#include <thrust/device_ptr.h>
+#include "TU/Image++.h"		// for TU::RGB_<E>
 
 namespace TU
 {
+namespace cuda
+{
 namespace detail
 {
-  template <class VEC>	struct vec_traits;
+  template <class VEC>	constexpr size_t	size()		{ return 1; }
 
-  template <>		struct vec_traits<char2>
-			{
-			    using element_type =	int8_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<char3>
-			{
-			    using element_type =	int8_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<char4>
-			{
-			    using element_type =	int8_t;
-			    constexpr static size_t	size = 4;
-			};
+  template <>		constexpr size_t	size<char1>()	{ return 1; }
+  template <>		constexpr size_t	size<char2>()	{ return 2; }
+  template <>		constexpr size_t	size<char3>()	{ return 3; }
+  template <>		constexpr size_t	size<char4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<uchar1>()	{ return 1; }
+  template <>		constexpr size_t	size<uchar2>()	{ return 2; }
+  template <>		constexpr size_t	size<uchar3>()	{ return 3; }
+  template <>		constexpr size_t	size<uchar4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<short1>()	{ return 1; }
+  template <>		constexpr size_t	size<short2>()	{ return 2; }
+  template <>		constexpr size_t	size<short3>()	{ return 3; }
+  template <>		constexpr size_t	size<short4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<ushort1>()	{ return 1; }
+  template <>		constexpr size_t	size<ushort2>()	{ return 2; }
+  template <>		constexpr size_t	size<ushort3>()	{ return 3; }
+  template <>		constexpr size_t	size<ushort4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<int1>()	{ return 1; }
+  template <>		constexpr size_t	size<int2>()	{ return 2; }
+  template <>		constexpr size_t	size<int3>()	{ return 3; }
+  template <>		constexpr size_t	size<int4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<uint1>()	{ return 1; }
+  template <>		constexpr size_t	size<uint2>()	{ return 2; }
+  template <>		constexpr size_t	size<uint3>()	{ return 3; }
+  template <>		constexpr size_t	size<uint4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<float1>()	{ return 1; }
+  template <>		constexpr size_t	size<float2>()	{ return 2; }
+  template <>		constexpr size_t	size<float3>()	{ return 3; }
+  template <>		constexpr size_t	size<float4>()	{ return 4; }
+    
+  template <>		constexpr size_t	size<longlong1>() { return 1; }
+  template <>		constexpr size_t	size<longlong2>() { return 2; }
+    
+  template <>		constexpr size_t	size<double1>()	{ return 1; }
+  template <>		constexpr size_t	size<double2>()	{ return 2; }
 
-  template <>		struct vec_traits<uchar2>
-			{
-			    using element_type =	uint8_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<uchar3>
-			{
-			    using element_type =	uint8_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<uchar4>
-			{
-			    using element_type =	uint8_t;
-			    constexpr static size_t	size = 4;
-			};
+  template <class VEC>	VEC		element_t(VEC)		;
 
-  template <>		struct vec_traits<short2>
-			{
-			    using element_type =	int16_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<short3>
-			{
-			    using element_type =	int16_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<short4>
-			{
-			    using element_type =	int16_t;
-			    constexpr static size_t	size = 4;
-			};
+			int8_t		element_t(char1)	;
+			int8_t		element_t(char2)	;
+			int8_t		element_t(char3)	;
+			int8_t		element_t(char4)	;
 
-  template <>		struct vec_traits<ushort2>
-			{
-			    using element_type =	uint16_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<ushort3>
-			{
-			    using element_type =	uint16_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<ushort4>
-			{
-			    using element_type =	uint16_t;
-			    constexpr static size_t	size = 4;
-			};
+			uint8_t		element_t(uchar1)	;
+			uint8_t		element_t(uchar2)	;
+			uint8_t		element_t(uchar3)	;
+			uint8_t		element_t(uchar4)	;
 
-  template <>		struct vec_traits<int2>
-			{
-			    using element_type =	int32_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<int3>
-			{
-			    using element_type =	int32_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<int4>
-			{
-			    using element_type =	int32_t;
-			    constexpr static size_t	size = 4;
-			};
+			int16_t		element_t(short1)	;
+			int16_t		element_t(short2)	;
+			int16_t		element_t(short3)	;
+			int16_t		element_t(short4)	;
 
-  template <>		struct vec_traits<uint2>
-			{
-			    using element_type =	uint32_t;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<uint3>
-			{
-			    using element_type =	uint32_t;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<uint4>
-			{
-			    using element_type =	uint32_t;
-			    constexpr static size_t	size = 4;
-			};
+			uint16_t	element_t(ushort1)	;
+			uint16_t	element_t(ushort2)	;
+			uint16_t	element_t(ushort3)	;
+			uint16_t	element_t(ushort4)	;
 
-  template <>		struct vec_traits<float2>
-			{
-			    using element_type =	float;
-			    constexpr static size_t	size = 2;
-			};
-  template <>		struct vec_traits<float3>
-			{
-			    using element_type =	float;
-			    constexpr static size_t	size = 3;
-			};
-  template <>		struct vec_traits<float4>
-			{
-			    using element_type =	float;
-			    constexpr static size_t	size = 4;
-			};
+			int32_t		element_t(int1)		;
+			int32_t		element_t(int2)		;
+			int32_t		element_t(int3)		;
+			int32_t		element_t(int4)		;
+
+			uint32_t	element_t(uint1)	;
+			uint32_t	element_t(uint2)	;
+			uint32_t	element_t(uint3)	;
+			uint32_t	element_t(uint4)	;
+
+			float		element_t(float1)	;
+			float		element_t(float2)	;
+			float		element_t(float3)	;
+			float		element_t(float4)	;
+    
+			int64_t		element_t(longlong1)	;
+			int64_t		element_t(longlong2)	;
+
+			double		element_t(double1)	;
+			double		element_t(double2)	;
 
   template <class T, size_t N>	struct vec_t;
 
@@ -159,24 +134,27 @@ namespace detail
   template <>	struct vec_t<uint32_t, 3>	{ using type = uint3;	};
   template <>	struct vec_t<uint32_t, 4>	{ using type = uint4;	};
 
-  template <>	struct vec_t<int64_t,  1>	{ using type = longlong1; };
-  template <>	struct vec_t<int64_t,  2>	{ using type = longlong2; };
-
   template <>	struct vec_t<float,    1>	{ using type = float1;	};
   template <>	struct vec_t<float,    2>	{ using type = float2;	};
   template <>	struct vec_t<float,    3>	{ using type = float3;	};
   template <>	struct vec_t<float,    4>	{ using type = float4;	};
 
+  template <>	struct vec_t<int64_t,  1>	{ using type = longlong1; };
+  template <>	struct vec_t<int64_t,  2>	{ using type = longlong2; };
+
   template <>	struct vec_t<double,   1>	{ using type = double1;	};
   template <>	struct vec_t<double,   2>	{ using type = double2;	};
 }	// namespace detail
-
-namespace cuda
-{
-  template <class T, size_t N>
-  using	vec = typename TU::detail::vec_t<T, N>::type;
-}	// namespace cuda
     
+template <class VEC>
+using element_t	= decltype(detail::element_t(std::declval<VEC>()));
+    
+template <class VEC>
+constexpr static size_t	size()	{ return detail::size<std::decay_t<VEC> >(); }
+
+template <class T, size_t N>
+using vec	= typename detail::vec_t<T, N>::type;
+}	// namespace cuda
 }	// namespace TU
 
 #if defined(__NVCC__)
@@ -184,8 +162,8 @@ namespace cuda
 *  2-dimensional vectors						*
 ************************************************************************/
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC&>
-operator +=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC&>
+operator +=(VEC& a, const VEC& b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -193,26 +171,26 @@ operator +=(VEC& a, VEC b)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC&>
-operator -=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC&>
+operator -=(VEC& a, const VEC& b)
 {
     a.x -= b.x;
     a.y -= b.y;
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC&>
-operator *=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC&>
+operator *=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x *= c;
     a.y *= c;
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC&>
-operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC&>
+operator /=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x /= c;
     a.y /= c;
@@ -220,50 +198,50 @@ operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator +(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator +(const VEC& a, const VEC& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator -(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator -(const VEC& a, const VEC& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator *(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator *(const VEC& a, const VEC& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator /(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator /(const VEC& a, const VEC& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator *(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator *(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x * c, a.y * c};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator *(typename TU::detail::vec_traits<VEC>::element_type c, VEC a)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator *(TU::cuda::element_t<VEC> c, const VEC& a)
 {
     return {c * a.x, c * a.y};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, VEC>
-operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 2, VEC>
+operator /(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x / c, a.y / c};
 }
@@ -272,8 +250,8 @@ operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
 *  3-dimensional vectors						*
 ************************************************************************/
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC&>
-operator +=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC&>
+operator +=(VEC& a, const VEC& b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -282,8 +260,8 @@ operator +=(VEC& a, VEC b)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC&>
-operator -=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC&>
+operator -=(VEC& a, const VEC& b)
 {
     a.x -= b.x;
     a.y -= b.y;
@@ -291,9 +269,9 @@ operator -=(VEC& a, VEC b)
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC&>
-operator *=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC&>
+operator *=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x *= c;
     a.y *= c;
@@ -301,9 +279,9 @@ operator *=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC&>
-operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC&>
+operator /=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x /= c;
     a.y /= c;
@@ -312,50 +290,50 @@ operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator +(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator +(const VEC& a, const VEC& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator -(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator -(const VEC& a, const VEC& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator *(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator *(const VEC& a, const VEC& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator /(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator /(const VEC& a, const VEC& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator *(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator *(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator *(typename TU::detail::vec_traits<VEC>::element_type c, VEC a)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator *(TU::cuda::element_t<VEC> c, const VEC& a)
 {
     return {c * a.x, c * a.y, c * a.z};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, VEC>
-operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
+operator /(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x / c, a.y / c, a.z / c};
 }
@@ -364,8 +342,8 @@ operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
 *  4-dimensional vectors						*
 ************************************************************************/
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC&>
-operator +=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC&>
+operator +=(VEC& a, const VEC& b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -375,8 +353,8 @@ operator +=(VEC& a, VEC b)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC&>
-operator -=(VEC& a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC&>
+operator -=(VEC& a, const VEC& b)
 {
     a.x -= b.x;
     a.y -= b.y;
@@ -385,9 +363,9 @@ operator -=(VEC& a, VEC b)
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC&>
-operator *=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC&>
+operator *=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x *= c;
     a.y *= c;
@@ -396,9 +374,9 @@ operator *=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
     return a;
 }
     
-template <class VEC, class T> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC&>
-operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC&>
+operator /=(VEC& a, TU::cuda::element_t<VEC> c)
 {
     a.x /= c;
     a.y /= c;
@@ -408,50 +386,50 @@ operator /=(VEC& a, typename TU::detail::vec_traits<VEC>::element_type c)
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator +(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator +(const VEC& a, const VEC& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator -(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator -(const VEC& a, const VEC& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator *(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator *(const VEC& a, const VEC& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator /(VEC a, VEC b)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator /(const VEC& a, const VEC& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator *(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator *(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator *(typename TU::detail::vec_traits<VEC>::element_type c, VEC a)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator *(TU::cuda::element_t<VEC> c, const VEC& a)
 {
     return {c * a.x, c * a.y, c * a.z, c * a.w};
 }
     
 template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, VEC>
-operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
+std::enable_if_t<TU::cuda::size<VEC>() == 4, VEC>
+operator /(const VEC& a, TU::cuda::element_t<VEC> c)
 {
     return {a.x / c, a.y / c, a.z / c, a.w / c};
 }
@@ -460,21 +438,21 @@ operator /(VEC a, typename TU::detail::vec_traits<VEC>::element_type c)
 *  Output functions							*
 ************************************************************************/
 template <class VEC>
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 2, std::ostream&>
+std::enable_if_t<TU::cuda::size<VEC>() == 2, std::ostream&>
 operator <<(std::ostream& out, const VEC& a)
 {
     return out << '[' << a.x << ' ' << a.y << ']';
 }
 
 template <class VEC>
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 3, std::ostream&>
+std::enable_if_t<TU::cuda::size<VEC>() == 3, std::ostream&>
 operator <<(std::ostream& out, const VEC& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ']';
 }
 
 template <class VEC>
-std::enable_if_t<TU::detail::vec_traits<VEC>::size == 4, std::ostream&>
+std::enable_if_t<TU::cuda::size<VEC>() == 4, std::ostream&>
 operator <<(std::ostream& out, const VEC& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
@@ -496,7 +474,7 @@ struct color_to_vec
     std::enable_if_t<E_::size == 3, VEC>
     	operator ()(const RGB_<E_>& rgb) const
 	{
-	    using elm_t	= typename detail::vec_traits<VEC>::element_type;
+	    using elm_t	= cuda::element_t<VEC>;
 	    
 	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b)};
 	}
@@ -504,35 +482,35 @@ struct color_to_vec
     std::enable_if_t<E_::size == 4, VEC>
     	operator ()(const RGB_<E_>& rgb) const
 	{
-	    using elm_t	= typename detail::vec_traits<VEC>::element_type;
+	    using elm_t	= cuda::element_t<VEC>;
 	    
 	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(rgb.a)};
 	}
 };
 
 /************************************************************************
-*  struct vec_to_color<E>						*
+*  struct vec_to_color<COLOR>						*
 ************************************************************************/
 //! CUDAベクトルをカラー画素へ変換する関数オブジェクト
 /*!
-  \param E	変換先のカラー画素の型
+  \param COLOR	変換先のカラー画素の型
 */
-template <class E>
+template <class COLOR>
 struct vec_to_color
 {
     template <class VEC_>
-    std::enable_if_t<detail::vec_traits<VEC_>::size == 3, RGB_<E> >
+    std::enable_if_t<cuda::size<VEC_>() == 3, COLOR>
 	operator ()(const VEC_& v) const
 	{
-	    using elm_t = typename RGB_<E>::element_type;
+	    using elm_t	= typename COLOR::element_type;
 	    
 	    return {elm_t(v.x), elm_t(v.y), elm_t(v.z)};
 	}
     template <class VEC_>
-    std::enable_if_t<detail::vec_traits<VEC_>::size == 4, RGB_<E> >
+    std::enable_if_t<cuda::size<VEC_>() == 4, COLOR>
     	operator ()(const VEC_& v) const
 	{
-	    using elm_t = typename RGB_<E>::element_type;
+	    using elm_t	= typename COLOR::element_type;
 	    
 	    return {elm_t(v.x), elm_t(v.y), elm_t(v.z), elm_t(v.w)};
 	}
@@ -556,12 +534,13 @@ copy(device_ptr<const VEC> p, size_t n, TU::RGB_<E>* q)
 {
 #if 0
     copy_n(p, (N ? N : n),
-	   TU::make_assignment_iterator(q, TU::vec_to_color<E>()));
+	   TU::make_assignment_iterator(q, TU::vec_to_color<TU::RGB_<E> >()));
 #else
     TU::Array<VEC, N>	tmp(n);
     copy_n(p, (N ? N : n), tmp.begin());
     std::copy_n(tmp.cbegin(), (N ? N : n),
-		TU::make_assignment_iterator(q, TU::vec_to_color<E>()));
+		TU::make_assignment_iterator(
+		    q, TU::vec_to_color<TU::RGB_<E> >()));
 #endif
 }
 

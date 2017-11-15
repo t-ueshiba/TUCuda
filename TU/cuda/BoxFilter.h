@@ -69,6 +69,28 @@ class BoxFilter2
 		    return *this;
 		}
     
+  //! 与えられた行幅(高さ)を持つ入力データ列に対する出力データ列の行幅を返す．
+  /*!
+    \param inRowLength	入力データ列の行幅
+    \return		出力データ列の行幅
+   */
+    size_t	outRowLength(size_t inRowLength) const
+		{
+		    return inRowLength + 1 - rowWinSize();
+		}
+    
+  //! 与えられた列幅(幅)を持つ入力データ列に対する出力データ列の列幅を返す．
+  /*!
+    \param inColLength	入力データ列の列幅
+    \return		出力データ列の列幅
+   */
+    size_t	outColLength(size_t inColLength) const
+		{
+		    return inColLength + 1 - colWinSize();
+		}
+
+    size_t	overlap()	const	{ return rowWinSize() - 1; }
+
   //! 与えられた2次元配列とこのフィルタの畳み込みを行う
   /*!
     \param row	入力2次元データ配列の先頭行を指す反復子
@@ -119,15 +141,13 @@ namespace device
   \param strideI	入力2次元配列の行を1つ進めるためにインクリメントするべき要素数
   \param strideO	出力2次元配列の行を1つ進めるためにインクリメントするべき要素数
 */
-template <size_t WMAX, class COL, class COL_O> __global__ static void
+template <class T, size_t WMAX, class COL, class COL_O> __global__ static void
 box_filter(COL col, COL_O colO, int winSize, int strideI, int strideO)
 {
-    using	value_type = typename std::iterator_traits<COL_O>::value_type;
-    
-    constexpr auto	BlockDim = BoxFilter2<value_type, WMAX>::BlockDim;
+    constexpr auto	BlockDim = BoxFilter2<T, WMAX>::BlockDim;
 
-    __shared__ value_type	in_s[BlockDim + WMAX - 1][BlockDim + 1];
-    __shared__ value_type	out_s[BlockDim][BlockDim + 1];
+    __shared__ T	in_s[BlockDim + WMAX - 1][BlockDim + 1];
+    __shared__ T	out_s[BlockDim][BlockDim + 1];
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
@@ -158,16 +178,15 @@ box_filter(COL col, COL_O colO, int winSize, int strideI, int strideO)
 	    out_s[threadIdx.y][threadIdx.x];
 }
 
-template <size_t WMAX, class COL, class COL_O, class OP> __global__ static void
+template <class T, size_t WMAX, class COL, class COL_O, class OP>
+__global__ static void
 box_filterV(COL colL, COL colR, int nrows, COL_O colO, OP op, int rowWinSize,
 	    int strideL, int strideR, int strideD, int strideXD)
 {
-    using	value_type = typename std::iterator_traits<COL_O>::value_type;
+    constexpr auto	BlockDimX = BoxFilter2<T, WMAX>::BlockDimX;
+    constexpr auto	BlockDimY = BoxFilter2<T, WMAX>::BlockDimY;
 
-    constexpr auto	BlockDimX = BoxFilter2<value_type, WMAX>::BlockDimX;
-    constexpr auto	BlockDimY = BoxFilter2<value_type, WMAX>::BlockDimY;
-
-    __shared__ value_type	val_s[WMAX][BlockDimY][BlockDimX + 1];
+    __shared__ T	val_s[WMAX][BlockDimY][BlockDimX + 1];
 
     const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
     const auto	x = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 列
@@ -201,15 +220,13 @@ box_filterV(COL colL, COL colR, int nrows, COL_O colO, OP op, int rowWinSize,
     }
 }
 
-template <size_t WMAX, class COL> __global__ static void
+template <class T, size_t WMAX, class COL> __global__ static void
 box_filterH(COL col, int ncols, int colWinSize, int strideXD, int strideD)
 {
-    using	value_type = typename std::iterator_traits<COL>::value_type;
-
-    constexpr auto	BlockDimX = BoxFilter2<value_type, WMAX>::BlockDimX;
-    constexpr auto	BlockDimY = BoxFilter2<value_type, WMAX>::BlockDimY;
+    constexpr auto	BlockDimX = BoxFilter2<T, WMAX>::BlockDimX;
+    constexpr auto	BlockDimY = BoxFilter2<T, WMAX>::BlockDimY;
     
-    __shared__ value_type	val_s[WMAX][BlockDimY][BlockDimX + 1];
+    __shared__ T	val_s[WMAX][BlockDimY][BlockDimX + 1];
 
     const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
     const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 行
@@ -259,18 +276,20 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
   // 左上
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
-    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get(),
-						  _buf[0].begin().get(),
-						  _rowWinSize,
-						  strideI, strideB);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						std::cbegin(*row).get(),
+						_buf[0].begin().get(),
+						_rowWinSize,
+						strideI, strideB);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncols - x;
     blocks.x  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get() + x,
-						  _buf[x].begin().get(),
-						  _rowWinSize,
-						  strideI, strideB);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						std::cbegin(*row).get() + x,
+						_buf[x].begin().get(),
+						_rowWinSize,
+						strideI, strideB);
   // 左下
     auto	y = blocks.y*threads.y;
     std::advance(row, y);
@@ -278,17 +297,19 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.x  = ncols/threads.x;
     threads.y = nrows - y;
     blocks.y  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get(),
-						  _buf[0].begin().get() + y,
-						  _rowWinSize,
-						  strideI, strideB);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						std::cbegin(*row).get(),
+						_buf[0].begin().get() + y,
+						_rowWinSize,
+						strideI, strideB);
   // 右下
     threads.x = ncols - x;
     blocks.x  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(std::cbegin(*row).get() + x,
-						  _buf[x].begin().get() + y,
-						  _rowWinSize,
-						  strideI, strideB);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						std::cbegin(*row).get() + x,
+						_buf[x].begin().get() + y,
+						_rowWinSize,
+						strideI, strideB);
 
   // ---- 横方向積算 ----
     nrows -= (_rowWinSize - 1);
@@ -297,17 +318,19 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.x  = nrows/threads.x;
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
-    device::box_filter<WMAX><<<blocks, threads>>>(_buf[0].cbegin().get(),
-						  std::begin(*rowO).get(),
-						  _colWinSize,
-						  strideB, strideO);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						_buf[0].cbegin().get(),
+						std::begin(*rowO).get(),
+						_colWinSize,
+						strideB, strideO);
   // 左下
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(_buf[x].cbegin().get(),
-						  std::begin(*rowO).get() + x,
-						  _colWinSize,
-						  strideB, strideO);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						_buf[x].cbegin().get(),
+						std::begin(*rowO).get() + x,
+						_colWinSize,
+						strideB, strideO);
   // 右上
     y	      = blocks.x*threads.x;
     std::advance(rowO, y);
@@ -315,17 +338,19 @@ BoxFilter2<T, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.x  = 1;
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
-    device::box_filter<WMAX><<<blocks, threads>>>(_buf[0].cbegin().get() + y,
-						  std::begin(*rowO).get(),
-						  _colWinSize,
-						  strideB, strideO);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						_buf[0].cbegin().get() + y,
+						std::begin(*rowO).get(),
+						_colWinSize,
+						strideB, strideO);
   // 右下
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filter<WMAX><<<blocks, threads>>>(_buf[x].cbegin().get() + y,
-						  std::begin(*rowO).get() + x,
-						  _colWinSize,
-						  strideB, strideO);
+    device::box_filter<T, WMAX><<<blocks, threads>>>(
+						_buf[x].cbegin().get() + y,
+						std::begin(*rowO).get() + x,
+						_colWinSize,
+						strideB, strideO);
 }
 
 template <class T, size_t WMAX>
@@ -351,7 +376,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
   // 視差左半かつ画像左半
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(disparitySearchWidth/threads.x, ncols/threads.y);
-    device::box_filterV<WMAX><<<blocks, threads>>>(
+    device::box_filterV<T, WMAX><<<blocks, threads>>>(
 					std::cbegin(*rowL).get(),
 					std::cbegin(*rowR).get(),
 					nrows,
@@ -362,7 +387,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     const auto	x = blocks.y*threads.y;
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filterV<WMAX><<<blocks, threads>>>(
+    device::box_filterV<T, WMAX><<<blocks, threads>>>(
 					std::cbegin(*rowL).get() + x,
 					std::cbegin(*rowR).get() + x,
 					nrows,
@@ -375,7 +400,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     blocks.x  = 1;
     threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
-    device::box_filterV<WMAX><<<blocks, threads>>>(
+    device::box_filterV<T, WMAX><<<blocks, threads>>>(
 					std::cbegin(*rowL).get(),
 					std::cbegin(*rowR).get() + d,
 					nrows,
@@ -385,7 +410,7 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
   // 視差右半かつ画像右半
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filterV<WMAX><<<blocks, threads>>>(
+    device::box_filterV<T, WMAX><<<blocks, threads>>>(
 					std::cbegin(*rowL).get() + x,
 					std::cbegin(*rowR).get() + x + d,
 					nrows,
@@ -399,14 +424,14 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     threads.y = BlockDimY;
     blocks.x = disparitySearchWidth/threads.x;
     blocks.y = nrows/threads.y;
-    device::box_filterH<WMAX><<<blocks, threads>>>(
+    device::box_filterH<T, WMAX><<<blocks, threads>>>(
 					rowO->begin()->begin().get(),
 					ncols, _colWinSize, strideXD, strideD);
   // 視差左半かつ画像下半
     const auto	y = blocks.y*threads.y;
     threads.y = nrows - y;
     blocks.y  = 1;
-    device::box_filterH<WMAX><<<blocks, threads>>>(
+    device::box_filterH<T, WMAX><<<blocks, threads>>>(
 					(rowO + y)->begin()->begin().get(),
 					ncols, _colWinSize, strideXD, strideD);
   // 視差右半かつ画像上半
@@ -414,13 +439,13 @@ BoxFilter2<T, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     blocks.x  = 1;
     threads.y = BlockDimY;
     blocks.y  = nrows/threads.y;
-    device::box_filterH<WMAX><<<blocks, threads>>>(
+    device::box_filterH<T, WMAX><<<blocks, threads>>>(
 					rowO->begin()->begin().get() + d,
 					ncols, _colWinSize, strideXD, strideD);
   // 視差右半かつ画像下半
     threads.y = nrows - y;
     blocks.y  = 1;
-    device::box_filterH<WMAX><<<blocks, threads>>>(
+    device::box_filterH<T, WMAX><<<blocks, threads>>>(
 					(rowO + y)->begin()->begin().get() + d,
 					ncols, _colWinSize, strideXD, strideD);
 }

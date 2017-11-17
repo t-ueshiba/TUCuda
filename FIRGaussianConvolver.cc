@@ -22,7 +22,7 @@ lobeSize(const float lobe[], bool even)
 {
     using namespace	std;
     
-    const size_t	sizMax  = FIRFilter2_traits::LobeSizeMax;
+    const size_t	sizMax  = FIRFilter2<>::LobeSizeMax;
     const float	epsilon = 0.01;			// 打ち切りのしきい値の比率
 
   // 打ち切りのしきい値を求める．

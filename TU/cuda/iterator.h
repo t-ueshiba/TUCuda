@@ -49,6 +49,7 @@ class map_iterator
     using	typename super::reference;
 	
   public:
+    __host__ __device__
 		map_iterator(FUNC func, const ITER&... iter)
 		    :super(thrust::tuple<ITER...>(iter...)), _func(func)
 		{
@@ -72,7 +73,7 @@ class map_iterator
 };
 
 template <class FUNC, class... ITER>
-inline map_iterator<FUNC, ITER...>
+__host__ __device__ inline map_iterator<FUNC, ITER...>
 make_map_iterator(FUNC func, const ITER&... iter)
 {
     return {func, iter...};
@@ -197,6 +198,7 @@ class assignment_iterator
     using	typename super::difference_type;
 
   public:
+    __host__ __device__
     assignment_iterator(const ITER& iter, const FUNC& func=FUNC())
 	:super(iter), _func(func)	{}
 
@@ -211,7 +213,8 @@ class assignment_iterator
 };
 #endif	// __NVCC__
     
-template <class FUNC, class ITER> inline assignment_iterator<FUNC, ITER>
+template <class FUNC, class ITER>
+__host__ __device__ inline assignment_iterator<FUNC, ITER>
 make_assignment_iterator(const ITER& iter, const FUNC& func=FUNC())
 {
     return {iter, func};

@@ -9,6 +9,7 @@
 #include "TU/cuda/functional.h"
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/chrono.h"
+#include <thrust/system/cuda/experimental/pinned_allocator.h>
 
 //#define OP	cuda::det3x3
 //#define OP	cuda::laplacian3x3
@@ -29,6 +30,11 @@ range_print(const E& expr)
     std::cout << std::endl;
 }
 #endif
+
+template <class T>
+//using allocator_t = cuda::mapped_allocator<T>;
+using allocator_t = thrust::system::cuda::experimental::pinned_allocator<T>;
+    
 }
 
 /************************************************************************
@@ -49,13 +55,12 @@ main(int argc, char *argv[])
     {
 	cudaSetDeviceFlags(cudaDeviceMapHost);
 
-	Image<in_t, cuda::mapped_allocator<in_t> >	in;
+	Image<in_t, allocator_t<in_t> >	in;
 	in.restore(cin);				// 原画像を読み込む
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	Image<out_t, cuda::mapped_allocator<out_t> >	out(in.width(),
-							    in.height());
+	Image<out_t, allocator_t<out_t> >	out(in.width(), in.height());
 	cuda::op3x3(in.cbegin(), in.cend(), out.begin(), OP<in_t>());
 	cudaThreadSynchronize();
 

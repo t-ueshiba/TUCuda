@@ -10,7 +10,7 @@
 
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
-#include <boost/operators.hpp>
+#include <thrust/device_ptr.h>
 
 namespace TU
 {
@@ -33,6 +33,9 @@ class allocator
 
     template <class T_>	struct rebind	{ using other = allocator<T_>; };
 
+  public:
+    constexpr static size_t	Alignment = 256;
+    
   public:
 		allocator()					{}
     template <class T_>
@@ -70,44 +73,35 @@ class allocator
   \param T	要素の型
 */
 template <class T>
-class mapped_ptr : public boost::random_access_iterator_helper<mapped_ptr<T>, T>
+class mapped_ptr : public thrust::pointer<std::remove_cv_t<T>,
+					  thrust::random_access_traversal_tag,
+					  T&,
+					  mapped_ptr<T> >
 {
   private:
-    using super		= boost::random_access_iterator_helper<mapped_ptr, T>;
-	
-  public:
-    using value_type	= typename std::remove_cv<T>::type;
-    using		typename super::difference_type;
-	
-  public:
-    mapped_ptr(T* p)			:_p(p)		{}
-    template <class T_>
-    mapped_ptr(const mapped_ptr<T_>& p)	:_p(&(*p))	{}
+    using super		= thrust::pointer<std::remove_cv_t<T>,
+					  thrust::random_access_traversal_tag,
+					  T&,
+					  mapped_ptr>;
 
-    T&		operator *()			const	{ return *_p; }
-    T*		get() const
+  public:
+    using reference	= typename super::reference;
+    
+  public:
+    __host__ __device__
+    mapped_ptr(T* p)			:super(p)		{}
+    template <class T_> __host__ __device__
+    mapped_ptr(const mapped_ptr<T_>& p)	:super(&(*p))		{}
+  /*
+    __host__ __device__
+    reference	operator *() const
 		{
 		    T*	p;
-		    cudaHostGetDevicePointer((void**)&p, (void*)_p, 0);
-		    return p;
+		    cudaHostGetDevicePointer((void**)&p,
+					     (void*)super::get(), 0);
+		    return *p;
 		}
-    __host__ __device__
-    mapped_ptr&	operator ++()				{ ++_p; return *this; }
-    __host__ __device__
-    mapped_ptr&	operator --()				{ --_p; return *this; }
-    __host__ __device__
-    mapped_ptr&	operator +=(difference_type d)		{_p += d; return *this;}
-    __host__ __device__
-    mapped_ptr&	operator -=(difference_type d)		{_p -= d; return *this;}
-    __host__ __device__ difference_type
-		operator - (const mapped_ptr& p) const	{ return _p - p._p; }
-    __host__ __device__
-    bool	operator ==(const mapped_ptr& p) const	{ return _p == p._p; }
-    __host__ __device__
-    bool	operator < (const mapped_ptr& p) const	{ return _p < p._p; }
-
-  private:
-    T*		_p;
+  */
 };
     
 /************************************************************************
@@ -122,8 +116,8 @@ class mapped_allocator
 {
   public:
     using value_type	= T;
-    using pointer	= mapped_ptr<T>;
-    using const_pointer	= mapped_ptr<const T>;
+    using pointer	= T*;
+    using const_pointer	= const T*;
 
   public:
 		mapped_allocator()				{}
@@ -137,19 +131,17 @@ class mapped_allocator
 		    if (n == 0)
 			return pointer(static_cast<T*>(nullptr));
 
-		    T*	q;
-		    if (cudaHostAlloc((void**)&q, n*sizeof(T),
-				      cudaHostAllocMapped) != cudaSuccess)
+		    T*	p;
+		    if (cudaMallocHost((void**)&p, n*sizeof(T)) != cudaSuccess)
 			throw std::bad_alloc();
-		    pointer	p(q);
-		    cudaMemset(p.get(), 0, n*sizeof(T));
+		    cudaMemset(p, 0, n*sizeof(T));
 		    return p;
 		}
     void	deallocate(pointer p, std::size_t)
 		{
-		  // nullptrをfreeするとCUDAのアロケータが混乱するので，対策が必要
-		    if (p.get() != nullptr)
-			cudaFreeHost(p.get());
+		  //nullptrをfreeするとCUDAのアロケータが混乱するので，対策が必要
+		    if (p != nullptr)
+		  	cudaFreeHost(p);
 		}
 };
 

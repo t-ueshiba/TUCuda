@@ -56,7 +56,7 @@ main(int argc, char *argv[])
 {
     using namespace	std;
     using namespace	TU;
-#if 0
+#if 1
     using in_t	= u_char;
     using mid_t	= float;
     using out_t	= float;

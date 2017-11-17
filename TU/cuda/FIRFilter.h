@@ -18,17 +18,17 @@ namespace cuda
 /************************************************************************
 *  class FIRFilter2<T>							*
 ************************************************************************/
-struct FIRFilter2_traits
-{
-    static constexpr size_t	LobeSizeMax = 17;
-    static constexpr size_t	BlockDimX   = 32;
-    static constexpr size_t	BlockDimY   = 16;
-};
-    
 //! CUDAによるseparableな2次元フィルタを表すクラス
 template <class T=float>
-class FIRFilter2 : public FIRFilter2_traits
+class FIRFilter2
 {
+  public:
+    using value_type	= T;
+    
+    constexpr static size_t	LobeSizeMax = 17;
+    constexpr static size_t	BlockDimX   = 32;
+    constexpr static size_t	BlockDimY   = 16;
+    
   public:
   //! CUDAによる2次元フィルタを生成する．
     FIRFilter2()	:_lobeSizeH(0), _lobeSizeV(0)			{}
@@ -56,8 +56,8 @@ namespace device
 /************************************************************************
 *  global __constatnt__ variables					*
 ************************************************************************/
-__constant__ static float	_lobeH[FIRFilter2_traits::LobeSizeMax];
-__constant__ static float	_lobeV[FIRFilter2_traits::LobeSizeMax];
+__constant__ static float	_lobeH[FIRFilter2<>::LobeSizeMax];
+__constant__ static float	_lobeV[FIRFilter2<>::LobeSizeMax];
 
 /************************************************************************
 *  __device__ functions							*
@@ -177,51 +177,53 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template <class T, size_t L, class IN, class OUT> __global__ static void
-fir_filterH(IN in, OUT out, int stride_i, int stride_o)
+template <class FILTER, size_t L, class IN, class OUT> __global__ void
+fir_filterH(IN in, OUT out, int strideI, int strideO)
 {
-    using lobe_size_t =	std::integral_constant<size_t, L>;
+    using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
-    constexpr auto	BlockDimX = FIRFilter2<T>::BlockDimX;
-    constexpr auto	BlockDimY = FIRFilter2<T>::BlockDimY;
+    constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
+    constexpr auto	BlockDimX = FILTER::BlockDimX;
+    constexpr auto	BlockDimY = FILTER::BlockDimY;
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
   // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
-    __shared__ T	in_s[BlockDimY][BlockDimX + 2*LobeSize + 1];
-    loadTileH(in + __mul24(y0, stride_i) + x0, stride_i, in_s, 2*LobeSize);
+    __shared__ value_type	in_s[BlockDimY][BlockDimX + 2*LobeSize + 1];
+    loadTileH(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     
   // 積和演算
-    out[__mul24(y0 + threadIdx.y, stride_o) + x0 + threadIdx.x]
-	= convolve(&in_s[threadIdx.y][threadIdx.x], _lobeH, lobe_size_t());
+    out[__mul24(y0 + threadIdx.y, strideO) + x0 + threadIdx.x]
+	= convolve(&in_s[threadIdx.y][threadIdx.x], _lobeH,
+		   std::integral_constant<size_t, L>());
 }
 
-template <class T, size_t L, class IN, class OUT> __global__ static void
-fir_filterV(const IN in, OUT out, int stride_i, int stride_o)
+template <class FILTER, size_t L, class IN, class OUT> __global__ void
+fir_filterV(const IN in, OUT out, int strideI, int strideO)
 {
-    using lobe_size_t =	std::integral_constant<size_t, L>;
+    using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	LobeSize = L & ~0x1;	// 中心点を含まないローブ長
-    constexpr auto	BlockDimX = FIRFilter2<T>::BlockDimX;
-    constexpr auto	BlockDimY = FIRFilter2<T>::BlockDimY;
+    constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
+    constexpr auto	BlockDimX = FILTER::BlockDimX;
+    constexpr auto	BlockDimY = FILTER::BlockDimY;
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
-  // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
-    __shared__ T	in_s[BlockDimX][BlockDimY + 2*LobeSize + 1];
-    loadTileVt(in + __mul24(y0, stride_i) + x0, stride_i, in_s, 2*LobeSize);
+  // 原画像のブロックとその上下LobeSize分を転置して共有メモリにコピー
+    __shared__ value_type	in_s[BlockDimX][BlockDimY + 2*LobeSize + 1];
+    loadTileVt(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     
   // 積和演算
-    out[__mul24(y0 + threadIdx.y, stride_o) + x0 + threadIdx.x]
-	= convolve(&in_s[threadIdx.x][threadIdx.y], _lobeV, lobe_size_t());
+    out[__mul24(y0 + threadIdx.y, strideO) + x0 + threadIdx.x]
+	= convolve(&in_s[threadIdx.x][threadIdx.y], _lobeV,
+		   std::integral_constant<size_t, L>());
 }
 }	// namespace device
-    
+
 /************************************************************************
 *  class FIRFilter2<T>							*
 ************************************************************************/
@@ -250,30 +252,32 @@ FIRFilter2<T>::initialize(const TU::Array<float>& lobeH,
     return *this;
 }
 
-template <class T> template <size_t LH, class IN, class OUT> void
+template <class T> template <size_t L, class IN, class OUT> void
 FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
 {
-    constexpr size_t	LobeSizeH = LH & ~0x1;	// 中心点を含まないローブ長
+    constexpr auto	LobeSizeH = L & ~0x1;	// 中心点を含まないローブ長
 
-    const auto	nrow = std::distance(in, ie);
-    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in))
-		     - 2*LobeSizeH;
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
+    const auto	nrow    = std::distance(in, ie);
+    const auto	ncol    = std::distance(std::cbegin(*in), std::cend(*in))
+		        - 2*LobeSizeH;
+    const auto	strideI = stride(in);
+    const auto	strideO = stride(out);
 
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterH<T, LH><<<blocks, threads>>>(std::cbegin(*in).get(),
-						    std::begin(*out).get(),
-						    stride_i, stride_o);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
+						std::cbegin(*in),
+						std::begin(*out),
+						strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<T, LH><<<blocks, threads>>>(std::cbegin(*in).get() + x,
-						    std::begin(*out).get() + x,
-						    stride_i, stride_o);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
+						std::cbegin(*in) + x,
+						std::begin(*out) + x,
+						strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -281,44 +285,46 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterH<T, LH><<<blocks, threads>>>(std::cbegin(*in).get(),
-						    std::begin(*out).get(),
-						    stride_i, stride_o);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
+						std::cbegin(*in),
+						std::begin(*out),
+						strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<T, LH><<<blocks, threads>>>(std::cbegin(*in).get() + x,
-						    std::begin(*out).get() + x,
-						    stride_i, stride_o);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
+						std::cbegin(*in) + x,
+						std::begin(*out) + x,
+						strideI, strideO);
 }
 
-template <class T> template <size_t LV, class IN, class OUT> void
+template <class T> template <size_t L, class IN, class OUT> void
 FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
 {
-    constexpr auto	LobeSizeV = LV & ~0x1;	// 中心点を含まないローブ長
+    constexpr auto	LobeSizeV = L & ~0x1;	// 中心点を含まないローブ長
     
     const auto	nrow	  = std::distance(in, ie) - 2*LobeSizeV;
     const auto	ncol	  = std::distance(std::cbegin(*in), std::cend(*in));
-    const auto	stride_i  = stride(in);
-    const auto	stride_o  = stride(out);
+    const auto	strideI   = stride(in);
+    const auto	strideO   = stride(out);
     const auto	lobeSizeH = _lobeSizeH & ~0x1;	// 中心点を含まないローブ長
 
   // 左上
     std::advance(out, LobeSizeV);
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterV<T, LV><<<blocks, threads>>>(
-					std::cbegin(*in).get(),
-					std::begin(*out).get() + lobeSizeH,
-					stride_i, stride_o);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
+					std::cbegin(*in),
+					std::begin(*out) + lobeSizeH,
+					strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<T, LV><<<blocks, threads>>>(
-					std::cbegin(*in).get() + x,
-					std::begin(*out).get() + x + lobeSizeH,
-					stride_i, stride_o);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
+					std::cbegin(*in) + x,
+					std::begin(*out) + x + lobeSizeH,
+					strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -326,17 +332,17 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterV<T, LV><<<blocks, threads>>>(
-					std::cbegin(*in).get(),
-					std::begin(*out).get() + lobeSizeH,
-					stride_i, stride_o);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
+					std::cbegin(*in),
+					std::begin(*out) + lobeSizeH,
+					strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<T, LV><<<blocks, threads>>>(
-					std::cbegin(*in).get() + x,
-					std::begin(*out).get() + x + lobeSizeH,
-					stride_i, stride_o);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
+					std::cbegin(*in) + x,
+					std::begin(*out) + x + lobeSizeH,
+					strideI, strideO);
 }
 #endif	// __NVCC__
 

@@ -46,7 +46,7 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/iterator.h \
 		TU/cuda/vec.h
 SRCS		= FIRFilter.cu \
-		FIRGaussianConvolver.cc \
+		FIRGaussianConvolver.cu \
 		chrono.cc
 OBJS		= FIRFilter.o \
 		FIRGaussianConvolver.o \

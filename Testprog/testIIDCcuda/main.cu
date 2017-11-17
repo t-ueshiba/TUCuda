@@ -108,7 +108,6 @@ main(int argc, char *argv[])
     
     const char*		cameraName = IIDCCameraArray::DEFAULT_CAMERA_NAME;
     IIDCCamera::Speed	speed	   = IIDCCamera::SPD_400M;
-    int			ncameras   = 2;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "c:Bn:")) != EOF; )
 	switch (c)
@@ -118,9 +117,6 @@ main(int argc, char *argv[])
 	    break;
 	  case 'B':
 	    speed = IIDCCamera::SPD_800M;
-	    break;
-	  case 'n':
-	    ncameras = atoi(optarg);
 	    break;
 	}
     

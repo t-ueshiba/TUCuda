@@ -9,6 +9,7 @@
 #define TU_CUDA_ALGORITHM_H
 
 #include <iterator>
+#include <boost/core/demangle.hpp>
 
 namespace TU
 {
@@ -23,12 +24,12 @@ namespace device
   **********************************************************************/
   //! スレッドブロック中のラインに指定された長さを付加した1次元領域をコピーする
   /*!
-    \param src		コピー元のラインの左端を指すポインタ
+    \param src		コピー元のラインの左端を指す反復子
     \param dst		コピー先の1次元配列
     \param dx		コピー元のライン幅に付加される長さ
   */
   template <class S, class T> __device__ static inline void
-  loadLine(const S* src, T dst[], int dx)
+  loadLine(S src, T dst[], int dx)
   {
       auto	tx = threadIdx.x;
       dx += blockDim.x;
@@ -40,13 +41,13 @@ namespace device
     
   //! スレッドブロックの横方向に指定された長さを付加した領域をコピーする
   /*!
-    \param src		コピー元の矩形領域の左上隅を指すポインタ
+    \param src		コピー元の矩形領域の左上隅を指す反復子
     \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dx		ブロック幅に付加される長さ
   */
   template <class S, class T, size_t W> __device__ static inline void
-  loadTileH(const S* src, int stride, T dst[][W], int dx)
+  loadTileH(S src, int stride, T dst[][W], int dx)
   {
       src += __mul24(threadIdx.y, stride);
 
@@ -59,15 +60,15 @@ namespace device
       } while ((tx += blockDim.x) < dx);
   }
     
-  //! スレッドブロックの縦方向にそれぞれ指定された長さを付加した領域をコピーする
+  //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
   /*!
-    \param src		コピー元の矩形領域の左上隅を指すポインタ
+    \param src		コピー元の矩形領域の左上隅を指す反復子
     \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dy		ブロック高に付加される長さ
   */
   template <class S, class T, size_t W> __device__ static inline void
-  loadTileV(const S* src, int stride, T dst[][W], int dy)
+  loadTileV(S src, int stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
       src += (__mul24(ty, stride) + threadIdx.x);
@@ -80,16 +81,16 @@ namespace device
       } while ((ty += blockDim.y) < dy);
   }
 
-  //! スレッドブロックの縦方向にそれぞれ指定された長さを付加した領域を転置してコピーする
+  //! スレッドブロックの縦方向に指定された長さを付加した領域を転置してコピーする
   /*!
     コピー先の矩形領域のサイズは blockDim.x * (blockDim.y + dy) となる．
-    \param src		コピー元の矩形領域の左上隅を指すポインタ
+    \param src		コピー元の矩形領域の左上隅を指す反復子
     \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dy		ブロック高に付加される長さ
   */
   template <class S, class T, size_t W> __device__ static inline void
-  loadTileVt(const S* src, int stride, T dst[][W], int dy)
+  loadTileVt(S src, int stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
       src += (__mul24(ty, stride) + threadIdx.x);
@@ -105,14 +106,14 @@ namespace device
 
   //! スレッドブロックの横方向と縦方向にそれぞれ指定された長さを付加した領域をコピーする
   /*!
-    \param src		コピー元の矩形領域の左上隅を指すポインタ
+    \param src		コピー元の矩形領域の左上隅を指す反復子
     \param stride	コピー元の行を1つ進めるためのインクリメント数
     \param dst		コピー先の2次元配列
     \param dx		ブロック幅に付加される長さ
     \param dy		ブロック高に付加される長さ
   */
   template <class S, class T, size_t W> __device__ static inline void
-  loadTile(const S* src, int stride, T dst[][W], int dx, int dy)
+  loadTile(S src, int stride, T dst[][W], int dx, int dy)
   {
       auto	ty = threadIdx.y;
       src += __mul24(ty, stride);
@@ -189,7 +190,7 @@ subsample(IN in, IN ie, OUT out)
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(in->begin(), in->end())/2;
+    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in))/2;
     if (ncol < 1)
 	return;
 	
@@ -199,15 +200,15 @@ subsample(IN in, IN ie, OUT out)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in).get(),
-					   std::begin(*out).get(),
+    device::subsample<<<blocks, threads>>>(std::cbegin(*in),
+					   std::begin(*out),
 					   stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in).get() + 2*x,
-					   std::begin(*out).get() + x,
+    device::subsample<<<blocks, threads>>>(std::cbegin(*in) + 2*x,
+					   std::begin(*out) + x,
 					   stride_i, stride_o);
   // 左下
     std::advance(in, 2*blocks.y*threads.y);
@@ -216,15 +217,15 @@ subsample(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in).get(),
-					   std::begin(*out).get(),
+    device::subsample<<<blocks, threads>>>(std::cbegin(*in),
+					   std::begin(*out),
 					   stride_i, stride_o);
 
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in).get() + 2*x,
-					   std::begin(*out).get() + x,
+    device::subsample<<<blocks, threads>>>(std::cbegin(*in) + 2*x,
+					   std::begin(*out) + x,
 					   stride_i, stride_o);
 }
 #endif
@@ -281,19 +282,19 @@ op3x3(IN in, IN ie, OUT out, OP op)
     
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
-    
+
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in).get(),
-				       std::begin(*out).get(),
+    device::op3x3<<<blocks, threads>>>(std::cbegin(*in),
+				       std::begin(*out),
 				       op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in).get() + x,
-				       std::begin(*out).get() + x,
+    device::op3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
+				       std::begin(*out) + x,
 				       op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -302,14 +303,14 @@ op3x3(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in).get(),
-				       std::begin(*out).get(),
+    device::op3x3<<<blocks, threads>>>(std::cbegin(*in),
+				       std::begin(*out),
 				       op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in).get() + x,
-				       std::begin(*out).get() + x,
+    device::op3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
+				       std::begin(*out) + x,
 				       op, stride_i, stride_o);
 }
 #endif
@@ -453,15 +454,15 @@ suppressNonExtrema3x3(
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in).get(),
-					    std::begin(*out).get(),
+    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in),
+					    std::begin(*out),
 					    op, nulval, stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in).get() + x,
-					    std::begin(*out).get() + x,
+    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
+					    std::begin(*out) + x,
 					    op, nulval, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
@@ -470,14 +471,14 @@ suppressNonExtrema3x3(
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in).get(),
-					    std::begin(*out).get(),
+    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in),
+					    std::begin(*out),
 					    op, nulval, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in).get() + x,
-					    std::begin(*out).get() + x,
+    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
+					    std::begin(*out) + x,
 					    op, nulval, stride_i, stride_o);
 }
 #endif
@@ -531,9 +532,9 @@ namespace detail
       const auto	blockDim = std::min({BlockDim, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<<<blocks, threads>>>(
-	  std::cbegin(*in).get() + j,
-	  std::begin(*out).get() + i, stride_i, stride_o);  // 左上
+      cuda::device::transpose<<<blocks, threads>>>(std::cbegin(*in) + j,
+						   std::begin(*out) + i,
+						   stride_i, stride_o); // 左上
 
       r = blocks.y*threads.y;
       c = blocks.x*threads.x;

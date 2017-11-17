@@ -130,7 +130,7 @@ class BufTraits<T, cuda::allocator<T> >
   protected:
     using pointer		= typename super::pointer;
 
-    constexpr static size_t	Alignment = 0;
+    constexpr static size_t	Alignment = super::allocator_type::Alignment;
 
     static pointer		null()
 				{
@@ -161,11 +161,11 @@ class BufTraits<T, cuda::mapped_allocator<T> >
 
     static pointer		null()
 				{
-				    return pointer(static_cast<T*>(nullptr));
+				    return static_cast<T*>(nullptr);
 				}
     static T*			ptr(pointer p)
 				{
-				    return p.get();
+				    return p;
 				}
 };
 

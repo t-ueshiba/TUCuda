@@ -2,6 +2,7 @@
  *  $Id: main.cc,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
 #include <cstdlib>
+#include <limits>
 #include "TU/io.h"
 #include "TU/Rectify.h"
 #include "TU/StereoUtility.h"
@@ -13,12 +14,34 @@
 namespace TU
 {
 template <class T, class S> void
-cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& scores,
+cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& costs,
 	size_t winSize, size_t disparitySearchWidth, size_t intensityDiffMax);
+template <class T, class S> void
+cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
+	size_t winSize, size_t disparitySearchWidth, size_t disparityMax,
+	size_t intensityDiffMax, size_t disparityInconsistency);
 
 /************************************************************************
 *  static functions							*
 ************************************************************************/
+template <class S> void
+match(const Array3<S>& costs, Array2<S>& imageD, size_t disparityMax)
+{
+    for (size_t v = 0; v < costs.size<1>(); ++v)
+	for (size_t u = 0; u < costs.size<2>(); ++u)
+	{
+	    S		scoreMin = costs[0][v][u];
+	    size_t	dmin = 0;
+	    for (size_t d = 1; d < costs.size<0>(); ++d)
+		if (costs[d][v][u] < scoreMin)
+		{
+		    scoreMin = costs[d][v][u];
+		    dmin = d;
+		}
+	    imageD[v][u] = disparityMax - dmin;
+	}
+}
+    
 template <class S, class T> static void
 doJob(const Image<T>& imageL,
       const Image<T>& imageR, const StereoParameters& params)
@@ -39,27 +62,34 @@ doJob(const Image<T>& imageL,
 	      << rectifiedImageR.width()  << "(W)"
 	      << std::endl;
     
-  // スコアを計算する．
-    Array3<S>	scores;
-    cudaJob(rectifiedImageL, rectifiedImageR, scores, params.windowSize,
+    Image<S>	imageD(rectify.width(0), rectify.height(0));
+#if 0
+  // コストを計算する．
+    Array3<S>	costs;
+    cudaJob(rectifiedImageL, rectifiedImageR, costs, params.windowSize,
 	    params.disparitySearchWidth, params.intensityDiffMax);
     
   // ステレオマッチングを行う．
-    Image<S>	disparityMap(rectify.width(0), rectify.height(0));
-    const auto	rowD = make_range_iterator(
-			   make_matching_iterator<S>(
-			       disparityMap.begin()->begin(),
-			       params.disparitySearchWidth,
-			       params.disparityMax,
-			       params.disparityInconsistency,
-			       params.doHorizontalBackMatch),
-			   stride(disparityMap.begin()),
-			   disparityMap.width());
-    std::copy(scores.cbegin(), scores.cend(), rowD);
-
-  //rectifiedImagesL.save(std::cout);
-  //rectifiedImagesR.save(std::cout);
-    disparityMap.save(std::cout);
+#  ifdef DISPARITY_MAJOR
+    match(costs, imageD, params.disparityMax);
+#  else
+    std::copy(costs.cbegin(), costs.cend(),
+	      make_range_iterator(make_matching_iterator<S>(
+				      imageD.begin()->begin(),
+				      params.disparitySearchWidth,
+				      params.disparityMax,
+				      params.disparityInconsistency,
+				      params.doHorizontalBackMatch),
+				  stride(imageD.begin()),
+				  imageD.width()));
+#  endif    
+#else
+  // コストを計算し，ステレオマッチングをを行う．
+    cudaJob(rectifiedImageL, rectifiedImageR, imageD,
+	    params.windowSize, params.disparitySearchWidth, params.disparityMax,
+	    params.intensityDiffMax, params.disparityInconsistency);
+#endif
+    imageD.save(std::cout);
 }
 
 }

@@ -1,0 +1,183 @@
+/*!
+  \file		StereoUtility.h
+  \author	Toshio UESHIBA
+  \brief	ステレオビジョンをサポートする各種クラスの定義と実装
+*/
+#ifndef TU_CUDA_STEREOUTILITY_H
+#define TU_CUDA_STEREOUTILITY_H
+
+#include <limits>
+#include "TU/cuda/Array++.h"
+
+namespace TU
+{
+namespace cuda
+{
+#if defined(__NVCC__)
+namespace device
+{
+/************************************************************************
+*  __global__ functions							*
+************************************************************************/
+template <class COL, class COL_C, class COL_D> __global__ void
+cost_filter(COL colC, int width, COL_D colD,
+	    int disparitySearchWidth, int disparityMax,
+	    int disparityInconsistency,
+	    int strideX, int strideYX, int strideD,
+	    COL_C cminR, int strideCminR, int* dminR, int strideDminR)
+{
+    using value_type	= typename std::iterator_traits<COL>::value_type;
+
+    const auto	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+    colC  += (__mul24(y, strideX) + x);		// 左画像のx座標
+    colD  += (__mul24(y, strideD) + x);		// 視差画像のx座標
+    cminR +=  __mul24(y, strideCminR);
+    dminR +=  __mul24(y, strideDminR);
+
+    value_type	cminL = std::numeric_limits<value_type>::max();
+    int		dminL = 0;
+
+    cminR[x] = std::numeric_limits<value_type>::max();
+    dminR[x] = 0;
+    __syncthreads();
+    
+    for (int d = 0; d < disparitySearchWidth; ++d)
+    {
+	const auto	cost = *colC;	// cost[d][y][x]
+
+	colC += strideYX;		// points to cost[d+1][y][x]
+	
+	if (cost < cminL)
+	{
+	    cminL = cost;
+	    dminL = d;
+	}
+
+	const auto	xR = x + d;
+	
+	if (xR < width)
+	{
+	    if (cost < cminR[xR])
+	    {
+		cminR[xR] = cost;
+		dminR[xR] = d;
+	    }
+	}
+	__syncthreads();
+    }
+
+    const auto	dR = dminR[x + dminL];
+    
+    *colD = ((dminL > dR ? dminL - dR : dR - dminL) < disparityInconsistency ?
+	     disparityMax - dminL : 0);
+}
+    
+}	// namespace device
+#endif
+    
+/************************************************************************
+*  class CostFilter<T>							*
+************************************************************************/
+template <class T>
+class CostFilter
+{
+  public:
+    using value_type	= T;
+
+    constexpr static size_t	BlockDimX = 32;
+    constexpr static size_t	BlockDimY = 16;
+    
+  public:
+    CostFilter(int disparityMax, int disparityInconsistency)
+	:_disparityMax(disparityMax),
+	 _disparityInconsistency(disparityInconsistency)		{}
+
+    template <class ROW_D>
+    void	match(const Array3<T>& costs, ROW_D rowD)		;
+    
+  private:
+    const int	_disparityMax;
+    const int	_disparityInconsistency;
+    Array2<T>	_cminR;			//!< 右画像から見た最小コスト
+    Array2<int>	_dminR;			//!< 右画像から見た最小コストを与える視差
+};
+
+template <class T> template <class ROW_D> void
+CostFilter<T>::match(const Array3<T>& costs, ROW_D rowD)
+{
+    const auto	disparitySearchWidth = costs.size<0>();
+    const auto	height		     = costs.size<1>();
+    const auto	width		     = costs.size<2>();
+    const auto	strideX		     = costs.stride();
+    const auto	strideYX	     = height * strideX;
+    const auto	strideD		     = stride(rowD);
+
+    _cminR.resize(height, width);
+    _dminR.resize(height, width);
+
+  // 左上
+    dim3	threads(BlockDimX, BlockDimY);
+    dim3	blocks(width/threads.x, height/threads.y);
+    device::cost_filter<<<blocks, threads>>>(costs[0][0].cbegin(),
+					     width,
+					     std::begin(*rowD),
+					     disparitySearchWidth,
+					     _disparityMax,
+					     _disparityInconsistency,
+					     strideX, strideYX, strideD,
+					     std::begin(_cminR[0]),
+					     _cminR.stride(),
+					     _dminR[0].begin().get(),
+					     _dminR.stride());
+  // 右上
+    const auto	x = blocks.x*threads.x;
+    threads.x = width - x;
+    blocks.x  = 1;
+    device::cost_filter<<<blocks, threads>>>(costs[0][0].cbegin() + x,
+					     width,
+					     std::begin(*rowD) + x,
+					     disparitySearchWidth,
+					     _disparityMax,
+					     _disparityInconsistency,
+					     strideX, strideYX, strideD,
+					     std::begin(_cminR[0]) + x,
+					     _cminR.stride(),
+					     _dminR[0].begin().get() + x,
+					     _dminR.stride());
+  // 左下
+    const auto	y = blocks.y*threads.y;
+    std::advance(rowD, y);
+    threads.x = BlockDim;
+    blocks.x  = width/threads.x;
+    threads.y = height - y;
+    blocks.y  = 1;
+    device::cost_filter<<<blocks, threads>>>(costs[0][y].cbegin(),
+					     width,
+					     std::begin(*rowD),
+					     disparitySearchWidth,
+					     _disparityMax,
+					     _disparityInconsistency,
+					     strideX, strideYX, strideD,
+					     std::begin(_cminR[y]),
+					     _cminR.stride(),
+					     _dminR[y].begin().get(),
+					     _dminR.stride());
+  // 右下
+    device::cost_filter<<<blocks, threads>>>(costs[0][y].cbegin() + x,
+					     width,
+					     std::begin(*rowD) + x,
+					     disparitySearchWidth,
+					     _disparityMax,
+					     _disparityInconsistency,
+					     strideX, strideYX, strideD,
+					     std::begin(_cminR[y]) + x,
+					     _cminR.stride(),
+					     _dminR[y].begin().get() + x,
+					     _dminR.stride());
+}
+    
+}	// namespace cuda
+}	// namepsace TU
+#endif	// !TU_CUDA_STEREOUTILITY_H

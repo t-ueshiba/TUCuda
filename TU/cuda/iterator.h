@@ -71,14 +71,14 @@ class map_iterator
   private:
     FUNC	_func;	//!< 演算子
 };
-
+    
 template <class FUNC, class... ITER>
 __host__ __device__ inline map_iterator<FUNC, ITER...>
 make_map_iterator(FUNC func, const ITER&... iter)
 {
     return {func, iter...};
 }
-    
+
 /************************************************************************
 *  class assignment_iterator<FUNC, ITER>				*
 ************************************************************************/
@@ -221,5 +221,12 @@ make_assignment_iterator(const ITER& iter, const FUNC& func=FUNC())
 }
 
 }	// namespace cuda
+
+template <class HEAD, class TAIL> inline auto
+make_zip_iterator(const thrust::detail::cons<HEAD, TAIL>& iter_tuple)
+{
+    return thrust::make_zip_iterator(iter_tuple);
+}
+
 }	// namespace TU
 #endif	// !TU_CUDA_ITERATOR_H

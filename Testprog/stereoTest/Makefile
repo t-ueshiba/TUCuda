@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG #-DUSE_TBB
+CPPFLAGS	= -DNDEBUG -DDISPARITY_MAJOR #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)
@@ -36,9 +36,11 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/BoxFilter.h \
+		../../TU/cuda/StereoUtility.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
+		../../TU/cuda/fp16.h \
 		../../TU/cuda/functional.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Camera++.h \
@@ -138,10 +140,10 @@ cudaJob.o: /usr/local/include/TU/Profiler.h ../../TU/cuda/BoxFilter.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/algorithm.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/functional.h ../../TU/cuda/chrono.h
-main.o: /usr/local/include/TU/algorithm.h /usr/local/include/TU/io.h \
-	/usr/local/include/TU/Rectify.h /usr/local/include/TU/Warp.h \
-	/usr/local/include/TU/simd/Array++.h \
+	../../TU/cuda/StereoUtility.h ../../TU/cuda/functional.h \
+	../../TU/cuda/chrono.h ../../TU/cuda/fp16.h
+main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
+	/usr/local/include/TU/Warp.h /usr/local/include/TU/simd/Array++.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
 	/usr/local/include/TU/simd/vec.h \
 	/usr/local/include/TU/simd/type_traits.h \
@@ -202,12 +204,10 @@ main.o: /usr/local/include/TU/algorithm.h /usr/local/include/TU/io.h \
 	/usr/local/include/TU/simd/cvtdown_iterator.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/Image++.h /usr/local/include/TU/Manip.h \
-	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/StereoUtility.h \
-	/usr/local/include/TU/StereoBase.h /usr/local/include/TU/Profiler.h \
-	../../TU/cuda/BoxFilter.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/functional.h ../../TU/cuda/chrono.h
+	/usr/local/include/TU/StereoBase.h /usr/local/include/TU/Profiler.h

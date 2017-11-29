@@ -17,18 +17,22 @@ namespace cuda
 template void
 FIRFilter2<>::convolve(Array2<u_char>::const_iterator in,
 		       Array2<u_char>::const_iterator ie,
-		       Array2<u_char>::iterator out)		const	;
+		       Array2<u_char>::iterator out,
+		       bool shift)				const	;
 template void
 FIRFilter2<>::convolve(Array2<u_char>::const_iterator in,
 		       Array2<u_char>::const_iterator ie,
-		       Array2<float>::iterator out)		const	;
+		       Array2<float>::iterator out,
+		       bool shift)				const	;
 template void
 FIRFilter2<>::convolve(Array2<float>::const_iterator in,
 		       Array2<float>::const_iterator ie,
-		       Array2<u_char>::iterator out)		const	;
+		       Array2<u_char>::iterator out,
+		       bool shift)				const	;
 template void
 FIRFilter2<>::convolve(Array2<float>::const_iterator in,
 		       Array2<float>::const_iterator ie,
-		       Array2<float>::iterator out)		const	;
+		       Array2<float>::iterator out,
+		       bool shift)				const	;
 }
 }

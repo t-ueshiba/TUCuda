@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG -DDISPARITY_MAJOR #-DUSE_TBB
+CPPFLAGS	= -DNDEBUG #-DDISPARITY_MAJOR #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)
@@ -42,6 +42,8 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/chrono.h \
 		../../TU/cuda/fp16.h \
 		../../TU/cuda/functional.h \
+		../../TU/cuda/iterator.h \
+		../../TU/cuda/tuple.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -123,7 +125,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/simd/x86/zero.h \
 		/usr/local/include/TU/simd/zero.h \
 		/usr/local/include/TU/tuple.h
-HDRS		=
+HDRS		= DisparitySelector.h
 SRCS		= cudaJob.cu \
 		main.cc
 OBJS		= cudaJob.o \
@@ -139,7 +141,8 @@ cudaJob.o: /usr/local/include/TU/Profiler.h ../../TU/cuda/BoxFilter.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h ../../TU/cuda/algorithm.h \
+	/usr/local/include/TU/algorithm.h ../../TU/cuda/tuple.h \
+	../../TU/cuda/iterator.h ../../TU/cuda/algorithm.h \
 	../../TU/cuda/StereoUtility.h ../../TU/cuda/functional.h \
 	../../TU/cuda/chrono.h ../../TU/cuda/fp16.h
 main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
@@ -205,9 +208,11 @@ main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
 	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/Image++.h \
+	/usr/local/include/TU/range.h ../../TU/cuda/tuple.h \
+	../../TU/cuda/iterator.h /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
 	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Vector++.h \
 	/usr/local/include/TU/StereoUtility.h \
-	/usr/local/include/TU/StereoBase.h /usr/local/include/TU/Profiler.h
+	/usr/local/include/TU/StereoBase.h /usr/local/include/TU/Profiler.h \
+	DisparitySelector.h

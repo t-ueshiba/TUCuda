@@ -114,37 +114,37 @@ class GuidedFilter2 : public Profiler<CLOCK>
   /*!
     \return	guidedフィルタのウィンドウの行幅
    */
-    size_t	rowWinSize()	const	{ return _paramsFilter.rowWinSize(); }
+    size_t	winSizeV()	const	{ return _paramsFilter.winSizeV(); }
 
   //! guidedフィルタのウィンドウ列幅(幅)を返す．
   /*!
     \return	guidedフィルタのウィンドウの列幅
    */
-    size_t	colWinSize()	const	{ return _paramsFilter.colWinSize(); }
+    size_t	winSizeH()	const	{ return _paramsFilter.winSizeH(); }
 
   //! guidedフィルタのウィンドウの行幅(高さ)を設定する．
   /*!
-    \param rowWinSize	guidedフィルタのウィンドウの行幅
+    \param winSizeV	guidedフィルタのウィンドウの行幅
     \return		このguidedフィルタ
    */
     GuidedFilter2&
-		setRowWinSize(size_t rowWinSize)
+		setWinSizeV(size_t winSizeV)
 		{
-		    _paramsFilter.setRowWinSize(rowWinSize);
-		    _coeffsFilter.setRowWinSize(rowWinSize);
+		    _paramsFilter.setWinSizeV(winSizeV);
+		    _coeffsFilter.setWinSizeV(winSizeV);
 		    return *this;
 		}
 
   //! guidedフィルタのウィンドウの列幅(幅)を設定する．
   /*!
-    \param colWinSize	guidedフィルタのウィンドウの列幅
+    \param winSizeH	guidedフィルタのウィンドウの列幅
     \return		このguidedフィルタ
    */
     GuidedFilter2&
-		setColWinSize(size_t colWinSize)
+		setWinSizeH(size_t winSizeH)
 		{
-		    _paramsFilter.setColWinSize(colWinSize);
-		    _coeffsFilter.setColWinSize(colWinSize);
+		    _paramsFilter.setWinSizeH(winSizeH);
+		    _coeffsFilter.setWinSizeH(winSizeH);
 		    return *this;
 		}
     
@@ -152,10 +152,15 @@ class GuidedFilter2 : public Profiler<CLOCK>
     auto&	setEpsilon(T e)			{ _e = e; return *this; }
     
     template <class IN, class GUIDE, class OUT>
-    void	convolve(IN ib, IN ie,
-			 GUIDE gb, GUIDE ge, OUT out)		const	;
+    void	convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
+			 OUT out, bool shift=false)		  const	;
     template <class IN, class OUT>
-    void	convolve(IN ib, IN ie, OUT out)			const	;
+    void	convolve(IN ib, IN ie, OUT out, bool shift=false) const	;
+
+    size_t	outSizeH(size_t inSize)	const	{return inSize - 2*offsetH();}
+    size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
+    size_t	offsetH()		const	{return winSizeH() - 1;}
+    size_t	offsetV()		const	{return winSizeV() - 1;}
     
   private:
     BoxFilter2<params_t, void, WMAX>	_paramsFilter;
@@ -174,19 +179,19 @@ class GuidedFilter2 : public Profiler<CLOCK>
 */
 template <class T, class CLOCK, size_t WMAX>
 template <class IN, class GUIDE, class OUT> void
-GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie,
-					GUIDE gb, GUIDE ge, OUT out) const
+GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
+					OUT out, bool shift) const
 {
     if (ib == ie)
 	return;
 
     profiler_t::start(0);
 
-    const auto	n     = rowWinSize() * colWinSize();
+    const auto	n     = winSizeV() * winSizeH();
     const auto	nrows = std::distance(ib, ie);
     const auto	ncols = TU::size(*ib);
 
-    _c.resize(nrows + 1 - rowWinSize(), ncols + 1 - colWinSize());
+    _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
     
   // guided filterの2次元係数ベクトルを計算する．
     profiler_t::start(1);
@@ -206,20 +211,22 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie,
 			       TU::size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
-				   _c.begin()->begin(),
-				   device::init_coeffs<T>(n, _e)),
-			       stride(_c.begin()), _c.ncol()));
+				   device::init_coeffs<T>(n, _e),
+				   _c.begin()->begin()),
+			       stride(_c.begin()),
+			       _c.ncol()));
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．
     profiler_t::start(2);
-    gb  += (rowWinSize() - 1);
-    out += (rowWinSize() - 1);
+    gb += offsetV();
+    if (shift)
+	out += offsetV();
     _coeffsFilter.convolve(_c.cbegin(), _c.cend(),
 			   make_range_iterator(
 			       cuda::make_assignment_iterator(
-				   begin(thrust::make_tuple(*gb, *out))
-				   += (colWinSize() - 1),
-				   device::trans_guides<T>(n)),
+				   device::trans_guides<T>(n),
+				   begin(*gb)  + offsetH(),
+				   begin(*out) + (shift ? offsetH() : 0)),
 			     //thrust::make_tuple(stride(gb), stride(out)),
 			       stride(gb),
 			       TU::size(*out)));
@@ -235,17 +242,17 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie,
 */
 template <class T, class CLOCK, size_t WMAX>
 template <class IN, class OUT> void
-GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out) const
+GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 {
     if (ib == ie)
 	return;
 
     profiler_t::start(0);
-    const auto	n     = rowWinSize() * colWinSize();
+    const auto	n     = winSizeV() * winSizeH();
     const auto	nrows = std::distance(ib, ie);
     const auto	ncols = TU::size(*ib);
 
-    _c.resize(nrows + 1 - rowWinSize(), ncols + 1 - colWinSize());
+    _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
     
   // guided filterの2次元係数ベクトルを計算する．
     profiler_t::start(1);
@@ -265,14 +272,15 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out) const
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．
     profiler_t::start(2);
-    ib  += (rowWinSize() - 1);
-    out += (rowWinSize() - 1);
+    ib += offsetV();
+    if (shift)
+	out += offsetV();
     _coeffsFilter.convolve(_c.cbegin(), _c.cend(),
 			   make_range_iterator(
 			       cuda::make_assignment_iterator(
-				   begin(thrust::make_tuple(*ib, *out))
-				   += (colWinSize() - 1),
-				   device::trans_guides<T>(n)),
+				   device::trans_guides<T>(n),
+				   begin(*ib)  + offsetH(),
+				   begin(*out) + (shift ? offsetH() : 0)),
 			     //thrust::make_tuple(stride(gb), stride(out)),
 			       stride(ib),
 			       TU::size(*out)));

@@ -87,7 +87,7 @@ main(int argc, char *argv[])
 	cuda::FIRGaussianConvolver2<>	cudaFilter(sigma);
 	cuda::Array2<in_t>		in_d(in);
 	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
-	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
+	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
 	cudaThreadSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -96,7 +96,8 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)
 	{
 	    cuProfiler.start(0);
-	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
+	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(),
+				out_d.begin(), true);
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);

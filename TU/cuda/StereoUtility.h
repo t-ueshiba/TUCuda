@@ -20,7 +20,7 @@ namespace device
 *  __global__ functions							*
 ************************************************************************/
 template <class COL, class COL_C, class COL_D> __global__ void
-cost_filter(COL colC, int width, COL_D colD,
+select_disparity(COL colC, int width, COL_D colD,
 	    int disparitySearchWidth, int disparityMax,
 	    int disparityInconsistency,
 	    int strideX, int strideYX, int strideD,
@@ -78,10 +78,10 @@ cost_filter(COL colC, int width, COL_D colD,
 #endif
     
 /************************************************************************
-*  class CostFilter<T>							*
+*  class DisparitySelector<T>						*
 ************************************************************************/
 template <class T>
-class CostFilter
+class DisparitySelector
 {
   public:
     using value_type	= T;
@@ -90,12 +90,12 @@ class CostFilter
     constexpr static size_t	BlockDimY = 16;
     
   public:
-    CostFilter(int disparityMax, int disparityInconsistency)
+    DisparitySelector(int disparityMax, int disparityInconsistency)
 	:_disparityMax(disparityMax),
 	 _disparityInconsistency(disparityInconsistency)		{}
 
     template <class ROW_D>
-    void	match(const Array3<T>& costs, ROW_D rowD)		;
+    void	select(const Array3<T>& costs, ROW_D rowD)		;
     
   private:
     const int	_disparityMax;
@@ -105,7 +105,7 @@ class CostFilter
 };
 
 template <class T> template <class ROW_D> void
-CostFilter<T>::match(const Array3<T>& costs, ROW_D rowD)
+DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
 {
     const auto	disparitySearchWidth = costs.size<0>();
     const auto	height		     = costs.size<1>();
@@ -120,32 +120,32 @@ CostFilter<T>::match(const Array3<T>& costs, ROW_D rowD)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(width/threads.x, height/threads.y);
-    device::cost_filter<<<blocks, threads>>>(costs[0][0].cbegin(),
-					     width,
-					     std::begin(*rowD),
-					     disparitySearchWidth,
-					     _disparityMax,
-					     _disparityInconsistency,
-					     strideX, strideYX, strideD,
-					     std::begin(_cminR[0]),
-					     _cminR.stride(),
-					     _dminR[0].begin().get(),
-					     _dminR.stride());
+    device::select_disparity<<<blocks, threads>>>(costs[0][0].cbegin(),
+						  width,
+						  std::begin(*rowD),
+						  disparitySearchWidth,
+						  _disparityMax,
+						  _disparityInconsistency,
+						  strideX, strideYX, strideD,
+						  std::begin(_cminR[0]),
+						  _cminR.stride(),
+						  _dminR[0].begin().get(),
+						  _dminR.stride());
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = width - x;
     blocks.x  = 1;
-    device::cost_filter<<<blocks, threads>>>(costs[0][0].cbegin() + x,
-					     width,
-					     std::begin(*rowD) + x,
-					     disparitySearchWidth,
-					     _disparityMax,
-					     _disparityInconsistency,
-					     strideX, strideYX, strideD,
-					     std::begin(_cminR[0]) + x,
-					     _cminR.stride(),
-					     _dminR[0].begin().get() + x,
-					     _dminR.stride());
+    device::select_disparity<<<blocks, threads>>>(costs[0][0].cbegin() + x,
+						  width,
+						  std::begin(*rowD) + x,
+						  disparitySearchWidth,
+						  _disparityMax,
+						  _disparityInconsistency,
+						  strideX, strideYX, strideD,
+						  std::begin(_cminR[0]) + x,
+						  _cminR.stride(),
+						  _dminR[0].begin().get() + x,
+						  _dminR.stride());
   // 左下
     const auto	y = blocks.y*threads.y;
     std::advance(rowD, y);
@@ -153,29 +153,29 @@ CostFilter<T>::match(const Array3<T>& costs, ROW_D rowD)
     blocks.x  = width/threads.x;
     threads.y = height - y;
     blocks.y  = 1;
-    device::cost_filter<<<blocks, threads>>>(costs[0][y].cbegin(),
-					     width,
-					     std::begin(*rowD),
-					     disparitySearchWidth,
-					     _disparityMax,
-					     _disparityInconsistency,
-					     strideX, strideYX, strideD,
-					     std::begin(_cminR[y]),
-					     _cminR.stride(),
-					     _dminR[y].begin().get(),
-					     _dminR.stride());
+    device::select_disparity<<<blocks, threads>>>(costs[0][y].cbegin(),
+						  width,
+						  std::begin(*rowD),
+						  disparitySearchWidth,
+						  _disparityMax,
+						  _disparityInconsistency,
+						  strideX, strideYX, strideD,
+						  std::begin(_cminR[y]),
+						  _cminR.stride(),
+						  _dminR[y].begin().get(),
+						  _dminR.stride());
   // 右下
-    device::cost_filter<<<blocks, threads>>>(costs[0][y].cbegin() + x,
-					     width,
-					     std::begin(*rowD) + x,
-					     disparitySearchWidth,
-					     _disparityMax,
-					     _disparityInconsistency,
-					     strideX, strideYX, strideD,
-					     std::begin(_cminR[y]) + x,
-					     _cminR.stride(),
-					     _dminR[y].begin().get() + x,
-					     _dminR.stride());
+    device::select_disparity<<<blocks, threads>>>(costs[0][y].cbegin() + x,
+						  width,
+						  std::begin(*rowD) + x,
+						  disparitySearchWidth,
+						  _disparityMax,
+						  _disparityInconsistency,
+						  strideX, strideYX, strideD,
+						  std::begin(_cminR[y]) + x,
+						  _cminR.stride(),
+						  _dminR[y].begin().get() + x,
+						  _dminR.stride());
 }
     
 }	// namespace cuda

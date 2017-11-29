@@ -65,12 +65,12 @@ copy(device_ptr<const __half> p, size_t n, T* q)
 {
 #if 0
     copy_n(p, (N ? N : n),
-	   TU::make_assignment_iterator(q, TU::from_half<T>()));
+	   TU::make_assignment_iterator(TU::from_half<T>(), q));
 #else
     TU::Array<__half, N>	tmp(n);
     copy_n(p, (N ? N : n), tmp.begin());
     std::copy_n(tmp.cbegin(), (N ? N : n),
-		TU::make_assignment_iterator(q, TU::from_half<T>()));
+		TU::make_assignment_iterator(TU::from_half<T>(), q));
 #endif
 }
 

@@ -36,13 +36,19 @@ class FIRFilter2
     FIRFilter2&	initialize(const TU::Array<float>& lobeH,
 			   const TU::Array<float>& lobeV)		;
     template <class IN, class OUT>
-    void	convolve(IN ib, IN ie, OUT out)			const	;
+    void	convolve(IN ib, IN ie,
+			 OUT out, bool shift=false)		const	;
 
+    size_t	outSizeH(size_t inSize)	const	{return inSize - 2*offsetH();}
+    size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
+    size_t	offsetH()		const	{return _lobeSizeH & ~0x1;}
+    size_t	offsetV()		const	{return _lobeSizeV & ~0x1;}
+    
   private:
     template <size_t L, class IN, class OUT>
     static void	convolveH(IN in, IN ie, OUT out)			;
     template <size_t L, class IN, class OUT>
-    void	convolveV(IN in, IN ie, OUT out)		const	;
+    void	convolveV(IN in, IN ie, OUT out, bool shift)	const	;
     
   private:
     size_t		_lobeSizeH;	//!< 水平方向フィルタのローブ長
@@ -299,23 +305,26 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
 }
 
 template <class T> template <size_t L, class IN, class OUT> void
-FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
+FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
 {
-    constexpr auto	LobeSizeV = L & ~0x1;	// 中心点を含まないローブ長
-    
-    const auto	nrow	  = std::distance(in, ie) - 2*LobeSizeV;
+    const auto	nrow	  = outSizeV(std::distance(in, ie));
     const auto	ncol	  = std::distance(std::cbegin(*in), std::cend(*in));
     const auto	strideI   = stride(in);
     const auto	strideO   = stride(out);
-    const auto	lobeSizeH = _lobeSizeH & ~0x1;	// 中心点を含まないローブ長
-
+    size_t	dx	  = 0;
+    
+    if (shift)
+    {
+	out += offsetV();
+	dx   = offsetH();
+    }
+    
   // 左上
-    std::advance(out, LobeSizeV);
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 					std::cbegin(*in),
-					std::begin(*out) + lobeSizeH,
+					std::begin(*out) + dx,
 					strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
@@ -323,7 +332,7 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 					std::cbegin(*in) + x,
-					std::begin(*out) + x + lobeSizeH,
+					std::begin(*out) + x + dx,
 					strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -334,14 +343,14 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
     blocks.y  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 					std::cbegin(*in),
-					std::begin(*out) + lobeSizeH,
+					std::begin(*out) + dx,
 					strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 					std::cbegin(*in) + x,
-					std::begin(*out) + x + lobeSizeH,
+					std::begin(*out) + x + dx,
 					strideI, strideO);
 }
 #endif	// __NVCC__
@@ -353,7 +362,7 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out) const
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> void
-FIRFilter2<T>::convolve(IN in, IN ie, OUT out) const
+FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
 {
     const auto	nrow = std::distance(in, ie);
     if (nrow < 4*(_lobeSizeV/2) + 1)
@@ -400,28 +409,28 @@ FIRFilter2<T>::convolve(IN in, IN ie, OUT out) const
     switch (_lobeSizeV)
     {
       case 17:
-	convolveV<17>(_buf.begin(), _buf.end(), out);
+	convolveV<17>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case 16:
-	convolveV<16>(_buf.begin(), _buf.end(), out);
+	convolveV<16>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  9:
-	convolveV< 9>(_buf.begin(), _buf.end(), out);
+	convolveV< 9>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  8:
-	convolveV< 8>(_buf.begin(), _buf.end(), out);
+	convolveV< 8>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  5:
-	convolveV< 5>(_buf.begin(), _buf.end(), out);
+	convolveV< 5>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  4:
-	convolveV< 4>(_buf.begin(), _buf.end(), out);
+	convolveV< 4>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  3:
-	convolveV< 3>(_buf.begin(), _buf.end(), out);
+	convolveV< 3>(_buf.begin(), _buf.end(), out, shift);
 	break;
       case  2:
-	convolveV< 2>(_buf.begin(), _buf.end(), out);
+	convolveV< 2>(_buf.begin(), _buf.end(), out, shift);
 	break;
       default:
 	throw std::runtime_error("FIRFilter2::convolve: unsupported vertical lobe size!");

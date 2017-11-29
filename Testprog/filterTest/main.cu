@@ -92,7 +92,7 @@ main(int argc, char *argv[])
     
 	cuda::Array2<mid_t>	in_d(in);
 	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
-	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
 	cudaThreadSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -100,7 +100,8 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(),
+				out_d.begin(), true);
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);

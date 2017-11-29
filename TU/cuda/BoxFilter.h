@@ -74,7 +74,7 @@ box_filter(IN in, OUT out, int winSize, int strideI, int strideO)
 }
 
 template <class FILTER, class IN, class OUT, class OP> __global__ void
-box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int colWinSize,
+box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
 	    int strideL, int strideR, int strideXD, int strideD)
 {
     using value_type  =	typename FILTER::value_type;
@@ -94,7 +94,7 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int colWinSize,
 
   // 最初のwinSize画素分の相違度を計算してvalに積算
     auto	val = (val_s[0][threadIdx.y][threadIdx.x] = op(*inL, *inR));
-    for (int i = 0; ++i != colWinSize; )
+    for (int i = 0; ++i != winSizeH; )
 	val += (val_s[i][threadIdx.y][threadIdx.x] = op(*++inL, *++inR));
     *out = val;
     
@@ -104,13 +104,13 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int colWinSize,
 	val -= val_s[i][threadIdx.y][threadIdx.x];
 	*(out += strideD) = (val += (val_s[i][threadIdx.y][threadIdx.x]
 				     = op(*++inL, *++inR)));
-	if (++i == colWinSize)
+	if (++i == winSizeH)
 	    i = 0;
     }
 }
 
 template <class FILTER, class IN> __global__ void
-box_filterV(IN in, int nrows, int rowWinSize, int strideXD, int strideD)
+box_filterV(IN in, int nrows, int winSizeV, int strideXD, int strideD)
 {
     using value_type  =	typename FILTER::value_type;
     
@@ -127,7 +127,7 @@ box_filterV(IN in, int nrows, int rowWinSize, int strideXD, int strideD)
 
     auto	out = in;
     auto	val = (in_s[0][threadIdx.y][threadIdx.x] = *in);
-    for (int i = 0; ++i < rowWinSize; )
+    for (int i = 0; ++i < winSizeV; )
   	val += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD));
     *out = val;
     
@@ -137,13 +137,13 @@ box_filterV(IN in, int nrows, int rowWinSize, int strideXD, int strideD)
 	*(out += strideXD)
 	    = (val += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD)));
 
-	if (++i == rowWinSize)
+	if (++i == winSizeV)
 	    i = 0;
     }
 }
 
 template <class FILTER, class IN, class OUT> __global__ void
-box_filterV(IN in, int nrows, OUT out, int rowWinSize,
+box_filterV(IN in, int nrows, OUT out, int winSizeV,
 	    int strideXD, int strideD, int strideYX_O, int strideX_O)
 {
     using value_type  =	typename FILTER::value_type;
@@ -161,7 +161,7 @@ box_filterV(IN in, int nrows, OUT out, int rowWinSize,
     out += (__mul24(d0,		   strideYX_O) + x0);
 
     out_s[threadIdx.y][threadIdx.x] = (in_s[0][threadIdx.y][threadIdx.x] = *in);
-    for (int i = 0; ++i < rowWinSize; )
+    for (int i = 0; ++i < winSizeV; )
 	out_s[threadIdx.y][threadIdx.x]
 	    += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD));
     __syncthreads();
@@ -188,7 +188,7 @@ box_filterV(IN in, int nrows, OUT out, int rowWinSize,
 	    out[__mul24(threadIdx.x, strideYX_O) + threadIdx.y]
 		= out_s[threadIdx.y][threadIdx.x];
 
-	if (++i == rowWinSize)
+	if (++i == winSizeV)
 	    i = 0;
     }
 }
@@ -216,72 +216,77 @@ class BoxFilter2 : public Profiler<CLOCK>
   public:
   //! CUDAによる2次元boxフィルタを生成する．
   /*!
-    \param rowWinSize	boxフィルタのウィンドウの行幅(高さ)
-    \param colWinSize	boxフィルタのウィンドウの列幅(幅)
+    \param winSizeV	boxフィルタのウィンドウの行幅(高さ)
+    \param winSizeH	boxフィルタのウィンドウの列幅(幅)
    */	
-		BoxFilter2(size_t rowWinSize, size_t colWinSize)
-		    :profiler_t(3),
-		     _rowWinSize(rowWinSize), _colWinSize(colWinSize)
+		BoxFilter2(size_t winSizeV, size_t winSizeH)
+		    :profiler_t(3), _winSizeV(winSizeV), _winSizeH(winSizeH)
 		{
-		    if (_rowWinSize > WinSizeMax || _colWinSize > WinSizeMax)
+		    if (_winSizeV > WinSizeMax || _winSizeH > WinSizeMax)
 			throw std::runtime_error("Too large window size!");
 		}
 
-  //! boxフィルタのウィンドウ行幅(高さ)を返す．
+  //! boxフィルタのウィンドウの高さを返す．
   /*!
-    \return	boxフィルタのウィンドウの行幅
+    \return	boxフィルタのウィンドウの高さ
    */
-    size_t	rowWinSize()			const	{ return _rowWinSize; }
+    size_t	winSizeV()		const	{ return _winSizeV; }
 
-  //! boxフィルタのウィンドウ列幅(幅)を返す．
+  //! boxフィルタのウィンドウの幅を返す．
   /*!
-    \return	boxフィルタのウィンドウの列幅
+    \return	boxフィルタのウィンドウの幅
    */
-    size_t	colWinSize()			const	{ return _colWinSize; }
+    size_t	winSizeH()		const	{ return _winSizeH; }
 
-  //! boxフィルタのウィンドウの行幅(高さ)を設定する．
+  //! boxフィルタのウィンドウの高さを設定する．
   /*!
-    \param rowWinSize	boxフィルタのウィンドウの行幅
+    \param winSizeV	boxフィルタのウィンドウの高さ
     \return		このboxフィルタ
    */
-    BoxFilter2&	setRowWinSize(size_t rowWinSize)
+    BoxFilter2&	setWinSizeV(size_t winSize)
 		{
-		    _rowWinSize = rowWinSize;
+		    _winSizeV = winSize;
 		    return *this;
 		}
 
-  //! boxフィルタのウィンドウの列幅(幅)を設定する．
+  //! boxフィルタのウィンドウの幅を設定する．
   /*!
-    \param colWinSize	boxフィルタのウィンドウの列幅
+    \param winSizeH	boxフィルタのウィンドウの幅
     \return		このboxフィルタ
    */
-    BoxFilter2&	setColWinSize(size_t colWinSize)
+    BoxFilter2&	setWinSizeH(size_t winSize)
 		{
-		    _colWinSize = colWinSize;
+		    _winSizeH = winSize;
 		    return *this;
 		}
     
-  //! 与えられた行幅(高さ)を持つ入力データ列に対する出力データ列の行幅を返す．
+  //! 与えられた高さを持つ入力データ列に対する出力データ列の高さを返す．
   /*!
-    \param inRowLength	入力データ列の行幅
-    \return		出力データ列の行幅
+    \param inSizeV	入力データ列の高さ
+    \return		出力データ列の高さ
    */
-    size_t	outRowLength(size_t inRowLength) const
-		{
-		    return inRowLength + 1 - rowWinSize();
-		}
+    size_t	outSizeV(size_t inSize)	const	{return inSize + 1 - _winSizeV;}
     
-  //! 与えられた列幅(幅)を持つ入力データ列に対する出力データ列の列幅を返す．
+  //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
   /*!
-    \param inColLength	入力データ列の列幅
-    \return		出力データ列の列幅
+    \param inSizeH	入力データ列の幅
+    \return		出力データ列の幅
    */
-    size_t	outColLength(size_t inColLength) const
-		{
-		    return inColLength + 1 - colWinSize();
-		}
+    size_t	outSizeH(size_t inSize)	const	{return inSize + 1 - _winSizeH;}
 
-    size_t	overlap()	const	{ return rowWinSize() - 1; }
+  //! 与えられた高さを持つ入力データ列に対する出力データ列の高さを返す．
+  /*!
+    \param inSizeV	入力データ列の高さ
+    \return		出力データ列の高さ
+   */
+    size_t	offsetV()		const	{return _winSizeV/2;}
+    
+  //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
+  /*!
+    \param inSizeH	入力データ列の幅
+    \return		出力データ列の幅
+   */
+    size_t	offsetH()		const	{return _winSizeH/2;}
 
   //! 与えられた2次元配列とこのフィルタの畳み込みを行う
   /*!
@@ -290,7 +295,8 @@ class BoxFilter2 : public Profiler<CLOCK>
     \param rowO	出力2次元データ配列の先頭行を指す反復子
   */
     template <class ROW, class ROW_O>
-    void	convolve(ROW row, ROW rowe, ROW_O rowO)		const	;
+    void	convolve(ROW row, ROW rowe,
+			 ROW_O rowO, bool shift=false)		const	;
 
   //! 2組の2次元配列間の相違度とこのフィルタの畳み込みを行う
   /*!
@@ -306,8 +312,8 @@ class BoxFilter2 : public Profiler<CLOCK>
 			 OP op, size_t disparitySearchWidth)	const	;
     
   private:
-    size_t		_rowWinSize;
-    size_t		_colWinSize;
+    size_t		_winSizeV;
+    size_t		_winSizeH;
     mutable Array2<T>	_buf;
     mutable Array3<T>	_buf3;
 };
@@ -315,19 +321,20 @@ class BoxFilter2 : public Profiler<CLOCK>
 #if defined(__NVCC__)
 template <class T, class CLOCK, size_t WMAX>
 template <class ROW, class ROW_O> void
-BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
+BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
+				     ROW_O rowO, bool shift) const
 {
     profiler_t::start(0);
     
     auto	nrows = std::distance(row, rowe);
-    if (nrows < _rowWinSize)
+    if (nrows < _winSizeV)
 	return;
     
     auto	ncols = std::distance(std::cbegin(*row), std::cend(*row));
-    if (ncols < _colWinSize)
+    if (ncols < _winSizeH)
 	return;
 
-    ncols -= (_colWinSize - 1);
+    ncols = outSizeH(ncols);
     _buf.resize(ncols, nrows);
 
     const auto	strideI = stride(row);
@@ -342,7 +349,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(*row),
 						std::begin(_buf[0]),
-						_rowWinSize,
+						_winSizeV,
 						strideI, strideB);
   // 右上
     const auto	x = blocks.x*threads.x;
@@ -351,7 +358,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(*row) + x,
 						std::begin(_buf[x]),
-						_rowWinSize,
+						_winSizeV,
 						strideI, strideB);
   // 左下
     auto	y = blocks.y*threads.y;
@@ -363,7 +370,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(*row),
 						std::begin(_buf[0]) + y,
-						_rowWinSize,
+						_winSizeV,
 						strideI, strideB);
   // 右下
     threads.x = ncols - x;
@@ -371,13 +378,20 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(*row) + x,
 						std::begin(_buf[x]) + y,
-						_rowWinSize,
+						_winSizeV,
 						strideI, strideB);
 
   // ---- 横方向積算 ----
+    size_t	dx = 0;
+    if (shift)
+    {
+	rowO += offsetV();
+	dx    = offsetH();
+    }
+    
     cudaThreadSynchronize();
     profiler_t::start(2);
-    nrows -= (_rowWinSize - 1);
+    nrows = outSizeH(nrows);
   // 左上
     threads.x = BlockDim;
     blocks.x  = nrows/threads.x;
@@ -385,16 +399,16 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.y  = ncols/threads.y;
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(_buf[0]),
-						std::begin(*rowO),
-						_colWinSize,
+						std::begin(*rowO) + dx,
+						_winSizeH,
 						strideB, strideO);
   // 左下
     threads.y = ncols - x;
     blocks.y  = 1;
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(_buf[x]),
-						std::begin(*rowO) + x,
-						_colWinSize,
+						std::begin(*rowO) + x + dx,
+						_winSizeH,
 						strideB, strideO);
   // 右上
     y	      = blocks.x*threads.x;
@@ -405,16 +419,16 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO) const
     blocks.y  = ncols/threads.y;
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(_buf[0]) + y,
-						std::begin(*rowO),
-						_colWinSize,
+						std::begin(*rowO) + dx,
+						_winSizeH,
 						strideB, strideO);
   // 右下
     threads.y = ncols - x;
     blocks.y  = 1;
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 						std::cbegin(_buf[x]) + y,
-						std::begin(*rowO) + x,
-						_colWinSize,
+						std::begin(*rowO) + x + dx,
+						_winSizeH,
 						strideB, strideO);
     cudaThreadSynchronize();
     profiler_t::nextFrame();
@@ -428,11 +442,11 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     profiler_t::start(0);
     
     auto	nrows = std::distance(rowL, rowLe);
-    if (nrows < _rowWinSize)
+    if (nrows < _winSizeV)
 	return;
     
     auto	ncols = std::distance(std::cbegin(*rowL), std::cend(*rowL));
-    if (ncols < _colWinSize)
+    if (ncols < _winSizeH)
 	return;
 
     _buf3.resize(nrows, ncols, disparitySearchWidth);
@@ -446,7 +460,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 
   // ---- 横方向積算 ----
     profiler_t::start(1);
-    ncols -= (_colWinSize - 1);
+    ncols = outSizeH(ncols);
   // 視差左半かつ画像上半
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(disparitySearchWidth/threads.x, nrows/threads.y);
@@ -459,7 +473,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #else
 				std::begin(*std::begin(*rowO)),
 #endif
-				op, _colWinSize,
+				op, _winSizeH,
 				strideL, strideR, strideXD, strideD);
   // 視差右半かつ画像上半
     const auto	d = blocks.x*threads.x;
@@ -474,7 +488,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #else
 				std::begin(*std::begin(*rowO)) + d,
 #endif
-				op, _colWinSize,
+				op, _winSizeH,
 				strideL, strideR, strideXD, strideD);
   // 視差左半かつ画像下半
     threads.x = BlockDimX;
@@ -491,7 +505,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #else
 				std::begin(*std::begin(*(rowO + y))),
 #endif
-				op, _colWinSize,
+				op, _winSizeH,
 				strideL, strideR, strideXD, strideD);
   // 視差右半かつ画像下半
     threads.x = disparitySearchWidth - d;
@@ -505,14 +519,14 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #else
 				std::begin(*std::begin(*(rowO + y))) + d,
 #endif
-				op, _colWinSize,
+				op, _winSizeH,
 				strideL, strideR, strideXD, strideD);
   // ---- 縦方向積算 ----
     cudaThreadSynchronize();
     profiler_t::start(2);
 #ifdef DISPARITY_MAJOR
   // 視差左半かつ画像左半
-    nrows -= (_rowWinSize - 1);
+    nrows     = outSizeV(nrows);
     threads.x = BlockDim;
     blocks.x  = disparitySearchWidth/threads.x;
     threads.y = BlockDim;
@@ -521,7 +535,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 				std::begin(_buf3[0][0]),
 				nrows,
 				std::begin(*std::begin(*rowO)),
-				_rowWinSize,
+				_winSizeV,
 				strideXD, strideD, strideYX_O, strideX_O);
   // 視差右半かつ画像左半
     threads.x = disparitySearchWidth - d;
@@ -530,7 +544,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 				std::begin(_buf3[0][0]) + d,
 				nrows,
 				std::begin(*std::begin(*(rowO + d))),
-				_rowWinSize,
+				_winSizeV,
 				strideXD, strideD, strideYX_O, strideX_O);
   // 視差左半かつ画像右半
     threads.x = BlockDim;
@@ -542,7 +556,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 				std::begin(_buf3[0][x]),
 				nrows,
 				std::begin(*std::begin(*rowO)) + x,
-				_rowWinSize,
+				_winSizeV,
 				strideXD, strideD, strideYX_O, strideX_O);
   // 視差右半かつ画像右半
     threads.x = disparitySearchWidth - d;
@@ -551,24 +565,24 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 				std::begin(_buf3[0][x]) + d,
 				nrows,
 				std::begin(*std::begin(*(rowO + d))) + x,
-				_rowWinSize,
+				_winSizeV,
 				strideXD, strideD, strideYX_O, strideX_O);
 #else
   // 視差左半かつ画像左半
-    nrows -= (_rowWinSize - 1);
+    nrows     = outSizeV(nrows);
     threads.x = BlockDimX;
     blocks.x  = disparitySearchWidth/threads.x;
     threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 				std::begin(*std::begin(*rowO)),
-				nrows, _rowWinSize, strideXD, strideD);
+				nrows, _winSizeV, strideXD, strideD);
   // 視差右半かつ画像左半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 				std::begin(*std::begin(*(rowO + d))),
-				nrows, _rowWinSize, strideXD, strideD);
+				nrows, _winSizeV, strideXD, strideD);
   // 視差左半かつ画像右半
     threads.x = BlockDimX;
     blocks.x  = disparitySearchWidth/threads.x;
@@ -577,13 +591,13 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     blocks.y  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 				std::begin(*(std::begin(*rowO) + x)),
-				nrows, _rowWinSize, strideXD, strideD);
+				nrows, _winSizeV, strideXD, strideD);
   // 視差右半かつ画像右半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 				std::begin(*(std::begin(*rowO) + x)) + d,
-				nrows, _rowWinSize, strideXD, strideD);
+				nrows, _winSizeV, strideXD, strideD);
 #endif
     cudaThreadSynchronize();
     profiler_t::nextFrame();

@@ -6,6 +6,7 @@
 #include "TU/io.h"
 #include "TU/Rectify.h"
 #include "TU/StereoUtility.h"
+#include "DisparitySelector.h"
 
 #define DEFAULT_PARAM_FILE	"stereo"
 #define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"
@@ -24,24 +25,6 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 /************************************************************************
 *  static functions							*
 ************************************************************************/
-template <class S> void
-match(const Array3<S>& costs, Array2<S>& imageD, size_t disparityMax)
-{
-    for (size_t v = 0; v < costs.size<1>(); ++v)
-	for (size_t u = 0; u < costs.size<2>(); ++u)
-	{
-	    S		scoreMin = costs[0][v][u];
-	    size_t	dmin = 0;
-	    for (size_t d = 1; d < costs.size<0>(); ++d)
-		if (costs[d][v][u] < scoreMin)
-		{
-		    scoreMin = costs[d][v][u];
-		    dmin = d;
-		}
-	    imageD[v][u] = disparityMax - dmin;
-	}
-}
-    
 template <class S, class T> static void
 doJob(const Image<T>& imageL,
       const Image<T>& imageR, const StereoParameters& params)
@@ -63,7 +46,7 @@ doJob(const Image<T>& imageL,
 	      << std::endl;
     
     Image<S>	imageD(rectify.width(0), rectify.height(0));
-#if 0
+#if 1
   // コストを計算する．
     Array3<S>	costs;
     cudaJob(rectifiedImageL, rectifiedImageR, costs, params.windowSize,
@@ -71,7 +54,12 @@ doJob(const Image<T>& imageL,
     
   // ステレオマッチングを行う．
 #  ifdef DISPARITY_MAJOR
-    match(costs, imageD, params.disparityMax);
+    DisparitySelector<S>	selector(params.disparityMax,
+					 params.disparityInconsistency);
+    selector.initialize(costs.size<1>(), costs.size<2>());
+    for (const auto& layer : costs)
+	selector.accumulate(layer.cbegin(), layer.cend());
+    selector.select(imageD.begin());
 #  else
     std::copy(costs.cbegin(), costs.cend(),
 	      make_range_iterator(make_matching_iterator<S>(

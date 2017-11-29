@@ -6,10 +6,10 @@
 namespace TU
 {
 template <class U, class S, class T> void
-cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize)	;
+cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize, bool shift);
 
 template <class S, class T> void
-cpuJob(const Array2<S>& in, Array2<T>& out, size_t winSize)	;
+cpuJob(const Array2<S>& in, Array2<T>& out, size_t winSize, bool shift)	;
 }
 
 /************************************************************************
@@ -30,12 +30,16 @@ main(int argc, char *argv[])
     using out_t	= RGBA;
 #endif    
     size_t		winSize = 3;
+    bool		shift = false;
     extern char*	optarg;
-    for (int c; (c = getopt(argc, argv, "w:")) != -1; )
+    for (int c; (c = getopt(argc, argv, "w:s")) != -1; )
 	switch (c)
 	{
 	  case 'w':
 	    winSize = atoi(optarg);
+	    break;
+	  case 's':
+	    shift = true;
 	    break;
 	}
     
@@ -46,11 +50,11 @@ main(int argc, char *argv[])
 
       // GPUによって計算する．
 	Image<out_t>	out(in.width(), in.height());
-	cudaJob<mid_t>(in, out, winSize);
+	cudaJob<mid_t>(in, out, winSize, shift);
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	cpuJob(in, out, winSize);
+	cpuJob(in, out, winSize, shift);
 	out.save(cout);
     }
     catch (exception& err)

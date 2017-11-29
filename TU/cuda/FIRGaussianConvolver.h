@@ -33,12 +33,18 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
 
     FIRGaussianConvolver2&	initialize(float sigma)			;
 
-    template <class IN, class OUT> void	smooth(IN in, IN ie, OUT out)	;
-    template <class IN, class OUT> void	diffH (IN in, IN ie, OUT out)	;
-    template <class IN, class OUT> void	diffV (IN in, IN ie, OUT out)	;
-    template <class IN, class OUT> void	diffHH(IN in, IN ie, OUT out)	;
-    template <class IN, class OUT> void	diffHV(IN in, IN ie, OUT out)	;
-    template <class IN, class OUT> void	diffVV(IN in, IN ie, OUT out)	;
+    template <class IN, class OUT>
+    void	smooth(IN in, IN ie, OUT out, bool shift=false)		;
+    template <class IN, class OUT>
+    void	diffH( IN in, IN ie, OUT out, bool shift=false)		;
+    template <class IN, class OUT>
+    void	diffV( IN in, IN ie, OUT out, bool shift=false)		;
+    template <class IN, class OUT>
+    void	diffHH(IN in, IN ie, OUT out, bool shift=false)		;
+    template <class IN, class OUT>
+    void	diffHV(IN in, IN ie, OUT out, bool shift=false)		;
+    template <class IN, class OUT>
+    void	diffVV(IN in, IN ie, OUT out, bool shift=false)		;
     
   private:
     TU::Array<float>	_lobe0;		//!< スムージングのためのローブ
@@ -119,9 +125,9 @@ FIRGaussianConvolver2<T>::initialize(float sigma)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe0, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe0).convolve(in, ie, out, shift);
 }
     
 //! Gauss核による横方向1階微分(DOG)
@@ -131,9 +137,9 @@ FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe1, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe1, _lobe0).convolve(in, ie, out, shift);
 }
     
 //! Gauss核による縦方向1階微分(DOG)
@@ -143,9 +149,9 @@ FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe0, _lobe1).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe1).convolve(in, ie, out, shift);
 }
     
 //! Gauss核による横方向2階微分
@@ -155,9 +161,9 @@ FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe2, _lobe0).convolve(in, ie, out);
+    super::initialize(_lobe2, _lobe0).convolve(in, ie, out, shift);
 }
     
 //! Gauss核による縦横両方向2階微分
@@ -167,9 +173,9 @@ FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe1, _lobe1).convolve(in, ie, out);
+    super::initialize(_lobe1, _lobe1).convolve(in, ie, out, shift);
 }
     
 //! Gauss核による縦方向2階微分
@@ -179,9 +185,9 @@ FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
 */
 template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffVV(IN in, IN ie, OUT out)
+FIRGaussianConvolver2<T>::diffVV(IN in, IN ie, OUT out, bool shift)
 {
-    super::initialize(_lobe0, _lobe2).convolve(in, ie, out);
+    super::initialize(_lobe0, _lobe2).convolve(in, ie, out, shift);
 }
     
 }

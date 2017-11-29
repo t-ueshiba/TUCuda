@@ -85,24 +85,31 @@ make_map_iterator(FUNC func, const ITER&... iter)
 #if defined(__NVCC__)
 namespace detail
 {
-  template <class FUNC, class ITER>
+  template <class FUNC, class ITER, class... ITERS>
   class assignment_proxy
   {
+    public:
+      using iterator	= std::conditional_t<
+				sizeof...(ITERS),
+				thrust::zip_iterator<
+				    thrust::tuple<ITER, ITERS...> >,
+				ITER>;
+      
     private:
       template <class T_>
-      static auto	check_func(ITER iter, const T_& val, FUNC func)
+      static auto	check_func(iterator iter, const T_& val, FUNC func)
 			    -> decltype(func(*iter, val), std::true_type());
       template <class T_>
-      static auto	check_func(ITER iter, const T_& val, FUNC func)
+      static auto	check_func(iterator iter, const T_& val, FUNC func)
 			    -> decltype(*iter = func(val), std::false_type());
       template <class T_>
-      using is_binary_func	= decltype(check_func(std::declval<ITER>(),
+      using is_binary_func	= decltype(check_func(std::declval<iterator>(),
 						      std::declval<T_>(),
 						      std::declval<FUNC>()));
       
     public:
       __host__ __device__
-      assignment_proxy(const ITER& iter, const FUNC& func)
+      assignment_proxy(const iterator& iter, const FUNC& func)
 	  :_iter(iter), _func(func)					{}
 
       template <class T_> __host__ __device__
@@ -163,7 +170,7 @@ namespace detail
 			}
 
     private:
-      const ITER&	_iter;
+      const iterator&	_iter;
       const FUNC&	_func;
   };
 }	// namespace detail
@@ -173,38 +180,47 @@ namespace detail
   \param FUNC	変換を行う関数オブジェクトの型
   \param ITER	変換結果の代入先を指す反復子
 */
-template <class FUNC, class ITER>
+template <class FUNC, class... ITER>
 class assignment_iterator
-    : public thrust::iterator_adaptor<assignment_iterator<FUNC, ITER>,
-				      ITER,
-				      thrust::use_default,
-				      thrust::use_default,
-				      thrust::use_default,
-				      detail::assignment_proxy<FUNC, ITER> >
+    : public thrust::iterator_adaptor<
+		assignment_iterator<FUNC, ITER...>,
+		typename detail::assignment_proxy<FUNC, ITER...>::iterator,
+		thrust::use_default,
+		thrust::use_default,
+		thrust::use_default,
+		detail::assignment_proxy<FUNC, ITER...> >
 {
   private:
     using super	= thrust::iterator_adaptor<
 			assignment_iterator,
-			ITER,
+			typename
+			    detail::assignment_proxy<FUNC, ITER...>::iterator,
 			thrust::use_default,
 			thrust::use_default,
 			thrust::use_default,
-			detail::assignment_proxy<FUNC, ITER> >;
-    
+			detail::assignment_proxy<FUNC, ITER...> >;
     friend	class thrust::iterator_core_access;
     
   public:
     using	typename super::reference;
-    using	typename super::difference_type;
 
   public:
     __host__ __device__
-    assignment_iterator(const ITER& iter, const FUNC& func=FUNC())
-	:super(iter), _func(func)	{}
+    assignment_iterator(const FUNC& func, const ITER&... iter)
+	:assignment_iterator(
+	    std::integral_constant<bool, (sizeof...(ITER) > 1)>(),
+	    func, iter...)					{}
 
     const auto&	functor()	const	{ return _func; }
 
   private:
+    __host__ __device__
+    assignment_iterator(std::true_type,  const FUNC& func, const ITER&... iter)
+	:super(thrust::make_tuple(iter...)), _func(func)	{}
+    __host__ __device__
+    assignment_iterator(std::false_type, const FUNC& func, const ITER&... iter)
+	:super(iter...), _func(func)				{}
+
     __host__ __device__
     reference	dereference()	const	{ return {super::base(), _func}; }
     
@@ -213,16 +229,16 @@ class assignment_iterator
 };
 #endif	// __NVCC__
     
-template <class FUNC, class ITER>
-__host__ __device__ inline assignment_iterator<FUNC, ITER>
-make_assignment_iterator(const ITER& iter, const FUNC& func=FUNC())
+template <class FUNC, class... ITER>
+__host__ __device__ inline assignment_iterator<FUNC, ITER...>
+make_assignment_iterator(const FUNC& func, const ITER&... iter)
 {
-    return {iter, func};
+    return {func, iter...};
 }
 
 }	// namespace cuda
 
-template <class HEAD, class TAIL> inline auto
+template <class HEAD, class TAIL> __host__ __device__ inline auto
 make_zip_iterator(const thrust::detail::cons<HEAD, TAIL>& iter_tuple)
 {
     return thrust::make_zip_iterator(iter_tuple);

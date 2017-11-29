@@ -21,9 +21,19 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& costs,
 #ifdef DISPARITY_MAJOR
     cuda::Array3<S>	costs_d(disparitySearchWidth,
 				imageL_d.nrow(), imageL_d.ncol());
+  /*
+    cuda::Array3<S>	costs_d(disparitySearchWidth,
+				boxFilter.outSizeV(imageL_d.nrow()),
+				boxFilter.outSizeH(imageL_d.ncol()));
+  */
 #else
     cuda::Array3<S>	costs_d(imageL_d.nrow(), imageL_d.ncol(),
 				disparitySearchWidth);
+  /*
+    cuda::Array3<S>	costs_d(boxFilter.outSizeV(imageL_d.nrow()),
+				boxFilter.outSizeH(imageL_d.ncol()),
+				disparitySearchWidth);
+  */
 #endif
     boxFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 		       imageR_d.cbegin(), costs_d.begin(),
@@ -58,13 +68,24 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 			boxFilter(winSize, winSize);
     cuda::Array3<S>	costs_d(disparitySearchWidth,
 				imageL_d.nrow(), imageL_d.ncol());
+  /*
+    cuda::Array3<S>	costs_d(disparitySearchWidth,
+				boxFilter.outSizeV(imageL_d.nrow()),
+				boxFilter.outSizeH(imageL_d.ncol()));
+  */
     boxFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 		       imageR_d.cbegin(), costs_d.begin(),
 		       cuda::diff<T>(50), disparitySearchWidth);
 
-    cuda::CostFilter<S>	costFilter(disparityMax, disparityInconsistency);
+    cuda::DisparitySelector<S>
+			disparitySelector(disparityMax, disparityInconsistency);
     cuda::Array2<S>	imageD_d(imageL_d.nrow(), imageL_d.ncol());
-    costFilter.match(costs_d, imageD_d.begin());
+    auto		rowD = make_range_iterator(
+				   imageD_d[boxFilter.offsetV()].begin()
+					  + boxFilter.offsetH(),
+				   imageD_d.stride(),
+				   imageD_d.ncol() - boxFilter.offsetH());
+    disparitySelector.select(costs_d, rowD);
     cudaThreadSynchronize();
 #if 1
     Profiler<cuda::clock>	cudaProfiler(2);
@@ -75,8 +96,12 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 	boxFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 			   imageR_d.cbegin(), costs_d.begin(),
 			   cuda::diff<T>(50), disparitySearchWidth);
+	cudaThreadSynchronize();
+
 	cudaProfiler.start(1);
-	costFilter.match(costs_d, imageD_d.begin());
+	disparitySelector.select(costs_d, rowD);
+	cudaThreadSynchronize();
+
 	cudaProfiler.nextFrame();
     }
     cudaProfiler.print(std::cerr);

@@ -32,11 +32,14 @@ EXTHDRS		= /usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/algorithm.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/range.h \
-		/usr/local/include/TU/tuple.h
+		/usr/local/include/TU/tuple.h \
+		/usr/local/include/TU/type_traits.h
 HDRS		= TU/cuda/Array++.h \
 		TU/cuda/BoxFilter.h \
 		TU/cuda/FIRFilter.h \
 		TU/cuda/FIRGaussianConvolver.h \
+		TU/cuda/GuidedFilter.h \
+		TU/cuda/StereoUtility.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
 		TU/cuda/allocator.h \
@@ -44,9 +47,10 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/fp16.h \
 		TU/cuda/functional.h \
 		TU/cuda/iterator.h \
+		TU/cuda/tuple.h \
 		TU/cuda/vec.h
 SRCS		= FIRFilter.cu \
-		FIRGaussianConvolver.cu \
+		FIRGaussianConvolver.cc \
 		chrono.cc
 OBJS		= FIRFilter.o \
 		FIRGaussianConvolver.o \
@@ -60,10 +64,12 @@ include $(PROJECT)/lib/common.mk
 FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h TU/cuda/algorithm.h
+	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
+	TU/cuda/tuple.h TU/cuda/iterator.h TU/cuda/algorithm.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
 	TU/cuda/Array++.h TU/cuda/allocator.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/type_traits.h \
+	/usr/local/include/TU/algorithm.h TU/cuda/tuple.h TU/cuda/iterator.h \
 	TU/cuda/algorithm.h
 chrono.o: TU/cuda/chrono.h

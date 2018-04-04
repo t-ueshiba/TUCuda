@@ -1,1 +1,0 @@
-plot "noise" using 1:2 with linespoints

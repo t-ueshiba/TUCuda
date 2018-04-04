@@ -1,1 +1,0 @@
-../../stereoGUI/MyCanvasPane.cc

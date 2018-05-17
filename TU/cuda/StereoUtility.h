@@ -120,31 +120,31 @@ DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(width/threads.x, height/threads.y);
-    device::select_disparity<<<blocks, threads>>>(costs[0][0].cbegin(),
+    device::select_disparity<<<blocks, threads>>>(get(costs[0][0].cbegin()),
 						  width,
-						  std::begin(*rowD),
+						  get(std::begin(*rowD)),
 						  disparitySearchWidth,
 						  _disparityMax,
 						  _disparityInconsistency,
 						  strideX, strideYX, strideD,
-						  std::begin(_cminR[0]),
+						  get(std::begin(_cminR[0])),
 						  _cminR.stride(),
-						  _dminR[0].begin().get(),
+						  get(_dminR[0].begin()),
 						  _dminR.stride());
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = width - x;
     blocks.x  = 1;
-    device::select_disparity<<<blocks, threads>>>(costs[0][0].cbegin() + x,
+    device::select_disparity<<<blocks, threads>>>(get(costs[0][0].cbegin() + x),
 						  width,
-						  std::begin(*rowD) + x,
+						  get(std::begin(*rowD) + x),
 						  disparitySearchWidth,
 						  _disparityMax,
 						  _disparityInconsistency,
 						  strideX, strideYX, strideD,
-						  std::begin(_cminR[0]) + x,
+						  get(std::begin(_cminR[0]) + x),
 						  _cminR.stride(),
-						  _dminR[0].begin().get() + x,
+						  get(_dminR[0].begin() + x),
 						  _dminR.stride());
   // 左下
     const auto	y = blocks.y*threads.y;
@@ -153,28 +153,28 @@ DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
     blocks.x  = width/threads.x;
     threads.y = height - y;
     blocks.y  = 1;
-    device::select_disparity<<<blocks, threads>>>(costs[0][y].cbegin(),
+    device::select_disparity<<<blocks, threads>>>(get(costs[0][y].cbegin()),
 						  width,
-						  std::begin(*rowD),
+						  get(std::begin(*rowD)),
 						  disparitySearchWidth,
 						  _disparityMax,
 						  _disparityInconsistency,
 						  strideX, strideYX, strideD,
-						  std::begin(_cminR[y]),
+						  get(std::begin(_cminR[y])),
 						  _cminR.stride(),
-						  _dminR[y].begin().get(),
+						  get(_dminR[y].begin()),
 						  _dminR.stride());
   // 右下
-    device::select_disparity<<<blocks, threads>>>(costs[0][y].cbegin() + x,
+    device::select_disparity<<<blocks, threads>>>(get(costs[0][y].cbegin() + x),
 						  width,
-						  std::begin(*rowD) + x,
+						  get(std::begin(*rowD) + x),
 						  disparitySearchWidth,
 						  _disparityMax,
 						  _disparityInconsistency,
 						  strideX, strideYX, strideD,
-						  std::begin(_cminR[y]) + x,
+						  get(std::begin(_cminR[y]) + x),
 						  _cminR.stride(),
-						  _dminR[y].begin().get() + x,
+						  get(_dminR[y].begin() + x),
 						  _dminR.stride());
 }
     

@@ -8,7 +8,8 @@
 #ifndef TU_CUDA_ALGORITHM_H
 #define TU_CUDA_ALGORITHM_H
 
-#include <iterator>
+#include "TU/cuda/allocator.h"
+#include "TU/cuda/iterator.h"
 #include <boost/core/demangle.hpp>
 
 namespace TU
@@ -186,30 +187,32 @@ namespace device
 template <class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
     const auto	nrow = std::distance(in, ie)/2;
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in))/2;
+    const auto	ncol = std::distance(cbegin(*in), cend(*in))/2;
     if (ncol < 1)
 	return;
 	
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
-    
+
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in),
-					   std::begin(*out),
-					   stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(
+	get(cbegin(*in)), get(begin(*out)), stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in) + 2*x,
-					   std::begin(*out) + x,
-					   stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(
+	get(cbegin(*in) + 2*x), get(begin(*out) + x), stride_i, stride_o);
   // 左下
     std::advance(in, 2*blocks.y*threads.y);
     std::advance(out,  blocks.y*threads.y);
@@ -217,16 +220,13 @@ subsample(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in),
-					   std::begin(*out),
-					   stride_i, stride_o);
-
+    device::subsample<<<blocks, threads>>>(
+	get(cbegin(*in)), get(begin(*out)), stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(std::cbegin(*in) + 2*x,
-					   std::begin(*out) + x,
-					   stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(
+	get(cbegin(*in) + 2*x), get(begin(*out) + x), stride_i, stride_o);
 }
 #endif
     
@@ -272,11 +272,15 @@ namespace device
 template <class IN, class OUT, class OP> void
 op3x3(IN in, IN ie, OUT out, OP op)
 {
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
     const auto	nrow = std::distance(in, ie) - 2;
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(std::cbegin(*in), std::cend(*in)) - 2;
+    const auto	ncol = std::distance(cbegin(*in), cend(*in)) - 2;
     if (ncol < 1)
 	return;
     
@@ -286,15 +290,15 @@ op3x3(IN in, IN ie, OUT out, OP op)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in),
-				       std::begin(*out),
+    device::op3x3<<<blocks, threads>>>(get(cbegin(*in)),
+				       get(begin(*out)),
 				       op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
-				       std::begin(*out) + x,
+    device::op3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
+				       get(begin(*out) + x),
 				       op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -303,14 +307,14 @@ op3x3(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in),
-				       std::begin(*out),
+    device::op3x3<<<blocks, threads>>>(get(cbegin(*in)),
+				       get(begin(*out)),
 				       op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
-				       std::begin(*out) + x,
+    device::op3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
+				       get(begin(*out) + x),
 				       op, stride_i, stride_o);
 }
 #endif
@@ -438,11 +442,15 @@ suppressNonExtrema3x3(
     IN in, IN ie, OUT out, OP op,
     typename std::iterator_traits<IN>::value_type::value_type nulval)
 {
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
     const auto	nrow = (std::distance(in, ie) - 1)/2;
     if (nrow < 1)
 	return;
 
-    const auto	ncol = (std::distance(std::cbegin(*in), std::cend(*in)) - 1)/2;
+    const auto	ncol = (std::distance(cbegin(*in), cend(*in)) - 1)/2;
     if (ncol < 1)
 	return;
     
@@ -454,15 +462,15 @@ suppressNonExtrema3x3(
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in),
-					    std::begin(*out),
+    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in)),
+					    get(begin(*out)),
 					    op, nulval, stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
-					    std::begin(*out) + x,
+    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
+					    get(begin(*out) + x),
 					    op, nulval, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
@@ -471,14 +479,14 @@ suppressNonExtrema3x3(
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in),
-					    std::begin(*out),
+    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in)),
+					    get(begin(*out)),
 					    op, nulval, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(std::cbegin(*in) + x,
-					    std::begin(*out) + x,
+    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
+					    get(begin(*out) + x),
 					    op, nulval, stride_i, stride_o);
 }
 #endif
@@ -519,11 +527,15 @@ namespace detail
   template <class IN, class OUT> static void
   transpose(IN in, IN ie, OUT out, size_t i, size_t j)
   {
+      using	std::cbegin;
+      using	std::cend;
+      using	std::begin;
+    
       size_t	r = std::distance(in, ie);
       if (r < 1)
 	  return;
 
-      size_t	c = std::distance(std::cbegin(*in), std::cend(*in)) - j;
+      size_t	c = std::distance(cbegin(*in), cend(*in)) - j;
       if (c < 1)
 	  return;
 
@@ -532,8 +544,8 @@ namespace detail
       const auto	blockDim = std::min({BlockDim, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<<<blocks, threads>>>(std::cbegin(*in) + j,
-						   std::begin(*out) + i,
+      cuda::device::transpose<<<blocks, threads>>>(get(cbegin(*in) + j),
+						   get(begin(*out) + i),
 						   stride_i, stride_o); // 左上
 
       r = blocks.y*threads.y;

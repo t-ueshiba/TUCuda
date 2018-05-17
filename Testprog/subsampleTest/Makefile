@@ -12,7 +12,7 @@ VPATH		=
 IDLS		=
 MOCHDRS		=
 
-INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
+INCDIRS		= -I../.. -I$(HOME)/src/TUTools++ -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
@@ -41,19 +41,21 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
-		/usr/local/include/TU/Array++.h \
-		/usr/local/include/TU/Camera++.h \
-		/usr/local/include/TU/Geometry++.h \
-		/usr/local/include/TU/Image++.h \
-		/usr/local/include/TU/Manip.h \
-		/usr/local/include/TU/Minimize.h \
-		/usr/local/include/TU/Profiler.h \
-		/usr/local/include/TU/Vector++.h \
-		/usr/local/include/TU/algorithm.h \
-		/usr/local/include/TU/iterator.h \
-		/usr/local/include/TU/pair.h \
-		/usr/local/include/TU/range.h \
-		/usr/local/include/TU/tuple.h
+		../../TU/cuda/tuple.h \
+		/home/ueshiba/src/TUTools++/TU/Array++.h \
+		/home/ueshiba/src/TUTools++/TU/Camera++.h \
+		/home/ueshiba/src/TUTools++/TU/Geometry++.h \
+		/home/ueshiba/src/TUTools++/TU/Image++.h \
+		/home/ueshiba/src/TUTools++/TU/Manip.h \
+		/home/ueshiba/src/TUTools++/TU/Minimize.h \
+		/home/ueshiba/src/TUTools++/TU/Profiler.h \
+		/home/ueshiba/src/TUTools++/TU/Vector++.h \
+		/home/ueshiba/src/TUTools++/TU/algorithm.h \
+		/home/ueshiba/src/TUTools++/TU/iterator.h \
+		/home/ueshiba/src/TUTools++/TU/pair.h \
+		/home/ueshiba/src/TUTools++/TU/range.h \
+		/home/ueshiba/src/TUTools++/TU/tuple.h \
+		/home/ueshiba/src/TUTools++/TU/type_traits.h
 HDRS		=
 SRCS		= main.cu
 OBJS		= main.o
@@ -64,12 +66,19 @@ OBJS		= main.o
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
-	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	/usr/local/include/TU/Profiler.h ../../TU/cuda/Array++.h \
+main.o: /home/ueshiba/src/TUTools++/TU/Image++.h \
+	/home/ueshiba/src/TUTools++/TU/pair.h \
+	/home/ueshiba/src/TUTools++/TU/type_traits.h \
+	/home/ueshiba/src/TUTools++/TU/Manip.h \
+	/home/ueshiba/src/TUTools++/TU/Camera++.h \
+	/home/ueshiba/src/TUTools++/TU/Geometry++.h \
+	/home/ueshiba/src/TUTools++/TU/Minimize.h \
+	/home/ueshiba/src/TUTools++/TU/Vector++.h \
+	/home/ueshiba/src/TUTools++/TU/Array++.h \
+	/home/ueshiba/src/TUTools++/TU/range.h \
+	/home/ueshiba/src/TUTools++/TU/iterator.h \
+	/home/ueshiba/src/TUTools++/TU/tuple.h \
+	/home/ueshiba/src/TUTools++/TU/algorithm.h ../../TU/cuda/tuple.h \
+	/home/ueshiba/src/TUTools++/TU/Profiler.h ../../TU/cuda/Array++.h \
 	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
 	../../TU/cuda/chrono.h

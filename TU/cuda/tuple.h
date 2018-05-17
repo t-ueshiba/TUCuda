@@ -6,8 +6,8 @@
 #ifndef TU_CUDA_TUPLE_H
 #define TU_CUDA_TUPLE_H
 
-#include "TU/iterator.h"
-#include "TU/cuda/iterator.h"
+#include <thrust/iterator/zip_iterator.h>
+#include "TU/iterator.h"			// for TU::is_tuple<TUPLE>
 
 namespace TU
 {
@@ -36,18 +36,14 @@ namespace detail
     
 template <class... T>
 using tuple = typename detail::tuple_t<T...>::type;
-}	// namespace cuda
-}	// namepsace TU
 
-namespace thrust
-{
 /************************************************************************
 *  predicate: is_cons<T>						*
 ************************************************************************/
 namespace detail
 {
   template <class HEAD, class TAIL>
-  std::true_type	check_cons(cons<HEAD, TAIL>)			;
+  std::true_type	check_cons(thrust::detail::cons<HEAD, TAIL>)	;
   std::false_type	check_cons(...)					;
 }	// namespace detail
 
@@ -59,7 +55,7 @@ template <class T>
 using is_cons = decltype(detail::check_cons(std::declval<T>()));
 
 /************************************************************************
-*  predicate: any_cons<ARGS...>					*
+*  predicate: any_cons<ARGS...>						*
 ************************************************************************/
 //! 少なくとも1つのテンプレート引数が thrust::tuple 又はそれに変換可能であるか判定する
 /*!
@@ -73,7 +69,7 @@ struct any_cons<ARG, ARGS...>
 				    any_cons<ARGS...>::value)>		{};
     
 /************************************************************************
-*  predicate: any_null<ARGS...>					*
+*  predicate: any_null<ARGS...>						*
 ************************************************************************/
 //! 少なくとも1つのテンプレート引数が thrust::null_type 又はそれに変換可能であるか判定する
 /*!
@@ -84,7 +80,7 @@ struct any_null : std::false_type					{};
 template <class ARG, class... ARGS>
 struct any_null<ARG, ARGS...>
     : std::integral_constant<
-	bool, (std::is_convertible<ARG, null_type>::value ||
+	bool, (std::is_convertible<ARG, thrust::null_type>::value ||
 	       any_null<ARGS...>::value)>				{};
     
 /************************************************************************
@@ -97,7 +93,7 @@ namespace detail
   {
   };
   template <class... S, class T>
-  struct replace_element<tuple<S...>, T>
+  struct replace_element<thrust::tuple<S...>, T>
   {
       using type = tuple<typename replace_element<S, T>::type...>;
   };
@@ -165,14 +161,14 @@ namespace detail
   template <class HEAD, class TAIL> __host__ __device__ inline auto
   make_cons(HEAD&& head, TAIL&& tail)
   {
-      return cons<HEAD, TAIL>(std::forward<HEAD>(head),
-			      std::forward<TAIL>(tail));
+      return thrust::detail::cons<HEAD, TAIL>(std::forward<HEAD>(head),
+					      std::forward<TAIL>(tail));
   }
 
   template <class FUNC, class TUPLE> inline auto
   tuple_transform(std::index_sequence<>, FUNC, TUPLE&&)
   {
-      return null_type();
+      return thrust::null_type();
   }
   template <class FUNC, class TUPLE, size_t I, size_t... IDX> inline auto
   tuple_transform(std::index_sequence<I, IDX...>, FUNC f, TUPLE&& x)
@@ -184,10 +180,10 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES> __host__ __device__
-inline std::enable_if_t<!any_cons<TUPLES...>::value, null_type>
+inline std::enable_if_t<!any_cons<TUPLES...>::value, thrust::null_type>
 tuple_transform(FUNC, TUPLES&&...)
 {
-    return null_type();
+    return thrust::null_type();
 }
 template <class FUNC, class... TUPLES,
 	  std::enable_if_t<any_cons<TUPLES...>::value>* = nullptr>
@@ -321,7 +317,7 @@ operator --(T&& t)
 namespace detail
 {
   inline std::ostream&
-  print(std::ostream& out, null_type)
+  print(std::ostream& out, thrust::null_type)
   {
       return out;
   }
@@ -332,89 +328,119 @@ namespace detail
       return out << x;
   }
   template <class HEAD, class TAIL> inline std::ostream&
-  print(std::ostream& out, const cons<HEAD, TAIL>& x)
+  print(std::ostream& out, const thrust::detail::cons<HEAD, TAIL>& x)
   {
       return print(print(out << ' ', get_head(x)), get_tail(x));
   }
 
   template <class HEAD, class TAIL> inline std::ostream&
-  operator <<(std::ostream& out, const cons<HEAD, TAIL>& x)
+  operator <<(std::ostream& out, const thrust::detail::cons<HEAD, TAIL>& x)
   {
       return print(out << '(', x) << ')';
   }
 }
     
 /************************************************************************
-*  begin/end functions for tuples					*
+*  Applying a multi-input function to a tuple of arguments		*
 ************************************************************************/
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-inline auto
-begin(TUPLE&& t)
+namespace detail
 {
-    return make_zip_iterator(tuple_transform(
-				 [](auto&& x)
-				 { using TU::begin; return begin(x); },
-				 std::forward<TUPLE>(t)));
+  template <class FUNC, class TUPLE, size_t... IDX>
+  __host__ __device__ inline decltype(auto)
+  apply(FUNC&& f, TUPLE&& t, std::index_sequence<IDX...>)
+  {
+      return f(thrust::get<IDX>(std::forward<TUPLE>(t))...);
+  }
+}
+    
+template <class FUNC, class TUPLE,
+	  std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
+__host__ __device__ inline decltype(auto)
+apply(FUNC&& f, TUPLE&& t)
+{
+    return detail::apply(
+		std::forward<FUNC>(f), std::forward<TUPLE>(t),
+		std::make_index_sequence<
+			thrust::tuple_size<std::decay_t<TUPLE> >::value>());
+}
+template <class FUNC, class T,
+	  std::enable_if_t<!is_cons<T>::value>* = nullptr>
+__host__ __device__ inline decltype(auto)
+apply(FUNC&& f, T&& t)
+{
+    return f(std::forward<T>(t));
+}
+    
+/************************************************************************
+*  begin|end|rbegin|rend|size for tuples				*
+************************************************************************/
+template <class HEAD, class TAIL> inline auto
+begin(thrust::detail::cons<HEAD, TAIL>& t)
+{
+    return thrust::make_zip_iterator(
+		tuple_transform([](auto&& x)
+				{ using std::begin; return begin(x); },
+				t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-end(TUPLE&& t)
+template <class HEAD, class TAIL> inline auto
+end(thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return make_zip_iterator(tuple_transform(
-				 [](auto&& x)
-				 { using TU::end; return end(x); },
-				 std::forward<TUPLE>(t)));
+    return thrust::make_zip_iterator(
+		tuple_transform([](auto&& x)
+				{ using std::end; return end(x); },
+				t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-rbegin(TUPLE&& t)
+template <class HEAD, class TAIL> inline auto
+rbegin(thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return std::make_reverse_iterator(end(std::forward<TUPLE>(t)));
+    return std::make_reverse_iterator(end(t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-rend(TUPLE&& t)
+template <class HEAD, class TAIL> inline auto
+rend(thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return std::make_reverse_iterator(begin(std::forward<TUPLE>(t)));
+    return std::make_reverse_iterator(begin(t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-cbegin(const TUPLE& t)
+template <class HEAD, class TAIL> inline auto
+begin(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return begin(t);
+    return thrust::make_zip_iterator(
+		tuple_transform([](auto&& x)
+				{ using std::begin; return begin(x); },
+				t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-cend(const TUPLE& t)
+template <class HEAD, class TAIL> inline auto
+end(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return end(t);
+    return thrust::make_zip_iterator(
+		tuple_transform([](auto&& x)
+				{ using std::end; return end(x); },
+				t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-crbegin(const TUPLE& t)
+template <class HEAD, class TAIL> inline auto
+rbegin(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return rbegin(t);
+    return std::make_reverse_iterator(end(t));
 }
 
-template <class TUPLE, std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ inline auto
-crend(const TUPLE& t)
+template <class HEAD, class TAIL> inline auto
+rend(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return rend(t);
+    return std::make_reverse_iterator(begin(t));
 }
 
-template <class TUPLE>
-__host__ __device__ inline std::enable_if_t<is_cons<TUPLE>::value, size_t>
-size(const TUPLE& t)
+template <class HEAD, class TAIL> inline size_t
+size(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return TU::size(get<0>(t));
+    return thrust::get<0>(t).size();
 }
 
-}	// namespace thrust
+}	// namespace cuda
+}	// namepsace TU
+
 #endif	// !TU_CUDA_TUPLE_H

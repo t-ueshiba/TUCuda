@@ -17,27 +17,30 @@ namespace TU
 namespace cuda
 {
 /************************************************************************
-*  map_iterator<FUNC, ITER...>						*
+*  map_iterator<FUNC, ITER>						*
 ************************************************************************/
-template <class FUNC, class... ITER>
+template <class FUNC, class ITER>
 class map_iterator
     : public thrust::iterator_adaptor<
-	map_iterator<FUNC, ITER...>,
-	thrust::zip_iterator<thrust::tuple<ITER...> >,
+	map_iterator<FUNC, ITER>,
+	ITER,
 	std::decay_t<
-	    std::result_of_t<
-		FUNC(typename std::iterator_traits<ITER>::reference...)> >,
+	    decltype(apply(std::declval<FUNC>(),
+			   std::declval<typename std::iterator_traits<ITER>
+						    ::reference>()))>,
 	thrust::use_default,
 	thrust::use_default,
-	std::result_of_t<
-	    FUNC(typename std::iterator_traits<ITER>::reference...)> >
+	decltype(apply(std::declval<FUNC>(),
+		       std::declval<typename std::iterator_traits<ITER>
+						::reference>()))>
 {
   private:
-    using ref	= std::result_of_t<
-		      FUNC(typename std::iterator_traits<ITER>::reference...)>;
+    using ref	= decltype(
+			apply(std::declval<FUNC>(),
+			      std::declval<typename std::iterator_traits<ITER>
+						       ::reference>()));
     using super	= thrust::iterator_adaptor<map_iterator,
-					   thrust::zip_iterator<
-					       thrust::tuple<ITER...> >,
+					   ITER,
 					   std::decay_t<ref>,
 					   thrust::use_default,
 					   thrust::use_default,
@@ -45,38 +48,38 @@ class map_iterator
     friend	class thrust::iterator_core_access;
 
   public:
-    using	typename super::difference_type;
     using	typename super::reference;
 	
   public:
     __host__ __device__
-		map_iterator(FUNC func, const ITER&... iter)
-		    :super(thrust::tuple<ITER...>(iter...)), _func(func)
-		{
-		}
+		map_iterator(FUNC func, const ITER& iter)
+		    :super(iter), _func(func)				{}
 	
   private:
     __host__ __device__
-    reference	dereference() const
-		{
-		    return dereference(
-				std::make_index_sequence<sizeof...(ITER)>());
-		}
-    template <size_t... IDX_> __host__ __device__
-    reference	dereference(std::index_sequence<IDX_...>) const
-		{
-		    return _func(thrust::get<IDX_>(*super::base())...);
-		}
+    reference	dereference()	const	{ return apply(_func, *super::base()); }
 	
   private:
     FUNC	_func;	//!< 演算子
 };
     
-template <class FUNC, class... ITER>
-__host__ __device__ inline map_iterator<FUNC, ITER...>
-make_map_iterator(FUNC func, const ITER&... iter)
+template <class FUNC, class ITER>
+__host__ __device__ inline map_iterator<FUNC, ITER>
+make_map_iterator(FUNC func, const ITER& iter)
 {
-    return {func, iter...};
+    return {func, iter};
+}
+
+template <class FUNC, class ITER0, class ITER1, class... ITERS>
+__host__ __device__
+inline map_iterator<
+	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
+make_map_iterator(FUNC func,
+		  const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
+{
+    return {func,
+	    thrust::make_zip_iterator(
+		thrust::make_tuple(iter0, iter1, iters...))};
 }
 
 /************************************************************************
@@ -85,31 +88,24 @@ make_map_iterator(FUNC func, const ITER&... iter)
 #if defined(__NVCC__)
 namespace detail
 {
-  template <class FUNC, class ITER, class... ITERS>
+  template <class FUNC, class ITER>
   class assignment_proxy
   {
-    public:
-      using iterator	= std::conditional_t<
-				sizeof...(ITERS),
-				thrust::zip_iterator<
-				    thrust::tuple<ITER, ITERS...> >,
-				ITER>;
-      
     private:
       template <class T_>
-      static auto	check_func(iterator iter, const T_& val, FUNC func)
+      static auto	check_func(ITER iter, const T_& val, FUNC func)
 			    -> decltype(func(*iter, val), std::true_type());
       template <class T_>
-      static auto	check_func(iterator iter, const T_& val, FUNC func)
+      static auto	check_func(ITER iter, const T_& val, FUNC func)
 			    -> decltype(*iter = func(val), std::false_type());
       template <class T_>
-      using is_binary_func	= decltype(check_func(std::declval<iterator>(),
+      using is_binary_func	= decltype(check_func(std::declval<ITER>(),
 						      std::declval<T_>(),
 						      std::declval<FUNC>()));
       
     public:
       __host__ __device__
-      assignment_proxy(const iterator& iter, const FUNC& func)
+      assignment_proxy(const ITER& iter, const FUNC& func)
 	  :_iter(iter), _func(func)					{}
 
       template <class T_> __host__ __device__
@@ -170,7 +166,7 @@ namespace detail
 			}
 
     private:
-      const iterator&	_iter;
+      const ITER&	_iter;
       const FUNC&	_func;
   };
 }	// namespace detail
@@ -180,25 +176,23 @@ namespace detail
   \param FUNC	変換を行う関数オブジェクトの型
   \param ITER	変換結果の代入先を指す反復子
 */
-template <class FUNC, class... ITER>
+template <class FUNC, class ITER>
 class assignment_iterator
-    : public thrust::iterator_adaptor<
-		assignment_iterator<FUNC, ITER...>,
-		typename detail::assignment_proxy<FUNC, ITER...>::iterator,
-		thrust::use_default,
-		thrust::use_default,
-		thrust::use_default,
-		detail::assignment_proxy<FUNC, ITER...> >
+    : public thrust::iterator_adaptor<assignment_iterator<FUNC, ITER>,
+				      ITER,
+				      thrust::use_default,
+				      thrust::use_default,
+				      thrust::use_default,
+				      detail::assignment_proxy<FUNC, ITER> >
 {
   private:
     using super	= thrust::iterator_adaptor<
-			assignment_iterator,
-			typename
-			    detail::assignment_proxy<FUNC, ITER...>::iterator,
-			thrust::use_default,
-			thrust::use_default,
-			thrust::use_default,
-			detail::assignment_proxy<FUNC, ITER...> >;
+				assignment_iterator,
+				ITER,
+				thrust::use_default,
+				thrust::use_default,
+				thrust::use_default,
+				detail::assignment_proxy<FUNC, ITER> >;
     friend	class thrust::iterator_core_access;
     
   public:
@@ -206,21 +200,12 @@ class assignment_iterator
 
   public:
     __host__ __device__
-    assignment_iterator(const FUNC& func, const ITER&... iter)
-	:assignment_iterator(
-	    std::integral_constant<bool, (sizeof...(ITER) > 1)>(),
-	    func, iter...)					{}
+		assignment_iterator(const FUNC& func, const ITER& iter)
+		    :super(iter), _func(func)				{}
 
     const auto&	functor()	const	{ return _func; }
 
   private:
-    __host__ __device__
-    assignment_iterator(std::true_type,  const FUNC& func, const ITER&... iter)
-	:super(thrust::make_tuple(iter...)), _func(func)	{}
-    __host__ __device__
-    assignment_iterator(std::false_type, const FUNC& func, const ITER&... iter)
-	:super(iter...), _func(func)				{}
-
     __host__ __device__
     reference	dereference()	const	{ return {super::base(), _func}; }
     
@@ -229,11 +214,23 @@ class assignment_iterator
 };
 #endif	// __NVCC__
     
-template <class FUNC, class... ITER>
-__host__ __device__ inline assignment_iterator<FUNC, ITER...>
-make_assignment_iterator(const FUNC& func, const ITER&... iter)
+template <class FUNC, class ITER>
+__host__ __device__ inline assignment_iterator<FUNC, ITER>
+make_assignment_iterator(const FUNC& func, const ITER& iter)
 {
-    return {func, iter...};
+    return {func, iter};
+}
+
+template <class FUNC, class ITER0, class ITER1, class... ITERS>
+__host__ __device__
+inline assignment_iterator<
+	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
+make_assignment_iterator(const FUNC& func, const ITER0& iter0,
+			 const ITER1& iter1, const ITERS&... iters)
+{
+    return {func,
+	    thrust::make_zip_iterator(
+		thrust::make_tuple(iter0, iter1, iters...))};
 }
 
 }	// namespace cuda

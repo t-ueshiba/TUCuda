@@ -540,7 +540,7 @@ copy(device_ptr<const VEC> p, size_t n, TU::RGB_<E>* q)
     copy_n(p, (N ? N : n), tmp.begin());
     std::copy_n(tmp.cbegin(), (N ? N : n),
 		TU::make_assignment_iterator(
-		    q, TU::vec_to_color<TU::RGB_<E> >()));
+		    TU::vec_to_color<TU::RGB_<E> >(), q));
 #endif
 }
 

@@ -6,7 +6,6 @@
 #include "TU/io.h"
 #include "TU/Rectify.h"
 #include "TU/StereoUtility.h"
-#include "DisparitySelector.h"
 
 #define DEFAULT_PARAM_FILE	"stereo"
 #define DEFAULT_CONFIG_DIRS	".:/usr/local/etc/cameras"

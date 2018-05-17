@@ -9,6 +9,7 @@
 #include "TU/cuda/tuple.h"
 #include "TU/cuda/vec.h"
 #include "TU/cuda/BoxFilter.h"
+#include "TU/cuda/iterator.h"
 
 namespace TU
 {
@@ -182,6 +183,10 @@ template <class IN, class GUIDE, class OUT> void
 GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 					OUT out, bool shift) const
 {
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
     if (ib == ie)
 	return;
 
@@ -197,24 +202,21 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
     profiler_t::start(1);
     _paramsFilter.convolve(make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
-						 std::cbegin(*ib),
-						 std::cbegin(*gb)),
+						 cbegin(*ib),
+						 cbegin(*gb)),
 			     //thrust::make_tuple(stride(ib), stride(gb)),
-			       stride(ib),
-			       TU::size(*ib)),
+			       stride(ib), size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
-						 std::cbegin(*ie),
-						 std::cbegin(*ge)),
+						 cbegin(*ie),
+						 cbegin(*ge)),
 			     //thrust::make_tuple(stride(ie), stride(ge)),
-			       stride(ie),
-			       TU::size(*ie)),
+			       stride(ie), size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
 				   device::init_coeffs<T>(n, _e),
 				   _c.begin()->begin()),
-			       stride(_c.begin()),
-			       _c.ncol()));
+			       stride(_c.begin()), _c.ncol()));
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．
     profiler_t::start(2);
@@ -228,8 +230,7 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			     //thrust::make_tuple(stride(gb), stride(out)),
-			       stride(gb),
-			       TU::size(*out)));
+			       stride(gb), size(*out)));
     profiler_t::nextFrame();
 }
 
@@ -244,6 +245,10 @@ template <class T, class CLOCK, size_t WMAX>
 template <class IN, class OUT> void
 GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 {
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
     if (ib == ie)
 	return;
 
@@ -258,12 +263,12 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
     profiler_t::start(1);
     _paramsFilter.convolve(make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
-						 std::cbegin(*ib)),
-			       stride(ib), TU::size(*ib)),
+						 cbegin(*ib)),
+			       stride(ib), size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
-						 std::cbegin(*ie)),
-			       stride(ie), TU::size(*ie)),
+						 cbegin(*ie)),
+			       stride(ie), size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
 				   _c.begin()->begin(),
@@ -282,8 +287,7 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			     //thrust::make_tuple(stride(gb), stride(out)),
-			       stride(ib),
-			       TU::size(*out)));
+			       stride(ib), size(*out)));
     profiler_t::nextFrame();
 }
 

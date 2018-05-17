@@ -3,6 +3,7 @@ SUBDIR	= boxFilterTest		\
 	  filterTest		\
 	  fp16Test		\
 	  gaussTest		\
+	  guidedFilterTest	\
 	  mappedMemoryTest	\
 	  op3x3Test		\
 	  stereoTest		\

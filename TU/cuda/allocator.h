@@ -145,6 +145,26 @@ class mapped_allocator
 		}
 };
 
+/************************************************************************
+*  TUI::cuda::get()							*
+************************************************************************/
+//! thrust::device_ptr<T> を渡されたらその raw pointer を取り出す
+/*!
+  cuda-9.1 まではテンプレート引数を介して thrust::device_ptr<T> を
+  device関数に渡せないbugがあるので，これを回避するための関数．
+ */ 
+template <class ITER> inline const ITER&
+get(const ITER& iter)
+{
+    return iter;
+}
+    
+template <class T> inline T*
+get(thrust::device_ptr<T> p)
+{
+    return p.get();
+}
+    
 }	// namespace cuda
 }	// namespace TU
 #endif	// !TU_CUDA_ALLOCATOR_H

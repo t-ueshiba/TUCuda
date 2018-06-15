@@ -189,14 +189,13 @@ fir_filterH(IN in, OUT out, int strideI, int strideO)
     using value_type  =	typename FILTER::value_type;
     
     constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
-    constexpr auto	BlockDimX = FILTER::BlockDimX;
-    constexpr auto	BlockDimY = FILTER::BlockDimY;
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
   // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
-    __shared__ value_type	in_s[BlockDimY][BlockDimX + 2*LobeSize + 1];
+    __shared__ value_type	in_s[FILTER::BlockDimY]
+				    [FILTER::BlockDimX + 2*LobeSize + 1];
     loadTileH(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     
@@ -212,14 +211,13 @@ fir_filterV(const IN in, OUT out, int strideI, int strideO)
     using value_type  =	typename FILTER::value_type;
     
     constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
-    constexpr auto	BlockDimX = FILTER::BlockDimX;
-    constexpr auto	BlockDimY = FILTER::BlockDimY;
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
   // 原画像のブロックとその上下LobeSize分を転置して共有メモリにコピー
-    __shared__ value_type	in_s[BlockDimX][BlockDimY + 2*LobeSize + 1];
+    __shared__ value_type	in_s[FILTER::BlockDimX]
+				    [FILTER::BlockDimY + 2*LobeSize + 1];
     loadTileVt(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     

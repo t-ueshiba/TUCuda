@@ -1,6 +1,3 @@
-/*
- *  $Id: BoxFilter.h 1962 2016-03-22 02:56:32Z ueshiba $
- */
 /*!
   \file		BoxFilter.h
   \brief	boxフィルタの定義と実装
@@ -38,11 +35,9 @@ box_filter(IN in, OUT out, int winSize, int strideI, int strideO)
 {
     using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	BlockDim   = FILTER::BlockDim;
-    constexpr auto	WinSizeMax = FILTER::WinSizeMax;
-    
-    __shared__ value_type	in_s[BlockDim + WinSizeMax - 1][BlockDim + 1];
-    __shared__ value_type	out_s[BlockDim][BlockDim + 1];
+    __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+				    [FILTER::BlockDim + 1];
+    __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
@@ -79,11 +74,8 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
 {
     using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	BlockDimX  = FILTER::BlockDimX;
-    constexpr auto	BlockDimY  = FILTER::BlockDimY;
-    constexpr auto	WinSizeMax = FILTER::WinSizeMax;
-
-    __shared__ value_type	val_s[WinSizeMax][BlockDimY][BlockDimX + 1];
+    __shared__ value_type	val_s[FILTER::WinSizeMax]
+				     [FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
     const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
     const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 行
@@ -114,11 +106,8 @@ box_filterV(IN in, int nrows, int winSizeV, int strideXD, int strideD)
 {
     using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	BlockDimX  = FILTER::BlockDimX;
-    constexpr auto	BlockDimY  = FILTER::BlockDimY;
-    constexpr auto	WinSizeMax = FILTER::WinSizeMax;
-
-    __shared__ value_type	in_s[WinSizeMax][BlockDimY][BlockDimX + 1];
+    __shared__ value_type	in_s[FILTER::WinSizeMax]
+				    [FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
     const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
     const auto	x = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 列
@@ -148,10 +137,8 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 {
     using value_type  =	typename FILTER::value_type;
     
-    constexpr auto	BlockDim   = FILTER::BlockDim;
-    constexpr auto	WinSizeMax = FILTER::WinSizeMax;
-
-    __shared__ value_type	in_s[WinSizeMax][BlockDim][BlockDim + 1];
+    __shared__ value_type	in_s[FILTER::WinSizeMax]
+				    [FILTER::BlockDim][FILTER::BlockDim + 1];
     __shared__ value_type	out_s[BlockDimY][BlockDimX + 1];
 
     const auto	d0 = __mul24(blockIdx.x, blockDim.x);	// 視差

@@ -7,7 +7,7 @@
 #define TU_CUDA_TUPLE_H
 
 #include <thrust/iterator/zip_iterator.h>
-#include "TU/iterator.h"			// for TU::is_tuple<TUPLE>
+#include "TU/tuple.h"			// for TU::is_tuple<TUPLE>
 
 namespace TU
 {
@@ -55,33 +55,10 @@ template <class T>
 using is_cons = decltype(detail::check_cons(std::declval<T>()));
 
 /************************************************************************
-*  predicate: any_cons<ARGS...>						*
+*  predicate: is_null<T>						*
 ************************************************************************/
-//! 少なくとも1つのテンプレート引数が thrust::tuple 又はそれに変換可能であるか判定する
-/*!
-  \param ARGS...	判定対象となる型の並び
-*/
-template <class... ARGS>
-struct any_cons : std::false_type					{};
-template <class ARG, class... ARGS>
-struct any_cons<ARG, ARGS...>
-    : std::integral_constant<bool, (is_cons<ARG>::value ||
-				    any_cons<ARGS...>::value)>		{};
-    
-/************************************************************************
-*  predicate: any_null<ARGS...>						*
-************************************************************************/
-//! 少なくとも1つのテンプレート引数が thrust::null_type 又はそれに変換可能であるか判定する
-/*!
-  \param ARGS...	判定対象となる型の並び
-*/
-template <class... ARGS>
-struct any_null : std::false_type					{};
-template <class ARG, class... ARGS>
-struct any_null<ARG, ARGS...>
-    : std::integral_constant<
-	bool, (std::is_convertible<ARG, thrust::null_type>::value ||
-	       any_null<ARGS...>::value)>				{};
+template <class T>
+using is_null = std::is_convertible<T, thrust::null_type>;
     
 /************************************************************************
 *  type alias: replace_element<S, T>					*
@@ -140,13 +117,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<any_null<TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<any<is_null, TUPLES...>::value>
 tuple_for_each(FUNC, TUPLES&&...)
 {
 }
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<any_cons<TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<any<is_cons, TUPLES...>::value>
 tuple_for_each(FUNC f, TUPLES&&... x)
 {
     f(detail::get_head(std::forward<TUPLES>(x))...);
@@ -180,13 +157,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES> __host__ __device__
-inline std::enable_if_t<!any_cons<TUPLES...>::value, thrust::null_type>
+inline std::enable_if_t<!any<is_cons, TUPLES...>::value, thrust::null_type>
 tuple_transform(FUNC, TUPLES&&...)
 {
     return thrust::null_type();
 }
 template <class FUNC, class... TUPLES,
-	  std::enable_if_t<any_cons<TUPLES...>::value>* = nullptr>
+	  std::enable_if_t<any<is_cons, TUPLES...>::value>* = nullptr>
 __host__ __device__ inline auto
 tuple_transform(FUNC f, TUPLES&&... x)
 {
@@ -215,7 +192,8 @@ operator -(const T& t)
     return tuple_transform([](const auto& x){ return -x; }, t);
 }
 
-template <class L, class R, std::enable_if_t<any_cons<L, R>::value>* = nullptr>
+template <class L, class R,
+	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator +(const L& l, const R& r)
 {
@@ -223,7 +201,8 @@ operator +(const L& l, const R& r)
 			   l, r);
 }
 
-template <class L, class R, std::enable_if_t<any_cons<L, R>::value>* = nullptr>
+template <class L, class R,
+	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator -(const L& l, const R& r)
 {
@@ -231,7 +210,8 @@ operator -(const L& l, const R& r)
 			   l, r);
 }
 
-template <class L, class R, std::enable_if_t<any_cons<L, R>::value>* = nullptr>
+template <class L, class R,
+	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator *(const L& l, const R& r)
 {
@@ -239,7 +219,8 @@ operator *(const L& l, const R& r)
 			   l, r);
 }
 
-template <class L, class R, std::enable_if_t<any_cons<L, R>::value>* = nullptr>
+template <class L, class R,
+	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator /(const L& l, const R& r)
 {
@@ -247,7 +228,8 @@ operator /(const L& l, const R& r)
 			   l, r);
 }
 
-template <class L, class R, std::enable_if_t<any_cons<L, R>::value>* = nullptr>
+template <class L, class R,
+	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator %(const L& l, const R& r)
 {

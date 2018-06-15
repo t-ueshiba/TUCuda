@@ -108,6 +108,9 @@ fill(device_ptr<T> q, size_t n, const S& val)
     fill_n(q, (N ? N : n), val);
 }
 
+template <class T> ptrdiff_t
+stride(device_ptr<T>)							;
+    
 }	// namespace thrust
 
 //! 植芝によって開発されたクラスおよび関数を納める名前空間

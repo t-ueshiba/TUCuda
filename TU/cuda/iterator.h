@@ -10,7 +10,7 @@
 
 #include <type_traits>
 #include <thrust/iterator/iterator_adaptor.h>
-#include <thrust/iterator/zip_iterator.h>
+#include "TU/cuda/tuple.h"
 
 namespace TU
 {
@@ -81,7 +81,7 @@ make_map_iterator(FUNC func,
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
-
+  
 /************************************************************************
 *  class assignment_iterator<FUNC, ITER>				*
 ************************************************************************/
@@ -233,13 +233,71 @@ make_assignment_iterator(const FUNC& func, const ITER0& iter0,
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
 
-}	// namespace cuda
-
-template <class HEAD, class TAIL> __host__ __device__ inline auto
-make_zip_iterator(const thrust::detail::cons<HEAD, TAIL>& iter_tuple)
+/************************************************************************
+*  TU::cuda::stride(const ITER&)					*
+************************************************************************/
+template <class ITER_TUPLE> __host__ __device__ inline auto
+stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
 {
-    return thrust::make_zip_iterator(iter_tuple);
+  /*
+    thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
+    こちらを有効化する．
+    
+    return tuple_transform([](const auto& iter){ return stride(iter); },
+			   iter.get_iterator_tuple());
+  */
+    return stride(thrust::get<0>(iter.get_iterator_tuple()));
 }
 
+template <class FUNC, class ITER> __host__ __device__ inline auto
+stride(const map_iterator<FUNC, ITER>& iter)
+    -> decltype(stride(iter.base()))
+{
+    return stride(iter.base());
+}
+
+template <class FUNC, class ITER> __host__ __device__ inline auto
+stride(const assignment_iterator<FUNC, ITER>& iter)
+    -> decltype(stride(iter.base()))
+{
+    return stride(iter.base());
+}
+
+/************************************************************************
+*  advance_stride(ITER&, STRIDE)					*
+************************************************************************/
+/*
+  thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
+  本関数を有効化する．
+  
+template <class ITER> __host__ __device__ inline auto
+advance_stride(ITER& iter, ptrdiff_t stride)
+    -> void_t<decltype(iter += stride)>
+{
+    iter += stride;
+}
+*/
+    
+template <class ITER_TUPLE, class HEAD, class TAIL>
+__host__ __device__ inline auto
+advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
+	       const thrust::detail::cons<HEAD, TAIL>& stride)
+{
+    using tuple_t = std::decay_t<decltype(iter.get_iterator_tuple())>;
+    
+    tuple_for_each([](auto&& x, const auto& y){ advance_stride(x, y); },
+		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
+}
+
+template <class ITER, class HEAD, class TAIL> __host__ __device__ inline auto
+advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
+    -> TU::void_t<decltype(iter.base())>
+{
+    using base_t = std::decay_t<decltype(iter.base())>;
+    
+    advance_stride(const_cast<base_t&>(iter.base()), stride);
+}
+
+}	// namespace cuda
 }	// namespace TU
 #endif	// !TU_CUDA_ITERATOR_H

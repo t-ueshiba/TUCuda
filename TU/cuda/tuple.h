@@ -6,37 +6,13 @@
 #ifndef TU_CUDA_TUPLE_H
 #define TU_CUDA_TUPLE_H
 
+#include "TU/type_traits.h"
 #include <thrust/iterator/zip_iterator.h>
-#include "TU/tuple.h"			// for TU::is_tuple<TUPLE>
 
 namespace TU
 {
 namespace cuda
 {
-/************************************************************************
-*  alias: TU::cuda::tuple<T...>						*
-************************************************************************/
-namespace detail
-{
-  template <class... T>
-  struct tuple_t;
-
-  template <>
-  struct tuple_t<>
-  {
-      using type = thrust::null_type;
-  };
-    
-  template <class S, class... T>
-  struct tuple_t<S, T...>
-  {
-      using type = thrust::detail::cons<S, typename tuple_t<T...>::type>;
-  };
-}	// namespace detail
-    
-template <class... T>
-using tuple = typename detail::tuple_t<T...>::type;
-
 /************************************************************************
 *  predicate: is_cons<T>						*
 ************************************************************************/
@@ -60,30 +36,6 @@ using is_cons = decltype(detail::check_cons(std::declval<T>()));
 template <class T>
 using is_null = std::is_convertible<T, thrust::null_type>;
     
-/************************************************************************
-*  type alias: replace_element<S, T>					*
-************************************************************************/
-namespace detail
-{
-  template <class S, class T>
-  struct replace_element : std::conditional<std::is_void<T>::value, S, T>
-  {
-  };
-  template <class... S, class T>
-  struct replace_element<thrust::tuple<S...>, T>
-  {
-      using type = tuple<typename replace_element<S, T>::type...>;
-  };
-}	// namespace detail
-    
-//! 与えられた型がthrust::tupleならばその要素の型を，そうでなければ元の型自身を別の型で置き換える．
-/*!
-  \param S	要素型置換の対象となる型
-  \param T	置換後の要素の型．voidならば置換しない．
-*/
-template <class S, class T>
-using replace_element = typename detail::replace_element<S, T>::type;
-
 /************************************************************************
 *  tuple_for_each(TUPLES..., FUNC)				`	*
 ************************************************************************/
@@ -141,19 +93,6 @@ namespace detail
       return thrust::detail::cons<HEAD, TAIL>(std::forward<HEAD>(head),
 					      std::forward<TAIL>(tail));
   }
-
-  template <class FUNC, class TUPLE> inline auto
-  tuple_transform(std::index_sequence<>, FUNC, TUPLE&&)
-  {
-      return thrust::null_type();
-  }
-  template <class FUNC, class TUPLE, size_t I, size_t... IDX> inline auto
-  tuple_transform(std::index_sequence<I, IDX...>, FUNC f, TUPLE&& x)
-  {
-      return make_cons(f(std::get<I>(std::forward<TUPLE>(x))),
-		       tuple_transform(std::index_sequence<IDX...>(),
-				       f, std::forward<TUPLE>(x)));
-  }
 }	// namespace detail
 
 template <class FUNC, class... TUPLES> __host__ __device__
@@ -171,15 +110,6 @@ tuple_transform(FUNC f, TUPLES&&... x)
 			     tuple_transform(
 				 f,
 				 detail::get_tail(std::forward<TUPLES>(x))...));
-}
-
-template <class FUNC, class TUPLE,
-	  std::enable_if_t<TU::is_tuple<TUPLE>::value>* = nullptr> inline auto
-tuple_transform(FUNC f, TUPLE&& x)
-{
-    constexpr auto	tsize = std::tuple_size<std::decay_t<TUPLE> >::value;
-    return detail::tuple_transform(std::make_index_sequence<tsize>(),
-				   f, std::forward<TUPLE>(x));
 }
 
 /************************************************************************

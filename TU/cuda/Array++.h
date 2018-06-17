@@ -101,7 +101,7 @@ copy(const S* p, size_t n, device_ptr<T> q)
 {
     copy_n(p, (N ? N : n), q);
 }
-
+	
 template <size_t N, class T, class S> inline void
 fill(device_ptr<T> q, size_t n, const S& val)
 {

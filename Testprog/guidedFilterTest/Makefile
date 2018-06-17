@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(HOME)/src/TUTools++ -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG -DUSE_TBB
+CPPFLAGS	= #-DNDEBUG -DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)

@@ -65,11 +65,11 @@ FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
-	TU/cuda/tuple.h TU/cuda/iterator.h TU/cuda/algorithm.h
+	TU/cuda/algorithm.h TU/cuda/iterator.h TU/cuda/tuple.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
 	TU/cuda/Array++.h TU/cuda/allocator.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/type_traits.h \
-	/usr/local/include/TU/algorithm.h TU/cuda/tuple.h TU/cuda/iterator.h \
-	TU/cuda/algorithm.h
+	/usr/local/include/TU/algorithm.h TU/cuda/algorithm.h \
+	TU/cuda/iterator.h TU/cuda/tuple.h
 chrono.o: TU/cuda/chrono.h

@@ -29,9 +29,9 @@ namespace device
   \param strideI	入力2次元配列の行を1つ進めるためにインクリメントするべき要素数
   \param strideO	出力2次元配列の行を1つ進めるためにインクリメントするべき要素数
 */
-template <class FILTER, class IN, class OUT>
+template <class FILTER, class IN, class OUT, class STRIDE_I, class STRIDE_O>
 __global__ void
-box_filter(IN in, OUT out, int winSize, int strideI, int strideO)
+box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
     
@@ -42,7 +42,8 @@ box_filter(IN in, OUT out, int winSize, int strideI, int strideO)
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
 
-    loadTileV(in + __mul24(y0, strideI) + x0, strideI, in_s, winSize - 1);
+  //loadTileV(in + __mul24(y0, strideI) + x0, strideI, in_s, winSize - 1);
+    loadTileV(in + (y0*strideI + x0), strideI, in_s, winSize - 1);
     __syncthreads();
     
     if (threadIdx.y == 0)
@@ -338,7 +339,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	get(cbegin(*row)), get(begin(_buf[0])), _winSizeV, strideI, strideB);
+	cbegin(*row), begin(_buf[0]), _winSizeV, strideI, strideB);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncols - x;

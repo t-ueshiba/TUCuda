@@ -47,10 +47,11 @@ namespace device
     \param dst		コピー先の2次元配列
     \param dx		ブロック幅に付加される長さ
   */
-  template <class S, class T, size_t W> __device__ static inline void
-  loadTileH(S src, int stride, T dst[][W], int dx)
+  template <class S, class STRIDE, class T, size_t W>
+  __device__ static inline void
+  loadTileH(S src, STRIDE stride, T dst[][W], int dx)
   {
-      src += __mul24(threadIdx.y, stride);
+      src += threadIdx.y * stride;
 
       auto		tx = threadIdx.x;
       const auto	q  = dst[threadIdx.y];
@@ -68,17 +69,18 @@ namespace device
     \param dst		コピー先の2次元配列
     \param dy		ブロック高に付加される長さ
   */
-  template <class S, class T, size_t W> __device__ static inline void
-  loadTileV(S src, int stride, T dst[][W], int dy)
+  template <class S, class STRIDE, class T, size_t W>
+  __device__ static inline void
+  loadTileV(S src, STRIDE stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
-      src += (__mul24(ty, stride) + threadIdx.x);
+      src += (ty * stride + threadIdx.x);
 
       dy += blockDim.y;
       do
       {
 	  dst[ty][threadIdx.x] = *src;
-	  src += __mul24(blockDim.y, stride);
+	  src += blockDim.y * stride;
       } while ((ty += blockDim.y) < dy);
   }
 
@@ -90,18 +92,19 @@ namespace device
     \param dst		コピー先の2次元配列
     \param dy		ブロック高に付加される長さ
   */
-  template <class S, class T, size_t W> __device__ static inline void
-  loadTileVt(S src, int stride, T dst[][W], int dy)
+  template <class S, class STRIDE, class T, size_t W>
+  __device__ static inline void
+  loadTileVt(S src, STRIDE stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
-      src += (__mul24(ty, stride) + threadIdx.x);
+      src += (ty * stride + threadIdx.x);
 
       const auto	q = dst[threadIdx.x];
       dy += blockDim.y;
       do
       {
 	  q[ty] = *src;
-	  src += __mul24(blockDim.y, stride);
+	  src += blockDim.y * stride;
       } while ((ty += blockDim.y) < dy);
   }
 
@@ -113,11 +116,12 @@ namespace device
     \param dx		ブロック幅に付加される長さ
     \param dy		ブロック高に付加される長さ
   */
-  template <class S, class T, size_t W> __device__ static inline void
-  loadTile(S src, int stride, T dst[][W], int dx, int dy)
+  template <class S, class STRIDE, class T, size_t W>
+  __device__ static inline void
+  loadTile(S src, STRIDE stride, T dst[][W], int dx, int dy)
   {
       auto	ty = threadIdx.y;
-      src += __mul24(ty, stride);
+      src += ty * stride;
 
       dx += blockDim.x;
       dy += blockDim.y;
@@ -128,7 +132,7 @@ namespace device
 	  {
 	      dst[ty][tx] = src[tx];
 	  } while ((tx += blockDim.x) < dx);
-	  src += __mul24(blockDim.y, stride);
+	  src += blockDim.y * stride;
       } while ((ty += blockDim.y) < dy);
   }
 }	// namespace device

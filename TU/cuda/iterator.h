@@ -242,11 +242,11 @@ stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
   /*
     thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
     こちらを有効化する．
-    
+  */    
     return tuple_transform([](const auto& iter){ return stride(iter); },
 			   iter.get_iterator_tuple());
-  */
-    return stride(thrust::get<0>(iter.get_iterator_tuple()));
+
+  //return stride(thrust::get<0>(iter.get_iterator_tuple()));
 }
 
 template <class FUNC, class ITER> __host__ __device__ inline auto
@@ -269,15 +269,15 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
 /*
   thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
   本関数を有効化する．
-  
+*/
+  /*
 template <class ITER> __host__ __device__ inline auto
 advance_stride(ITER& iter, ptrdiff_t stride)
     -> void_t<decltype(iter += stride)>
 {
     iter += stride;
 }
-*/
-    
+  */
 template <class ITER_TUPLE, class HEAD, class TAIL>
 __host__ __device__ inline auto
 advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
@@ -285,7 +285,8 @@ advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 {
     using tuple_t = std::decay_t<decltype(iter.get_iterator_tuple())>;
     
-    tuple_for_each([](auto&& x, const auto& y){ advance_stride(x, y); },
+    tuple_for_each([](auto&& x, const auto& y)
+		   { using TU::advance_stride; advance_stride(x, y); },
 		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
 

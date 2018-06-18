@@ -43,7 +43,8 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
 
   //loadTileV(in + __mul24(y0, strideI) + x0, strideI, in_s, winSize - 1);
-    loadTileV(in + (y0*strideI + x0), strideI, in_s, winSize - 1);
+    advance_stride(in, y0*strideI + x0);
+    loadTileV(in, strideI, in_s, winSize - 1);
     __syncthreads();
     
     if (threadIdx.y == 0)

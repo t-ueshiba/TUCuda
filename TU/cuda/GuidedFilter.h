@@ -202,8 +202,8 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
     auto	ri = make_range_iterator(
 			make_map_iterator(device::init_params<T>(),
 					  cbegin(*ib), cbegin(*gb)),
-			stride(ib),
-		      //thrust::make_tuple(stride(ib), stride(gb)),
+		      //stride(ib),
+			thrust::make_tuple(stride(ib), stride(gb)),
 			size(*ib));
     
     std::cout << demangle<decltype(ri)>() << std::endl;
@@ -216,15 +216,15 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ib),
 						 cbegin(*gb)),
-			     //thrust::make_tuple(stride(ib), stride(gb)),
-			       stride(ib),
+			       thrust::make_tuple(stride(ib), stride(gb)),
+			     //stride(ib),
 			       size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ie),
 						 cbegin(*ge)),
-			     //thrust::make_tuple(stride(ie), stride(ge)),
-			       stride(ie),
+			       thrust::make_tuple(stride(ie), stride(ge)),
+			     //stride(ie),
 			       size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
@@ -244,8 +244,8 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 				   device::trans_guides<T>(n),
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			     //thrust::make_tuple(stride(gb), stride(out)),
-			       stride(gb),
+			       thrust::make_tuple(stride(gb), stride(out)),
+			     //stride(gb),
 			       size(*out)));
     profiler_t::nextFrame();
 #endif
@@ -303,8 +303,8 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 				   device::trans_guides<T>(n),
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			     //thrust::make_tuple(stride(ib), stride(out)),
-			       stride(ib),
+			       thrust::make_tuple(stride(ib), stride(out)),
+			     //stride(ib),
 			       size(*out)));
     profiler_t::nextFrame();
 }

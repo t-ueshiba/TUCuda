@@ -51,8 +51,8 @@ namespace device
   __device__ static inline void
   loadTileH(S src, STRIDE stride, T dst[][W], int dx)
   {
-      src += threadIdx.y * stride;
-
+      advance_stride(src, threadIdx.y * stride);
+      
       auto		tx = threadIdx.x;
       const auto	q  = dst[threadIdx.y];
       dx += blockDim.x;
@@ -74,13 +74,13 @@ namespace device
   loadTileV(S src, STRIDE stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
-      src += (ty * stride + threadIdx.x);
+      advance_stride(src, ty * stride + threadIdx.x);
 
       dy += blockDim.y;
       do
       {
 	  dst[ty][threadIdx.x] = *src;
-	  src += blockDim.y * stride;
+	  advance_stride(src, blockDim.y * stride);
       } while ((ty += blockDim.y) < dy);
   }
 

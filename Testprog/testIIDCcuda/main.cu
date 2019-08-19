@@ -107,24 +107,20 @@ main(int argc, char *argv[])
     using namespace	TU;
     
     const char*		cameraName = IIDCCameraArray::DEFAULT_CAMERA_NAME;
-    IIDCCamera::Speed	speed	   = IIDCCamera::SPD_400M;
     extern char*	optarg;
-    for (int c; (c = getopt(argc, argv, "c:Bn:")) != EOF; )
+    for (int c; (c = getopt(argc, argv, "c:")) != EOF; )
 	switch (c)
 	{
 	  case 'c':
 	    cameraName = optarg;
-	    break;
-	  case 'B':
-	    speed = IIDCCamera::SPD_800M;
 	    break;
 	}
     
     try
     {
       // IIDCカメラのオープン．
-	IIDCCameraArray	cameras;
-	cameras.restore(cameraName, speed);
+	IIDCCameraArray	cameras(cameraName);
+	cameras.restore();
 	
 	if (cameras.size() == 0)
 	    return 0;

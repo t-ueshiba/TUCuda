@@ -9,9 +9,7 @@
 #include "TU/type_traits.h"
 #include <thrust/iterator/zip_iterator.h>
 
-namespace TU
-{
-namespace cuda
+namespace thrust
 {
 /************************************************************************
 *  predicate: is_cons<T>						*
@@ -69,13 +67,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<any<is_null, TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<TU::any<is_null, TUPLES...>::value>
 tuple_for_each(FUNC, TUPLES&&...)
 {
 }
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<any<is_cons, TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<TU::any<is_cons, TUPLES...>::value>
 tuple_for_each(FUNC f, TUPLES&&... x)
 {
     f(detail::get_head(std::forward<TUPLES>(x))...);
@@ -96,13 +94,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES> __host__ __device__
-inline std::enable_if_t<!any<is_cons, TUPLES...>::value, thrust::null_type>
+inline std::enable_if_t<!TU::any<is_cons, TUPLES...>::value, thrust::null_type>
 tuple_transform(FUNC, TUPLES&&...)
 {
     return thrust::null_type();
 }
 template <class FUNC, class... TUPLES,
-	  std::enable_if_t<any<is_cons, TUPLES...>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, TUPLES...>::value>* = nullptr>
 __host__ __device__ inline auto
 tuple_transform(FUNC f, TUPLES&&... x)
 {
@@ -123,7 +121,7 @@ operator -(const T& t)
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator +(const L& l, const R& r)
 {
@@ -132,7 +130,7 @@ operator +(const L& l, const R& r)
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator -(const L& l, const R& r)
 {
@@ -141,7 +139,7 @@ operator -(const L& l, const R& r)
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator *(const L& l, const R& r)
 {
@@ -150,7 +148,7 @@ operator *(const L& l, const R& r)
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator /(const L& l, const R& r)
 {
@@ -159,7 +157,7 @@ operator /(const L& l, const R& r)
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator %(const L& l, const R& r)
 {
@@ -352,7 +350,6 @@ size(const thrust::detail::cons<HEAD, TAIL>& t)
     return thrust::get<0>(t).size();
 }
 
-}	// namespace cuda
-}	// namepsace TU
+}	// namespace thrust
 
 #endif	// !TU_CUDA_TUPLE_H

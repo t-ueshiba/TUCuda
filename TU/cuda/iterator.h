@@ -25,19 +25,20 @@ class map_iterator
 	map_iterator<FUNC, ITER>,
 	ITER,
 	std::decay_t<
-	    decltype(apply(std::declval<FUNC>(),
-			   std::declval<typename std::iterator_traits<ITER>
-						    ::reference>()))>,
+	    decltype(thrust::apply(std::declval<FUNC>(),
+				   std::declval<
+				       typename std::iterator_traits<ITER>
+						   ::reference>()))>,
 	thrust::use_default,
 	thrust::use_default,
-	decltype(apply(std::declval<FUNC>(),
+	decltype(thrust::apply(std::declval<FUNC>(),
 		       std::declval<typename std::iterator_traits<ITER>
 						::reference>()))>
 {
   private:
-    using ref	= decltype(
-			apply(std::declval<FUNC>(),
-			      std::declval<typename std::iterator_traits<ITER>
+    using ref	= decltype(thrust::apply(std::declval<FUNC>(),
+					 std::declval<
+					   typename std::iterator_traits<ITER>
 						       ::reference>()));
     using super	= thrust::iterator_adaptor<map_iterator,
 					   ITER,
@@ -57,7 +58,8 @@ class map_iterator
 	
   private:
     __host__ __device__
-    reference	dereference()	const	{ return apply(_func, *super::base()); }
+    reference	dereference()	const	{ return thrust::apply(
+						     _func, *super::base()); }
 	
   private:
     FUNC	_func;	//!< 演算子
@@ -267,32 +269,6 @@ advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
     iter += stride;
 }
 
-/*
-  thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
-  本関数を有効化する．
-*/
-  /*
-template <class ITER> __host__ __device__ inline auto
-advance_stride(ITER& iter, ptrdiff_t stride)
-    -> void_t<decltype(iter += stride)>
-{
-    iter += stride;
-}
-
-template <class FUNC, class ITER> __host__ __device__ inline auto
-advance_stride(map_iterator<FUNC, ITER>& iter, ptrdiff_t stride)
-    -> void_t<decltype(iter += stride)>
-{
-    iter += stride;
-}
-
-template <class FUNC, class ITER> __host__ __device__ inline auto
-advance_stride(assignment_iterator<FUNC, ITER>& iter, ptrdiff_t stride)
-    -> void_t<decltype(iter += stride)>
-{
-    iter += stride;
-}
-  */
 template <class ITER_TUPLE, class HEAD, class TAIL>
 __host__ __device__ inline auto
 advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,

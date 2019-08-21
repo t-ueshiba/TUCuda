@@ -19,7 +19,7 @@ cudaJob(const Array2<S>& in, const Array2<S>& guide,
 
     cudaFilter.convolve(in_d.cbegin(), in_d.cend(),
 			guide_d.cbegin(), guide_d.cend(), out_d.begin());
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cudaProfiler(1);
     constexpr size_t		NITER = 1000;

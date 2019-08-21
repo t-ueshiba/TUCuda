@@ -16,7 +16,7 @@ cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize, bool shift)
     cuda::Array2<U>	out_d(in_d.nrow(), in_d.ncol());
 
     box.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), shift);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     
     Profiler<cuda::clock>	profiler(1);
     constexpr size_t		NITER = 1000;

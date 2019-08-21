@@ -373,7 +373,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
 	dx    = offsetH();
     }
     
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     profiler_t::start(2);
     nrows = outSizeH(nrows);
   // 左上
@@ -406,7 +406,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 	get(cbegin(_buf[x]) + y), get(begin(*rowO) + x + dx),
 	_winSizeH, strideB, strideO);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     profiler_t::nextFrame();
 }
 
@@ -491,7 +491,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #endif
 	op, _winSizeH, strideL, strideR, strideXD, strideD);
   // ---- 縦方向積算 ----
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     profiler_t::start(2);
 #ifdef DISPARITY_MAJOR
   // 視差左半かつ画像左半
@@ -555,7 +555,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 	get(begin(*(begin(*rowO) + x)) + d),
 	nrows, _winSizeV, strideXD, strideD);
 #endif
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
     profiler_t::nextFrame();
 }
 #endif	// __NVCC__

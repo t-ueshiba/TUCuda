@@ -38,7 +38,7 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& costs,
     boxFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 		       imageR_d.cbegin(), costs_d.begin(),
 		       cuda::diff<T>(50), disparitySearchWidth);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
 #if 1
     Profiler<cuda::clock>	cudaProfiler(1);
     constexpr size_t		NITER = 100;
@@ -86,7 +86,7 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 				   imageD_d.stride(),
 				   imageD_d.ncol() - boxFilter.offsetH());
     disparitySelector.select(costs_d, rowD);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
 #if 1
     Profiler<cuda::clock>	cudaProfiler(2);
     constexpr size_t		NITER = 100;
@@ -96,11 +96,11 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 	boxFilter.convolve(imageL_d.cbegin(), imageL_d.cend(),
 			   imageR_d.cbegin(), costs_d.begin(),
 			   cuda::diff<T>(50), disparitySearchWidth);
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	cudaProfiler.start(1);
 	disparitySelector.select(costs_d, rowD);
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	cudaProfiler.nextFrame();
     }

@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 	cuda::Array2<pixel_t>	in_d(image),
 				out_d(in_d.nrow()/2, in_d.ncol()/2);
 	cuda::subsample(in_d.cbegin(), in_d.cend(), out_d.begin());
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

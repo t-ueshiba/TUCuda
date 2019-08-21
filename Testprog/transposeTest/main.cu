@@ -32,7 +32,7 @@ main(int argc, char *argv[])
 	cuda::Array2<out_t>	out_d(in_d.ncol(), in_d.nrow());
 
 	cuda::transpose(in_d.cbegin(), in_d.cend(), out_d.begin());
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

@@ -93,7 +93,7 @@ main(int argc, char *argv[])
 	cuda::Array2<mid_t>	in_d(in);
 	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
 	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

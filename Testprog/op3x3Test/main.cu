@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 	cuda::Array2<in_t>	in_d(in);
 	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
 	cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(), OP<in_t>());
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

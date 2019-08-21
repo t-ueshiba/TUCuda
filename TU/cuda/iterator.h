@@ -239,16 +239,8 @@ make_assignment_iterator(const FUNC& func, const ITER0& iter0,
 template <class ITER_TUPLE> __host__ __device__ inline auto
 stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
 {
-#if 1
-  /*
-    thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
-    こちらを有効化する．
-  */    
     return tuple_transform([](const auto& iter){ return stride(iter); },
 			   iter.get_iterator_tuple());
-#else
-    return stride(thrust::get<0>(iter.get_iterator_tuple()));
-#endif
 }
 
 template <class FUNC, class ITER> __host__ __device__ inline auto
@@ -268,17 +260,39 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
 /************************************************************************
 *  advance_stride(ITER&, STRIDE)					*
 ************************************************************************/
+template <class ITER> __host__ __device__ inline auto
+advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
+    -> void_t<decltype(iter += stride)>
+{
+    iter += stride;
+}
+
 /*
   thrust::zip_iterator<> の stride を thrust::tuple<> にするためには，
   本関数を有効化する．
 */
+  /*
 template <class ITER> __host__ __device__ inline auto
 advance_stride(ITER& iter, ptrdiff_t stride)
     -> void_t<decltype(iter += stride)>
 {
     iter += stride;
 }
-    
+
+template <class FUNC, class ITER> __host__ __device__ inline auto
+advance_stride(map_iterator<FUNC, ITER>& iter, ptrdiff_t stride)
+    -> void_t<decltype(iter += stride)>
+{
+    iter += stride;
+}
+
+template <class FUNC, class ITER> __host__ __device__ inline auto
+advance_stride(assignment_iterator<FUNC, ITER>& iter, ptrdiff_t stride)
+    -> void_t<decltype(iter += stride)>
+{
+    iter += stride;
+}
+  */
 template <class ITER_TUPLE, class HEAD, class TAIL>
 __host__ __device__ inline auto
 advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,

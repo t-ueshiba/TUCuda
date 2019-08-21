@@ -62,7 +62,7 @@ main(int argc, char *argv[])
       // GPUによって計算する．
 	Image<out_t, allocator_t<out_t> >	out(in.width(), in.height());
 	cuda::op3x3(in.cbegin(), in.cend(), out.begin(), OP<in_t>());
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

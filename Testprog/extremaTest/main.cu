@@ -41,7 +41,7 @@ main(int argc, char *argv[])
 
 	cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
 				    out_d.begin(), OP_D<in_t>());
-	cudaThreadSynchronize();
+	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

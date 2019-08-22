@@ -63,11 +63,17 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
 
   // 結果を転置して格納
     if (blockDim.x == blockDim.y)
-	out[__mul24(x0 + threadIdx.y, strideO) + y0 + threadIdx.x] =
-	    out_s[threadIdx.x][threadIdx.y];
+    {
+      //advance_stride(out, __mul24(x0 + threadIdx.y, strideO));
+	advance_stride(out, (x0 + threadIdx.y)*strideO);
+	out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+    }
     else
-	out[__mul24(x0 + threadIdx.x, strideO) + y0 + threadIdx.y] =
-	    out_s[threadIdx.y][threadIdx.x];
+    {
+      //advance_stride(out, __mul24(x0 + threadIdx.x, strideO));
+	advance_stride(out, (x0 + threadIdx.x)*strideO);
+	out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
+    }
 }
 
 template <class FILTER, class IN, class OUT, class OP> __global__ void

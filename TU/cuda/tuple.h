@@ -9,7 +9,9 @@
 #include "TU/type_traits.h"
 #include <thrust/iterator/zip_iterator.h>
 
-namespace thrust
+namespace TU
+{
+namespace cuda
 {
 /************************************************************************
 *  predicate: is_cons<T>						*
@@ -67,13 +69,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<TU::any<is_null, TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<any<is_null, TUPLES...>::value>
 tuple_for_each(FUNC, TUPLES&&...)
 {
 }
 
 template <class FUNC, class... TUPLES>
-__host__ __device__ inline std::enable_if_t<TU::any<is_cons, TUPLES...>::value>
+__host__ __device__ inline std::enable_if_t<any<is_cons, TUPLES...>::value>
 tuple_for_each(FUNC f, TUPLES&&... x)
 {
     f(detail::get_head(std::forward<TUPLES>(x))...);
@@ -94,13 +96,13 @@ namespace detail
 }	// namespace detail
 
 template <class FUNC, class... TUPLES> __host__ __device__
-inline std::enable_if_t<!TU::any<is_cons, TUPLES...>::value, thrust::null_type>
+inline std::enable_if_t<!any<is_cons, TUPLES...>::value, thrust::null_type>
 tuple_transform(FUNC, TUPLES&&...)
 {
     return thrust::null_type();
 }
 template <class FUNC, class... TUPLES,
-	  std::enable_if_t<TU::any<is_cons, TUPLES...>::value>* = nullptr>
+	  std::enable_if_t<any<is_cons, TUPLES...>::value>* = nullptr>
 __host__ __device__ inline auto
 tuple_transform(FUNC f, TUPLES&&... x)
 {
@@ -109,118 +111,123 @@ tuple_transform(FUNC f, TUPLES&&... x)
 				 f,
 				 detail::get_tail(std::forward<TUPLES>(x))...));
 }
-
+}	// namespace cuda
+    
 /************************************************************************
 *  Arithmetic operators							*
 ************************************************************************/
-template <class T, std::enable_if_t<is_cons<T>::value>* = nullptr>
+//  ADLに頼らずに namespace TU から呼ぶため，これらの overload された演算子は，
+//  namespace TU::cuda ではなく，namespace TU の中で定義する．
+template <class T, std::enable_if_t<cuda::is_cons<T>::value>* = nullptr>
 __host__ __device__ inline auto
 operator -(const T& t)
 {
-    return tuple_transform([](const auto& x){ return -x; }, t);
+    return cuda::tuple_transform([](const auto& x){ return -x; }, t);
 }
 
 template <class L, class R,
-	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<cuda::is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator +(const L& l, const R& r)
 {
-    return tuple_transform([](const auto& x, const auto& y){ return x + y; },
-			   l, r);
+    return cuda::tuple_transform([](const auto& x, const auto& y)
+				 { return x + y; }, l, r);
 }
 
 template <class L, class R,
-	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<cuda::is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator -(const L& l, const R& r)
 {
-    return tuple_transform([](const auto& x, const auto& y){ return x - y; },
-			   l, r);
+    return cuda::tuple_transform([](const auto& x, const auto& y)
+				 { return x - y; }, l, r);
 }
 
 template <class L, class R,
-	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<cuda::is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator *(const L& l, const R& r)
 {
-    return tuple_transform([](const auto& x, const auto& y){ return x * y; },
-			   l, r);
+    return cuda::tuple_transform([](const auto& x, const auto& y)
+				 { return x * y; }, l, r);
 }
 
 template <class L, class R,
-	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<cuda::is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator /(const L& l, const R& r)
 {
-    return tuple_transform([](const auto& x, const auto& y){ return x / y; },
-			   l, r);
+    return cuda::tuple_transform([](const auto& x, const auto& y)
+				 { return x / y; }, l, r);
 }
 
 template <class L, class R,
-	  std::enable_if_t<TU::any<is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<cuda::is_cons, L, R>::value>* = nullptr>
 __host__ __device__ inline auto
 operator %(const L& l, const R& r)
 {
-    return tuple_transform([](const auto& x, const auto& y){ return x % y; },
-			   l, r);
+    return cuda::tuple_transform([](const auto& x, const auto& y)
+				 { return x % y; }, l, r);
 }
 
 template <class L, class R>
-__host__ __device__ inline std::enable_if_t<is_cons<L>::value, L&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<L>::value, L&>
 operator +=(L&& l, const R& r)
 {
-    tuple_for_each([](auto&& x, const auto& y){ x += y; }, l, r);
+    cuda::tuple_for_each([](auto&& x, const auto& y){ x += y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ inline std::enable_if_t<is_cons<L>::value, L&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<L>::value, L&>
 operator -=(L&& l, const R& r)
 {
-    tuple_for_each([](auto&& x, const auto& y){ x -= y; }, l, r);
+    cuda::tuple_for_each([](auto&& x, const auto& y){ x -= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ inline std::enable_if_t<is_cons<L>::value, L&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<L>::value, L&>
 operator *=(L&& l, const R& r)
 {
-    tuple_for_each([](auto&& x, const auto& y){ x *= y; }, l, r);
+    cuda::tuple_for_each([](auto&& x, const auto& y){ x *= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ inline std::enable_if_t<is_cons<L>::value, L&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<L>::value, L&>
 operator /=(L&& l, const R& r)
 {
-    tuple_for_each([](auto&& x, const auto& y){ x /= y; }, l, r);
+    cuda::tuple_for_each([](auto&& x, const auto& y){ x /= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ inline std::enable_if_t<is_cons<L>::value, L&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<L>::value, L&>
 operator %=(L&& l, const R& r)
 {
-    tuple_for_each([](auto&& x, const auto& y){ x %= y; }, l, r);
+    cuda::tuple_for_each([](auto&& x, const auto& y){ x %= y; }, l, r);
     return l;
 }
 
 template <class T>
-__host__ __device__ inline std::enable_if_t<is_cons<T>::value, T&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<T>::value, T&>
 operator ++(T&& t)
 {
-    tuple_for_each([](auto&& x){ ++x; }, t);
+    cuda::tuple_for_each([](auto&& x){ ++x; }, t);
     return t;
 }
 
 template <class T>
-__host__ __device__ inline std::enable_if_t<is_cons<T>::value, T&>
+__host__ __device__ inline std::enable_if_t<cuda::is_cons<T>::value, T&>
 operator --(T&& t)
 {
-    tuple_for_each([](auto&& x){ --x; }, t);
+    cuda::tuple_for_each([](auto&& x){ --x; }, t);
     return t;
 }
 
+namespace cuda
+{
 /************************************************************************
 *  I/O functions							*
 ************************************************************************/
@@ -232,7 +239,7 @@ namespace detail
       return out;
   }
   template <class T>
-  inline std::enable_if_t<!is_cons<T>::value, std::ostream&>
+  inline std::enable_if_t<!cuda::is_cons<T>::value, std::ostream&>
   print(std::ostream& out, const T& x)
   {
       return out << x;
@@ -264,7 +271,7 @@ namespace detail
 }
     
 template <class FUNC, class TUPLE,
-	  std::enable_if_t<is_cons<TUPLE>::value>* = nullptr>
+	  std::enable_if_t<cuda::is_cons<TUPLE>::value>* = nullptr>
 __host__ __device__ inline decltype(auto)
 apply(FUNC&& f, TUPLE&& t)
 {
@@ -274,7 +281,7 @@ apply(FUNC&& f, TUPLE&& t)
 			thrust::tuple_size<std::decay_t<TUPLE> >::value>());
 }
 template <class FUNC, class T,
-	  std::enable_if_t<!is_cons<T>::value>* = nullptr>
+	  std::enable_if_t<!cuda::is_cons<T>::value>* = nullptr>
 __host__ __device__ inline decltype(auto)
 apply(FUNC&& f, T&& t)
 {
@@ -288,7 +295,7 @@ template <class HEAD, class TAIL> inline auto
 begin(thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		tuple_transform([](auto&& x)
+		cuda::tuple_transform([](auto&& x)
 				{ using std::begin; return begin(x); },
 				t));
 }
@@ -297,7 +304,7 @@ template <class HEAD, class TAIL> inline auto
 end(thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		tuple_transform([](auto&& x)
+		cuda::tuple_transform([](auto&& x)
 				{ using std::end; return end(x); },
 				t));
 }
@@ -318,7 +325,7 @@ template <class HEAD, class TAIL> inline auto
 begin(const thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		tuple_transform([](auto&& x)
+		cuda::tuple_transform([](auto&& x)
 				{ using std::begin; return begin(x); },
 				t));
 }
@@ -327,7 +334,7 @@ template <class HEAD, class TAIL> inline auto
 end(const thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		tuple_transform([](auto&& x)
+		cuda::tuple_transform([](auto&& x)
 				{ using std::end; return end(x); },
 				t));
 }
@@ -350,6 +357,6 @@ size(const thrust::detail::cons<HEAD, TAIL>& t)
     return thrust::get<0>(t).size();
 }
 
-}	// namespace thrust
-
+}	// namespace cuda
+}	// namespace TU
 #endif	// !TU_CUDA_TUPLE_H

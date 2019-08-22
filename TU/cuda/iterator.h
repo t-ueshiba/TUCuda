@@ -25,21 +25,20 @@ class map_iterator
 	map_iterator<FUNC, ITER>,
 	ITER,
 	std::decay_t<
-	    decltype(thrust::apply(std::declval<FUNC>(),
-				   std::declval<
-				       typename std::iterator_traits<ITER>
+	    decltype(apply(std::declval<FUNC>(),
+			   std::declval<typename std::iterator_traits<ITER>
 						   ::reference>()))>,
 	thrust::use_default,
 	thrust::use_default,
-	decltype(thrust::apply(std::declval<FUNC>(),
+	decltype(apply(std::declval<FUNC>(),
 		       std::declval<typename std::iterator_traits<ITER>
 						::reference>()))>
 {
   private:
-    using ref	= decltype(thrust::apply(std::declval<FUNC>(),
-					 std::declval<
-					   typename std::iterator_traits<ITER>
-						       ::reference>()));
+    using ref	= decltype(apply(std::declval<FUNC>(),
+				 std::declval<
+				     typename std::iterator_traits<ITER>
+						 ::reference>()));
     using super	= thrust::iterator_adaptor<map_iterator,
 					   ITER,
 					   std::decay_t<ref>,
@@ -58,8 +57,7 @@ class map_iterator
 	
   private:
     __host__ __device__
-    reference	dereference()	const	{ return thrust::apply(
-						     _func, *super::base()); }
+    reference	dereference()	const	{ return apply(_func, *super::base()); }
 	
   private:
     FUNC	_func;	//!< 演算子

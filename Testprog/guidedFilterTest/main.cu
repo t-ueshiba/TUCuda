@@ -6,6 +6,9 @@
 namespace TU
 {
 template <class S, class T, class U> void
+cpuJob(const Array2<S>& in, const Array2<S>& guide,
+	Array2<T>& out, size_t winSize, U epsilon)			;
+template <class S, class T, class U> void
 cudaJob(const Array2<S>& in, const Array2<S>& guide,
 	Array2<T>& out, size_t winSize, U epsilon)			;
 }
@@ -23,7 +26,7 @@ main(int argc, char *argv[])
     using mid_t	= float;
     using out_t	= float;
 
-    size_t		winSize = 3;
+    size_t		winSize = 7;
     mid_t		epsilon = 0.01;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "w:e:")) != -1; )
@@ -49,7 +52,7 @@ main(int argc, char *argv[])
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	cpuJob(in, out, winSize);
+	cpuJob(in, guide, out, winSize, epsilon);
 	out.save(cout);
     }
     catch (exception& err)

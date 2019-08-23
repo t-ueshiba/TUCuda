@@ -274,7 +274,8 @@ advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 {
     using tuple_t = std::decay_t<decltype(iter.get_iterator_tuple())>;
     
-    const_cast<tuple_t&>(iter.get_iterator_tuple()) += stride;
+    tuple_for_each([](auto&& x, const auto& y){ advance_stride(x, y); },
+		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
 
 template <class ITER, class HEAD, class TAIL> __host__ __device__ inline auto

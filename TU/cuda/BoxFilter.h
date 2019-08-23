@@ -46,7 +46,7 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
     advance_stride(in, y0*strideI + x0);
     loadTileV(in, strideI, in_s, winSize - 1);
     __syncthreads();
-    
+
     if (threadIdx.y == 0)
     {
       // 各列を並列に縦方向積算
@@ -64,13 +64,11 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
   // 結果を転置して格納
     if (blockDim.x == blockDim.y)
     {
-      //advance_stride(out, __mul24(x0 + threadIdx.y, strideO));
 	advance_stride(out, (x0 + threadIdx.y)*strideO);
 	out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
     }
     else
     {
-      //advance_stride(out, __mul24(x0 + threadIdx.x, strideO));
 	advance_stride(out, (x0 + threadIdx.x)*strideO);
 	out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
     }
@@ -346,7 +344,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]), _winSizeV, strideI, strideB);
+    	get(cbegin(*row)), get(begin(_buf[0])), _winSizeV, strideI, strideB);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncols - x;

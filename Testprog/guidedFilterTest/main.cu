@@ -49,8 +49,8 @@ main(int argc, char *argv[])
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-      //cpuJob(in, out, winSize);
-      //out.save(cout);
+	cpuJob(in, out, winSize);
+	out.save(cout);
     }
     catch (exception& err)
     {

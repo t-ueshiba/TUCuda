@@ -38,8 +38,13 @@ main(int argc, char *argv[])
 {
     using namespace	std;
     using namespace	TU;
-
+#if 0
     using pixel_t	= float;
+    using mid_t		= float;
+#else
+    using pixel_t	= RGBA;
+    using mid_t		= float4;
+#endif
     using value_t	= float;
     
     value_t		u0 = -1;
@@ -72,8 +77,8 @@ main(int argc, char *argv[])
 	    v0 = in.height()/2;
 
       // GPUによって計算する．
-	cuda::Array2<pixel_t>	in_d(in);
-	cuda::Array2<pixel_t>	out_d(in.nrow(), in.ncol());
+	cuda::Array2<mid_t>	in_d(in);
+	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
 	const auto		op = cuda::createRigidity(u0, v0, theta);
 	cuda::warp(in_d, out_d.begin(), op);
 	cudaDeviceSynchronize();

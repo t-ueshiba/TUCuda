@@ -10,7 +10,6 @@
 
 #include "TU/cuda/allocator.h"
 #include "TU/cuda/iterator.h"
-#include <boost/core/demangle.hpp>
 
 namespace TU
 {

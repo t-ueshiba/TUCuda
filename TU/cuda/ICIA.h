@@ -70,8 +70,37 @@ sqrerr(IN src, IN dst, GRAD grad, int strideI, int strideG)
 template <class MAP, class CLOCK=void>
 class ICIA : public Profiler<CLOCK>
 {
+  private:
+    template <class MAP_>	struct map_traits;
+    template <>
+    struct map_traits<Projectivity<float, 2, 2> >
+    {
+	using element_type	= float;
+	using param_type	= float4;
+
+	constexpr static size_t	NGRAD_PARAMS   = 2;
+	constexpr static size_t	NMOMENT_PARAMS = 16;
+    };
+    template <class T>
+    struct map_traits<Affinity<T, 2, 2> >
+    {
+	using element_type	= float;
+	using param_type	= float3;
+
+	constexpr static size_t	NPARAMS = 2;
+    };
+    template <class T>
+    struct map_traits<Rigidity<T, 2> >
+    {
+	using element_type	= float;
+	using param_type	= float3;
+
+	constexpr static size_t	NPARAMS = 1;
+    };
+    
   public:
-    using value_type	= typename MAP::element_type;
+    using element_type	= typename MAP::element_type;
+    using value_type	= typename MAP::value_type;
 
     struct Parameters
     {
@@ -116,8 +145,8 @@ class ICIA : public Profiler<CLOCK>
 
   private:
     Parameters		_params;
-    Array2<params_type>	_grad;
-    Array2<matrix_type>	_M;
+    Array2<value_type>	_grad[];
+    Array2<value_type>	_M[];
 };
 
 template <class MAP, class CLOCK> template <class IMAGE> void

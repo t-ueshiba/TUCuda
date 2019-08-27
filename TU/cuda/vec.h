@@ -218,30 +218,14 @@ using mat = std::conditional_t<R == 2, mat2x<T, C>,
 }	// namespace cuda
 }	// namespace TU
 
-#if defined(__NVCC__)
 /*
  *  vec<T, N> は CUDA組み込みのベクトル型であり global namespace で定義
- *  されたているためADLが効かないので，演算子を global namespace で定義
+ *  されているためADLが効かないので，演算子を global namespace で定義
  *  する．
  */
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
-template <class T> __host__ __device__ inline
-std::enable_if_t<std::is_arithmetic<T>::value>
-set_zero(T& x)
-{
-    x = 0;
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-}
-
 template <class VM> __host__ __device__ inline
 std::enable_if_t<TU::cuda::size<VM>() == 2, VM&>
 operator +=(VM& a, const VM& b)
@@ -327,47 +311,9 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
     return {a.x / c, a.y / c};
 }
 
-template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC> == 2 && TU::cuda::ncol<VEC> == 1,
-		 TU::cuda::vec<TU::cuda::element_t<VEC>, 3> >
-homogeneous(const VEC& a)
-{
-    return {a.x, a.y, TU::cuda::element_t<VEC>(1)};
-}
-    
-template <class VEC, class VM,
-	  std::enable_if_t<TU::cuda::size<VEC>() == 2 &&
-			   TU::cuda::size<VM>()  == 2 &&
-			   TU::cuda::ncol<VEC>() == 1>* = nullptr>
-__host__ __device__ inline auto
-dot(const VEC& a, const VM& b)
-{
-    return a.x * b.x + a.y * b.y;
-}
-    
-template <class VEC0, class VEC1> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC0>() == 2 &&
-		 TU::cuda::ncol<VEC0>() == 1 &&
-		 TU::cuda::ncol<VEC1>() == 1,
-		 TU::cuda::mat<TU::cuda::element_t<VEC0>, 2,
-			       TU::cuda::size<VEC1>()> >
-ext(const VEC0& a, const VEC1& b)
-{
-    return {a.x * b, a.y * b};
-}
-    
 /************************************************************************
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-    set_zero(a.z);
-}
-
 template <class VM> __host__ __device__ inline
 std::enable_if_t<TU::cuda::size<VM>() == 3, VM&>
 operator +=(VM& a, const VM& b)
@@ -457,64 +403,9 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
     return {a.x / c, a.y / c, a.z / c};
 }
 
-template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC> == 3 && TU::cuda::ncol<VEC> == 1,
-		 TU::cuda::vec<TU::cuda::element_t<VEC>, 4> >
-homogeneous(const VEC& a)
-{
-    return {a.x, a.y, a.z, TU::cuda::element_t<VEC>(1)};
-}
-    
-template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC> == 3 && TU::cuda::ncol<VEC> == 1,
-		 TU::cuda::vec<TU::cuda::element_t<VEC>, 2> >
-inhomogeneous(const VEC& a)
-{
-    return {a.x / a.z, a.y / a.z};
-}
-    
-template <class VEC, class VM,
-	  std::enable_if_t<TU::cuda::size<VEC>() == 3 &&
-			   TU::cuda::size<VM>()  == 3 &&
-			   TU::cuda::ncol<VEC>() == 1>* = nullptr>
-__host__ __device__ inline auto
-dot(const VEC& a, const VM& b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-    
-template <class VEC0, class VEC1> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC0>() == 3 &&
-		 TU::cuda::ncol<VEC0>() == 1 &&
-		 TU::cuda::ncol<VEC1>() == 1,
-		 TU::cuda::mat<TU::cuda::element_t<VEC0>, 3,
-			       TU::cuda::size<VEC1>()> >
-ext(const VEC0& a, const VEC1& b)
-{
-    return {a.x * b, a.y * b, a.z * b};
-}
-    
-template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC>() == 3, VEC>
-cross(const VEC& a, const VEC& b)
-{
-    return {a.y * b.z - a.z * b.y,
-	    a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
-}
-
 /************************************************************************
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-    set_zero(a.z);
-    set_zero(a.w);
-}
-
 template <class VM> __host__ __device__ inline
 std::enable_if_t<TU::cuda::size<VM>() == 4, VM&>
 operator +=(VM& a, const VM& b)
@@ -608,35 +499,6 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
     return {a.x / c, a.y / c, a.z / c, a.w / c};
 }
     
-template <class VEC> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC> == 4 && TU::cuda::ncol<VEC> == 1,
-		 TU::cuda::vec<TU::cuda::element_t<VEC>, 3> >
-inhomogeneous(const VEC& a)
-{
-    return {a.x / a.w, a.y / a.w, a.z / a.w};
-}
-    
-template <class VEC, class VM,
-	  std::enable_if_t<TU::cuda::size<VEC>() == 4 &&
-			   TU::cuda::size<VM>()  == 4 &&
-			   TU::cuda::ncol<VEC>() == 1>* = nullptr>
-__host__ __device__ inline auto
-dot(const VEC& a, const VM& b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-}
-    
-template <class VEC0, class VEC1> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VEC0>() == 4 &&
-		 TU::cuda::ncol<VEC0>() == 1 &&
-		 TU::cuda::ncol<VEC1>() == 1,
-		 TU::cuda::mat<TU::cuda::element_t<VEC0>, 4,
-			       TU::cuda::size<VEC1>()> >
-ext(const VEC0& a, const VEC1& b)
-{
-    return {a.x * b, a.y * b, a.z * b, a.w * b};
-}
-    
 /************************************************************************
 *  Output functions							*
 ************************************************************************/
@@ -666,12 +528,109 @@ namespace TU
 namespace cuda
 {
 /************************************************************************
-*  dot functions concerning with matrices				*
-*  (ADLで呼び出すため，namespace TU::cuda で定義)			*
+*  set_zero()								*
 ************************************************************************/
+template <class T> __host__ __device__ inline
+std::enable_if_t<std::is_arithmetic<T>::value>
+set_zero(T& x)
+{
+    x = 0;
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<size<VM>() == 2>
+set_zero(VM& a)
+{
+    set_zero(a.x);
+    set_zero(a.y);
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<size<VM>() == 3>
+set_zero(VM& a)
+{
+    set_zero(a.x);
+    set_zero(a.y);
+    set_zero(a.z);
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<size<VM>() == 4>
+set_zero(VM& a)
+{
+    set_zero(a.x);
+    set_zero(a.y);
+    set_zero(a.z);
+    set_zero(a.w);
+}
+
+/************************************************************************
+*  homogeneous()							*
+************************************************************************/
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 2, vec<element_t<VEC>, 3> >
+homogeneous(const VEC& a)
+{
+    return {a.x, a.y, element_t<VEC>(1)};
+}
+    
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 3, vec<element_t<VEC>, 4> >
+homogeneous(const VEC& a)
+{
+    return {a.x, a.y, a.z, element_t<VEC>(1)};
+}
+    
+/************************************************************************
+*  inhomogeneous()							*
+************************************************************************/
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 3, vec<element_t<VEC>, 2> >
+inhomogeneous(const VEC& a)
+{
+    return {a.x / a.z, a.y / a.z};
+}
+    
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 4, vec<element_t<VEC>, 3> >
+inhomogeneous(const VEC& a)
+{
+    return {a.x / a.w, a.y / a.w, a.z / a.w};
+}
+    
+/************************************************************************
+*  dot()								*
+************************************************************************/
+template <class VEC, class VM, std::enable_if_t<ncol<VEC>() == 1 &&
+						size<VEC>() == 2 &&
+						size<VM>()  == 2>* = nullptr>
+__host__ __device__ inline auto
+dot(const VEC& a, const VM& b)
+{
+    return a.x * b.x + a.y * b.y;
+}
+    
+template <class VEC, class VM, std::enable_if_t<ncol<VEC>() == 1 &&
+						size<VEC>() == 3 &&
+						size<VM>()  == 3>* = nullptr>
+__host__ __device__ inline auto
+dot(const VEC& a, const VM& b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+    
+template <class VEC, class VM, std::enable_if_t<ncol<VEC>() == 1 &&
+						size<VEC>() == 4 &&
+						size<VM>()  == 4>* = nullptr>
+__host__ __device__ inline auto
+dot(const VEC& a, const VM& b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+    
 template <class T, size_t C, class VM> __host__ __device__ inline
 std::enable_if_t<size<VM>() == C,
-		 std::conditional_t<ncol<VM> == 1,
+		 std::conditional_t<ncol<VM>() == 1,
 				    vec<T, 2>, mat<T, 2, ncol<VM>()> > >
 dot(const mat2x<T, C>& m, const VM& a)
 {
@@ -680,22 +639,60 @@ dot(const mat2x<T, C>& m, const VM& a)
     
 template <class T, size_t C, class VM> __host__ __device__ inline
 std::enable_if_t<size<VM>() == C,
-		 std::conditional_t<ncol<VM> == 1,
+		 std::conditional_t<ncol<VM>() == 1,
 				    vec<T, 3>, mat<T, 3, ncol<VM>()> > >
 dot(const mat3x<T, C>& m, const VM& a)
 {
     return {dot(m.x, a), dot(m.y, a), dot(m.z, a)};
 }
-    
+
 template <class T, size_t C, class VM> __host__ __device__ inline
 std::enable_if_t<size<VM>() == C,
-		 std::conditional_t<ncol<VM> == 1,
+		 std::conditional_t<ncol<VM>() == 1,
 				    vec<T, 4>, mat<T, 4, ncol<VM>()> > >
 dot(const mat4x<T, C>& m, const VM& a)
 {
     return {dot(m.x, a), dot(m.y, a), dot(m.z, a), dot(m.w, a)};
 }
 
+/************************************************************************
+*  cross()								*
+************************************************************************/
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 3, VEC>
+cross(const VEC& a, const VEC& b)
+{
+    return {a.y * b.z - a.z * b.y,
+	    a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
+}
+    
+/************************************************************************
+*  ext()								*
+************************************************************************/
+template <class VEC0, class VEC1> __host__ __device__ inline
+std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 2 && ncol<VEC1>() == 1,
+		 mat<element_t<VEC0>, 2, size<VEC1>()> >
+ext(const VEC0& a, const VEC1& b)
+{
+    return {a.x * b, a.y * b};
+}
+    
+template <class VEC0, class VEC1> __host__ __device__ inline
+std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 3 && ncol<VEC1>() == 1,
+		 mat<element_t<VEC0>, 3, size<VEC1>()> >
+ext(const VEC0& a, const VEC1& b)
+{
+    return {a.x * b, a.y * b, a.z * b};
+}
+    
+template <class VEC0, class VEC1> __host__ __device__ inline
+std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 4 && ncol<VEC1>() == 1,
+		 mat<element_t<VEC0>, 4, size<VEC1>()> >
+ext(const VEC0& a, const VEC1& b)
+{
+    return {a.x * b, a.y * b, a.z * b, a.w * b};
+}
+    
 /************************************************************************
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/
@@ -708,14 +705,17 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     constexpr static size_t	NPARAMS = DO1 * DI1;
     constexpr static size_t	DOF	= NPARAMS - 1;
     
-    using base_type	= mat<T, DO1, DI1>;
-    using		typename base_type::element_type;
+    using matrix_type	= mat<T, DO1, DI1>;
+    using		typename matrix_type::element_type;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
     
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	nparams()	{ return NPARAMS; }
+
+    __host__ __device__
+		Projectivity(const matrix_type& m)	:matrix_type(m)	{}
 
     __host__ __device__
     point_type	operator ()(const vec<T, DI>& p) const
@@ -727,6 +727,11 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		{
 		    return inhomogeneous(mapP(p));
 		}
+    template <class T_> __host__ __device__
+    point_type	operator ()(T_ u, T_ v) const
+    		{
+    		    return inhomogeneous(mapP(u, v));
+    		}
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI>& p) const
 		{
@@ -735,9 +740,13 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI1>& p) const
 		{
-		    return *this * p;
+		    return dot(*this, p);
 		}
-    
+    template <class T_> __host__ __device__
+    ppoint_type	mapP(T_ u, T_ v) const
+    		{
+    		    return dot(*this, vec<T, 3>{T(u), T(v), T(1)});
+    		}
 };
 
 /************************************************************************
@@ -752,15 +761,18 @@ class Affinity : public mat<T, DO, DI + 1>
     constexpr static size_t	NPARAMS = DO * DI1;
     constexpr static size_t	DOF	= NPARAMS;
     
-    using base_type	= mat<T, DO, DI1>;
-    using		typename base_type::element_type;
+    using matrix_type	= mat<T, DO, DI1>;
+    using		typename matrix_type::element_type;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
-    using param_type	= base_type;
+    using param_type	= matrix_type;
     
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	nparams()	{ return NPARAMS; }
+
+    __host__ __device__
+		Affinity(const matrix_type& m)	:matrix_type(m)	{}
 
     __host__ __device__
     point_type	operator ()(const vec<T, DI>& p) const
@@ -770,8 +782,13 @@ class Affinity : public mat<T, DO, DI + 1>
     __host__ __device__
     point_type	operator ()(const vec<T, DI1>& p) const
 		{
-		    return *this * p;
+		    return dot(*this, p);
 		}
+    template <class T_> __host__ __device__
+    point_type	operator ()(T_ u, T_ v) const
+    		{
+    		    return (*this)(vec<T, 3>({T(u), T(v), T(1)}));
+    		}
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI>& p) const
 		{
@@ -782,6 +799,11 @@ class Affinity : public mat<T, DO, DI + 1>
 		{
 		    return homogeneous((*this)(p));
 		}
+    template <class T_> __host__ __device__
+    ppoint_type	mapP(T_ u, T_ v) const
+    		{
+    		    return homogeneous((*this)(u, v));
+    		}
     __host__ __device__
     void	update(const param_type& dt)
 		{
@@ -811,11 +833,15 @@ class Rigidity : public Affinity<T, D, D>
   public:
     constexpr static size_t	NPARAMS = D*(D+1)/2;
     constexpr static size_t	DOF	= NPARAMS;
-    
+
     using base_type	= Affinity<T, D, D>;
+    using		typename base_type::matrix_type;
     
     constexpr static size_t	dim()		{ return D; }
 
+  public:
+    __host__ __device__
+		Rigidity(const matrix_type& m)	:base_type(m)	{}
 };
 }	//  namespace cuda
     
@@ -877,6 +903,7 @@ struct vec_to_color
 
 }	// namespace TU
 
+#if defined(__NVCC__)
 namespace thrust
 {
 /************************************************************************

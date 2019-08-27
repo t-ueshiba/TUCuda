@@ -9,7 +9,8 @@ SUBDIR	= boxFilterTest		\
 	  stereoTest		\
 	  subsampleTest		\
 	  testIIDCcuda		\
-	  transposeTest
+	  transposeTest		\
+	  warpTest
 
 TARGETS	= all clean depend
 

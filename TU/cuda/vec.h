@@ -519,10 +519,7 @@ operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
 }
-}
 
-namespace TU
-{
 namespace cuda
 {
 /************************************************************************
@@ -725,8 +722,8 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		{
 		    return inhomogeneous(mapP(p));
 		}
-    template <class T_> __host__ __device__
-    point_type	operator ()(T_ u, T_ v) const
+    __host__ __device__
+    point_type	operator ()(T u, T v) const
     		{
     		    return inhomogeneous(mapP(u, v));
     		}
@@ -741,17 +738,18 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		{
 		    return dot(*this, p);
 		}
-    template <class T_> __host__ __device__
-    ppoint_type	mapP(T_ u, T_ v) const
+    __host__ __device__
+    ppoint_type	mapP(T u, T v) const
     		{
-    		    return dot(*this, vec<T, 3>{T(u), T(v), T(1)});
+    		    return dot(*this, vec<T, 3>{u, v, T(1)});
     		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2&& DI_ == 2, mat<T, 2, 4> >
-		image_derivative0(const vec<T, DI>& edge, const vec<T, DI1>& p)
+		image_derivative0(T eH, T eV, T u, T v)
 		{
-		    return ext(edge, p);
+		    return {{eH*u, eH*v, eH, eV*u},
+			    {eV*v, eV, -(eH*u + eV*v)*u, -(eH*u + eV*v)*v}};
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
@@ -816,10 +814,10 @@ class Affinity : public mat<T, DO, DI + 1>
 		{
 		    return dot(*this, p);
 		}
-    template <class T_> __host__ __device__
-    point_type	operator ()(T_ u, T_ v) const
+    __host__ __device__
+    point_type	operator ()(T u, T v) const
     		{
-    		    return (*this)(vec<T, 3>({T(u), T(v), T(1)}));
+    		    return (*this)(vec<T, 3>({u, v, T(1)}));
     		}
 
     __host__ __device__
@@ -832,8 +830,8 @@ class Affinity : public mat<T, DO, DI + 1>
 		{
 		    return homogeneous((*this)(p));
 		}
-    template <class T_> __host__ __device__
-    ppoint_type	mapP(T_ u, T_ v) const
+    __host__ __device__
+    ppoint_type	mapP(T u, T v) const
     		{
     		    return homogeneous((*this)(u, v));
     		}
@@ -844,16 +842,16 @@ class Affinity : public mat<T, DO, DI + 1>
 		    *this -= dt;
 		}
 
-    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
-    static std::enable_if_t<DO_ == 2&& DI_ == 2, param_type>
-		image_derivative0(const vec<T, DI>& edge, const vec<T, DI1>& p)
+    template <size_t DO_=DO, size_t DI_=DI>
+    __host__ __device__ static std::enable_if_t<DO_ == 2&& DI_ == 2, param_type>
+		image_derivative0(T eH, T eV, T u, T v)
 		{
-		    return ext(edge, p);
+		    return {{eH*u, eH*v}, {eV*u, eV*v}};
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
     std::enable_if_t<DO_ == 2&& DI_ == 2>
-		compose(const TU::Array<element_type, DOF>& dt)
+		compose(const TU::Array<T, DOF>& dt)
 		{
 		    auto	t0 = this->x.x;
 		    auto	t1 = this->x.y;
@@ -887,6 +885,31 @@ class Rigidity : public Affinity<T, D, D>
   public:
     __host__ __device__
 		Rigidity(const matrix_type& m)	:base_type(m)	{}
+
+    template <size_t D_=D>
+    __host__ __device__ static std::enable_if_t<D_ == 2, vec<T, 3> >
+		image_derivative0(T eH, T eV, T u, T v)
+		{
+		    return {eH, eV, eV*u - eH*v};
+		}
+
+    template <size_t D_=D> __host__ std::enable_if_t<D_ == 2>
+		compose(const TU::Array<T, DOF>& dt)
+		{
+		    const auto	Rt = rotation(dt[2]);
+		    
+		    auto	r0 = this->x.x;
+		    auto	r1 = this->x.y;
+		    this->x.x  = r0*Rt[0][0] + r1*Rt[1][0];
+		    this->x.y  = r0*Rt[0][1] + r1*Rt[1][1];
+		    this->x.z -= (this->x.x*dt[0] + this->x.y*dt[1]);
+		    
+		    r0 = this->y.x;
+		    r1 = this->y.y;
+		    this->y.x  = r0*Rt[0][0] + r1*Rt[1][0];
+		    this->y.y  = r0*Rt[0][1] + r1*Rt[1][1];
+		    this->y.z -= (this->y.x*dt[0] + this->y.y*dt[1]);
+		}
 };
 }	//  namespace cuda
     

@@ -141,14 +141,16 @@ warp(const Array2<T>& a, OUT out, OP op)				;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class T, class OUT, class OP> __global__ static void
-  warp(cudaTextureObject_t tex, OUT out, OP op, int x0, int y0, int stride_o)
+  template <class T, class OUT, class OP, class STRIDE_O> __global__ static void
+  warp(cudaTextureObject_t tex, OUT out, OP op,
+       int x0, int y0, STRIDE_O stride_o)
   {
       const auto	x  = x0 + blockIdx.x*blockDim.x + threadIdx.x;
       const auto	y  = y0 + blockIdx.y*blockDim.y + threadIdx.y;
       const auto	p = op(x, y);
 
-      out[y*stride_o + x] = tex2D<T>(tex, p.x, p.y);
+      advance_stride(out, y * stride_o);
+      out[x] = tex2D<T>(tex, p.x, p.y);
   }
 }	// namespace device
 

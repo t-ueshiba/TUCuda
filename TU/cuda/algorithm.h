@@ -73,8 +73,9 @@ namespace device
   loadTileV(S src, STRIDE stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
-      advance_stride(src, ty * stride + threadIdx.x);
-
+      advance_stride(src, ty * stride);
+      src += threadIdx.x;
+      
       dy += blockDim.y;
       do
       {
@@ -96,14 +97,15 @@ namespace device
   loadTileVt(S src, STRIDE stride, T dst[][W], int dy)
   {
       auto		ty = threadIdx.y;
-      src += (ty * stride + threadIdx.x);
+      advance_stride(src, ty * stride);
+      src += threadIdx.x;
 
       const auto	q = dst[threadIdx.x];
       dy += blockDim.y;
       do
       {
 	  q[ty] = *src;
-	  src += blockDim.y * stride;
+	  advance_stride(src, blockDim.y * stride);
       } while ((ty += blockDim.y) < dy);
   }
 
@@ -120,7 +122,7 @@ namespace device
   loadTile(S src, STRIDE stride, T dst[][W], int dx, int dy)
   {
       auto	ty = threadIdx.y;
-      src += ty * stride;
+      advance_stride(src, ty * stride);
 
       dx += blockDim.x;
       dy += blockDim.y;
@@ -131,7 +133,7 @@ namespace device
 	  {
 	      dst[ty][tx] = src[tx];
 	  } while ((tx += blockDim.x) < dx);
-	  src += blockDim.y * stride;
+	  advance_stride(src, blockDim.y * stride);
       } while ((ty += blockDim.y) < dy);
   }
 }	// namespace device
@@ -177,13 +179,16 @@ subsample(IN in, IN ie, OUT out)					;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT> __global__ static void
-  subsample(IN in, OUT out, int stride_i, int stride_o)
+  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  __global__ static void
+  subsample(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
   {
       const int	x = blockIdx.x*blockDim.x + threadIdx.x;
       const int	y = blockIdx.y*blockDim.y + threadIdx.y;
-    
-      out[y*stride_o + x] = in[2*(y*stride_i + x)];
+
+      advance_stride(in, 2*y*stride_i);
+      advance_stride(out,  y*stride_o);
+      out[x] = in[2*x];
   }
 }	// namespace device
     
@@ -249,8 +254,9 @@ op3x3(IN in, IN ie, OUT out, OP op)					;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT, class OP> __global__ static void
-  op3x3(IN in, OUT out, OP op, int stride_i, int stride_o)
+  template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
+  __global__ static void
+  op3x3(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
@@ -260,14 +266,17 @@ namespace device
       const auto	y0 = __mul24(blockIdx.y, by);
       const auto	tx  = threadIdx.x;
       const auto	ty  = threadIdx.y;
-    
+
+      advance_stride(in, y0 * stride_i);
+      advance_stride(out, (y0 + ty + 1)*stride_o);
+      
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
       __shared__ value_type	in_s[BlockDimY+2][BlockDimX+2];
-      loadTile(in + __mul24(y0, stride_i) + x0, stride_i, in_s, 2, 2);
+      loadTile(in + x0, stride_i, in_s, 2, 2);
       __syncthreads();
 
     // 共有メモリに保存した原画像データから現在画素に対するフィルタ出力を計算
-      out[__mul24(y0 + ty + 1, stride_o) + x0 + tx + 1]
+      out[x0 + tx + 1]
 	  = op(in_s[ty] + tx, in_s[ty + 1] + tx, in_s[ty + 2] + tx);
   }
 }	// namespace device
@@ -509,19 +518,22 @@ transpose(IN in, IN ie, OUT out)					;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT> __global__ static void
-  transpose(IN in, OUT out, int stride_i, int stride_o)
+  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  __global__ static void
+  transpose(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
       const auto		bx = blockIdx.x*blockDim.x;
       const auto		by = blockIdx.y*blockDim.y;
       __shared__ value_type	tile[BlockDim][BlockDim + 1];
-      tile[threadIdx.y][threadIdx.x]
-	  = in[(by + threadIdx.y)*stride_i + bx + threadIdx.x];
+
+      advance_stride(in, (by + threadIdx.y)*stride_i);
+      tile[threadIdx.y][threadIdx.x] = in[bx + threadIdx.x];
       __syncthreads();
-      out[(bx + threadIdx.y)*stride_o + by + threadIdx.x]
-	  = tile[threadIdx.x][threadIdx.y];
+      
+      advance_stride(out, (bx + threadIdx.y)*stride_o);
+      out[by + threadIdx.x] = tile[threadIdx.x][threadIdx.y];
   }
 }	// namespace device
 

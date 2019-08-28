@@ -183,8 +183,9 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template <class FILTER, size_t L, class IN, class OUT> __global__ void
-fir_filterH(IN in, OUT out, int strideI, int strideO)
+template <class FILTER, size_t L,
+	  class IN, class OUT, class STRIDE_I, class STRIDE_O> __global__ void
+fir_filterH(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
     
@@ -193,20 +194,23 @@ fir_filterH(IN in, OUT out, int strideI, int strideO)
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
+    advance_stride(in,  y0*strideI);
+    advance_stride(out, (y0 + threadIdx.y)*strideO);
+    
   // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
     __shared__ value_type	in_s[FILTER::BlockDimY]
 				    [FILTER::BlockDimX + 2*LobeSize + 1];
-    loadTileH(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
+    loadTileH(in + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     
   // 積和演算
-    out[__mul24(y0 + threadIdx.y, strideO) + x0 + threadIdx.x]
-	= convolve(&in_s[threadIdx.y][threadIdx.x], _lobeH,
-		   std::integral_constant<size_t, L>());
+    out[x0 + threadIdx.x] = convolve(&in_s[threadIdx.y][threadIdx.x], _lobeH,
+				     std::integral_constant<size_t, L>());
 }
 
-template <class FILTER, size_t L, class IN, class OUT> __global__ void
-fir_filterV(const IN in, OUT out, int strideI, int strideO)
+template <class FILTER, size_t L,
+	  class IN, class OUT, class STRIDE_I, class STRIDE_O> __global__ void
+fir_filterV(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
     
@@ -215,16 +219,18 @@ fir_filterV(const IN in, OUT out, int strideI, int strideO)
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
 
+    advance_stride(in,  y0*strideI);
+    advance_stride(out, (y0 + threadIdx.y)*strideO);
+    
   // 原画像のブロックとその上下LobeSize分を転置して共有メモリにコピー
     __shared__ value_type	in_s[FILTER::BlockDimX]
 				    [FILTER::BlockDimY + 2*LobeSize + 1];
-    loadTileVt(in + __mul24(y0, strideI) + x0, strideI, in_s, 2*LobeSize);
+    loadTileVt(in + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
     
   // 積和演算
-    out[__mul24(y0 + threadIdx.y, strideO) + x0 + threadIdx.x]
-	= convolve(&in_s[threadIdx.x][threadIdx.y], _lobeV,
-		   std::integral_constant<size_t, L>());
+    out[x0 + threadIdx.x] = convolve(&in_s[threadIdx.x][threadIdx.y], _lobeV,
+				     std::integral_constant<size_t, L>());
 }
 }	// namespace device
 

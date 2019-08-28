@@ -198,18 +198,6 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 
     _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
 
-#if 0
-    auto	ri = make_range_iterator(
-			make_map_iterator(device::init_params<T>(),
-					  cbegin(*ib), cbegin(*gb)),
-		      //stride(ib),
-			thrust::make_tuple(stride(ib), stride(gb)),
-			size(*ib));
-    
-    std::cout << demangle<decltype(ri)>() << std::endl;
-    std::cout << demangle<iterator_stride<decltype(ri)> >() << std::endl;
-    std::cout << std::endl;
-#else    
   // guided filterの2次元係数ベクトルを計算する．
     profiler_t::start(1);
     _paramsFilter.convolve(make_range_iterator(
@@ -217,14 +205,12 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 						 cbegin(*ib),
 						 cbegin(*gb)),
 			       thrust::make_tuple(stride(ib), stride(gb)),
-			     //stride(ib),
 			       size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ie),
 						 cbegin(*ge)),
 			       thrust::make_tuple(stride(ie), stride(ge)),
-			     //stride(ie),
 			       size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
@@ -245,10 +231,8 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			       thrust::make_tuple(stride(gb), stride(out)),
-			     //stride(gb),
 			       size(*out)));
     profiler_t::nextFrame();
-#endif
 }
 
 //! 2次元入力データにguided filterを適用する
@@ -304,7 +288,6 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			       thrust::make_tuple(stride(ib), stride(out)),
-			     //stride(ib),
 			       size(*out)));
     profiler_t::nextFrame();
 }

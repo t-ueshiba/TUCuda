@@ -216,18 +216,15 @@ using mat = std::conditional_t<R == 2, mat2x<T, C>,
 			       std::conditional_t<R == 3,
 						  mat3x<T, C>, mat4x<T, C> > >;
 }	// namespace cuda
-}	// namespace TU
 
-/*
- *  vec<T, N> は CUDA組み込みのベクトル型であり global namespace で定義
- *  されているためADLが効かないので，演算子を global namespace で定義
- *  する．
- */
+//  vec<T, N> はCUDA組み込みのベクトル型の別名であり global namespace
+//  で定義されている．これに関係する演算子は，ADLに頼らずに namespace TU
+//  から呼ぶために，namespace TU::cuda ではなく，namespace TU の中で定義する．
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM&>
+std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -236,7 +233,7 @@ operator +=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM&>
+std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -245,8 +242,8 @@ operator -=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM&>
-operator *=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 2, VM&>
+operator *=(VM& a, cuda::element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -254,8 +251,8 @@ operator *=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM&>
-operator /=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 2, VM&>
+operator /=(VM& a, cuda::element_t<VM> c)
 {
     a.x /= c;
     a.y /= c;
@@ -263,50 +260,50 @@ operator /=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
+std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
+std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
+std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
+std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
-operator *(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 2, VM>
+operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
-operator *(TU::cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<cuda::size<VM>() == 2, VM>
+operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 2, VM>
-operator /(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 2, VM>
+operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c};
 }
@@ -315,7 +312,7 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM&>
+std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -325,7 +322,7 @@ operator +=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM&>
+std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -335,8 +332,8 @@ operator -=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM&>
-operator *=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 3, VM&>
+operator *=(VM& a, cuda::element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -345,8 +342,8 @@ operator *=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM&>
-operator /=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 3, VM&>
+operator /=(VM& a, cuda::element_t<VM> c)
 {
     a.x /= c;
     a.y /= c;
@@ -355,50 +352,50 @@ operator /=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
+std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
+std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
+std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
+std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
-operator *(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 3, VM>
+operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
-operator *(TU::cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<cuda::size<VM>() == 3, VM>
+operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y, c * a.z};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 3, VM>
-operator /(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 3, VM>
+operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c, a.z / c};
 }
@@ -407,7 +404,7 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM&>
+std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -418,7 +415,7 @@ operator +=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM&>
+std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -429,8 +426,8 @@ operator -=(VM& a, const VM& b)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM&>
-operator *=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 4, VM&>
+operator *=(VM& a, cuda::element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -440,8 +437,8 @@ operator *=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM&>
-operator /=(VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 4, VM&>
+operator /=(VM& a, cuda::element_t<VM> c)
 {
     a.x /= c;
     a.y /= c;
@@ -451,50 +448,50 @@ operator /=(VM& a, TU::cuda::element_t<VM> c)
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
+std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
+std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
+std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
+std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
-operator *(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 4, VM>
+operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
-operator *(TU::cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<cuda::size<VM>() == 4, VM>
+operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y, c * a.z, c * a.w};
 }
     
 template <class VM> __host__ __device__ inline
-std::enable_if_t<TU::cuda::size<VM>() == 4, VM>
-operator /(const VM& a, TU::cuda::element_t<VM> c)
+std::enable_if_t<cuda::size<VM>() == 4, VM>
+operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c, a.z / c, a.w / c};
 }
@@ -503,24 +500,25 @@ operator /(const VM& a, TU::cuda::element_t<VM> c)
 *  Output functions							*
 ************************************************************************/
 template <class VM>
-std::enable_if_t<TU::cuda::size<VM>() == 2, std::ostream&>
+std::enable_if_t<cuda::size<VM>() == 2, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ']';
 }
 
 template <class VM>
-std::enable_if_t<TU::cuda::size<VM>() == 3, std::ostream&>
+std::enable_if_t<cuda::size<VM>() == 3, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ']';
 }
 
 template <class VM>
-std::enable_if_t<TU::cuda::size<VM>() == 4, std::ostream&>
+std::enable_if_t<cuda::size<VM>() == 4, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
+}
 }
 
 namespace TU
@@ -732,6 +730,7 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     		{
     		    return inhomogeneous(mapP(u, v));
     		}
+
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI>& p) const
 		{
@@ -747,6 +746,39 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     		{
     		    return dot(*this, vec<T, 3>{T(u), T(v), T(1)});
     		}
+
+    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2&& DI_ == 2, mat<T, 2, 4> >
+		image_derivative0(const vec<T, DI>& edge, const vec<T, DI1>& p)
+		{
+		    return ext(edge, p);
+		}
+
+    template <size_t DO_=DO, size_t DI_=DI> __host__
+    std::enable_if_t<DO_ == 2&& DI_ == 2>
+		compose(const TU::Array<element_type, DOF>& dt)
+		{
+		    auto	t0 = this->x.x;
+		    auto	t1 = this->x.y;
+		    auto	t2 = this->x.z;
+		    this->x.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    this->x.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    this->x.z -= (t0*dt[2] + t1*dt[5]);
+		    
+		    t0 = this->y.x;
+		    t1 = this->y.y;
+		    t2 = this->y.z;
+		    this->y.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    this->y.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    this->y.z -= (t0*dt[2] + t1*dt[5]);
+		    
+		    t0 = this->z.x;
+		    t1 = this->z.y;
+		    t2 = this->z.z;
+		    this->z.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    this->z.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    this->z.z -= (t0*dt[2] + t1*dt[5]);
+		}
 };
 
 /************************************************************************
@@ -789,6 +821,7 @@ class Affinity : public mat<T, DO, DI + 1>
     		{
     		    return (*this)(vec<T, 3>({T(u), T(v), T(1)}));
     		}
+
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI>& p) const
 		{
@@ -804,23 +837,35 @@ class Affinity : public mat<T, DO, DI + 1>
     		{
     		    return homogeneous((*this)(u, v));
     		}
+
     __host__ __device__
     void	update(const param_type& dt)
 		{
 		    *this -= dt;
 		}
+
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2&& DI_ == 2, param_type>
 		image_derivative0(const vec<T, DI>& edge, const vec<T, DI1>& p)
 		{
 		    return ext(edge, p);
 		}
-    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+
+    template <size_t DO_=DO, size_t DI_=DI> __host__
     std::enable_if_t<DO_ == 2&& DI_ == 2>
-		compose(const param_type& dt)
+		compose(const TU::Array<element_type, DOF>& dt)
 		{
-		    this->x -= (this->x.x*dt.x + this->x.y*dt.y);
-		    this->y -= (this->y.x*dt.x + this->y.y*dt.y);
+		    auto	t0 = this->x.x;
+		    auto	t1 = this->x.y;
+		    this->x.x -= (t0*dt[0] + t1*dt[3]);
+		    this->x.y -= (t0*dt[1] + t1*dt[4]);
+		    this->x.z -= (t0*dt[2] + t1*dt[5]);
+		    
+		    t0 = this->y.x;
+		    t1 = this->y.y;
+		    this->y.x -= (t0*dt[0] + t1*dt[3]);
+		    this->y.y -= (t0*dt[1] + t1*dt[4]);
+		    this->y.z -= (t0*dt[2] + t1*dt[5]);
 		}
 };
 

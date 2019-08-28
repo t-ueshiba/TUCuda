@@ -43,7 +43,8 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
 
   //loadTileV(in + __mul24(y0, strideI) + x0, strideI, in_s, winSize - 1);
-    advance_stride(in, y0*strideI + x0);
+    advance_stride(in, y0*strideI);
+    in += x0;
     loadTileV(in, strideI, in_s, winSize - 1);
     __syncthreads();
 
@@ -440,7 +441,6 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     const auto	strideD	   = _buf3.stride();
     const auto	strideXD   = _buf3.size<1>()*strideD;
     const auto	strideX_O  = stride(std::cbegin(*rowO));
-    const auto	strideYX_O = nrows*strideX_O;
 
   // ---- 横方向積算 ----
     profiler_t::start(1);
@@ -498,6 +498,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     cudaDeviceSynchronize();
     profiler_t::start(2);
 #ifdef DISPARITY_MAJOR
+    const auto	strideYX_O = nrows*strideX_O;
   // 視差左半かつ画像左半
     nrows     = outSizeV(nrows);
     threads.x = BlockDim;

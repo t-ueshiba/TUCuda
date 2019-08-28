@@ -26,7 +26,7 @@ createRigidity(T u0, T v0, T theta)
     return mat<T, 2, 3>{{c, -s, (1 - c)*u0 + s*v0},
 			{s,  c, (1 - c)*v0 - s*u0}};
 }
-    
+
 }
 }
 
@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 {
     using namespace	std;
     using namespace	TU;
-#if 0
+#if 1
     using pixel_t	= float;
     using mid_t		= float;
 #else
@@ -46,7 +46,7 @@ main(int argc, char *argv[])
     using mid_t		= float4;
 #endif
     using value_t	= float;
-    
+
     value_t		u0 = -1;
     value_t		v0 = -1;
     value_t		theta = M_PI/6;
@@ -64,7 +64,7 @@ main(int argc, char *argv[])
 	    theta = atof(optarg)*M_PI/180;
 	    break;
 	}
-    
+
     try
     {
 	Image<pixel_t>	in;
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);
-	
+
 	Image<pixel_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
     }

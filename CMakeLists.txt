@@ -35,7 +35,7 @@ link_directories(
 
 file(GLOB sources *.cc *cu)
 
-CUDA_ADD_LIBRARY(${PROJECT_NAME} SHARED ${sources})
+cuda_add_library(${PROJECT_NAME} SHARED ${sources})
 
 install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
 

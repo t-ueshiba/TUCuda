@@ -60,9 +60,6 @@ namespace detail
   constexpr std::integral_constant<size_t, 1>	size(double1)		;
   constexpr std::integral_constant<size_t, 2>	size(double2)		;
 
-  template <class T>
-  constexpr std::integral_constant<size_t, 1>	ncol(T)			;
-    
   constexpr int8_t				element_t(char1)	;
   constexpr int8_t				element_t(char2)	;
   constexpr int8_t				element_t(char3)	;
@@ -186,6 +183,8 @@ namespace detail
   constexpr std::integral_constant<size_t, 3>	size(mat3x<T, C>)	;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, 4>	size(mat4x<T, C>)	;
+  template <class T>
+  constexpr std::integral_constant<size_t, 1>	ncol(T)			;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, C>	ncol(mat2x<T, C>)	;
   template <class T, size_t C>
@@ -754,7 +753,7 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
     std::enable_if_t<DO_ == 2&& DI_ == 2>
-		compose(const TU::Array<element_type, DOF>& dt)
+		compose(const TU::Array<T, DOF>& dt)
 		{
 		    auto	t0 = this->x.x;
 		    auto	t1 = this->x.y;

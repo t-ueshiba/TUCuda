@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG #-DDISPARITY_MAJOR #-DUSE_TBB
+CPPFLAGS	= -DNDEBUG -DDISPARITY_MAJOR #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 --expt-relaxed-constexpr #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)
@@ -144,12 +144,15 @@ cudaJob.o: /usr/local/include/TU/Profiler.h ../../TU/cuda/BoxFilter.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
-	../../TU/cuda/tuple.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/iterator.h ../../TU/cuda/StereoUtility.h \
+	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h \
+	../../TU/cuda/tuple.h ../../TU/cuda/StereoUtility.h \
 	../../TU/cuda/functional.h ../../TU/cuda/chrono.h \
 	../../TU/cuda/fp16.h
 main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
 	/usr/local/include/TU/Warp.h /usr/local/include/TU/simd/Array++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
+	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
 	/usr/local/include/TU/simd/simd.h /usr/local/include/TU/simd/config.h \
 	/usr/local/include/TU/simd/vec.h \
 	/usr/local/include/TU/simd/type_traits.h \
@@ -162,8 +165,6 @@ main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
 	/usr/local/include/TU/simd/allocator.h \
 	/usr/local/include/TU/simd/iterator_wrapper.h \
 	/usr/local/include/TU/simd/load_store_iterator.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/type_traits.h \
 	/usr/local/include/TU/simd/load_store.h \
 	/usr/local/include/TU/simd/x86/load_store.h \
 	/usr/local/include/TU/simd/arm/load_store.h \
@@ -213,8 +214,6 @@ main.o: /usr/local/include/TU/io.h /usr/local/include/TU/Rectify.h \
 	/usr/local/include/TU/simd/cvtup_iterator.h \
 	/usr/local/include/TU/simd/shift_iterator.h \
 	/usr/local/include/TU/simd/map_iterator.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/algorithm.h \
-	../../TU/cuda/tuple.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
 	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \

@@ -1,4 +1,4 @@
-project(stereoTest)
+project(cudaStereoTest)
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "--expt-relaxed-constexpr")
 

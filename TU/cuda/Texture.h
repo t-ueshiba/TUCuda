@@ -127,7 +127,7 @@ Texture<T>::~Texture()
 }
 
 /************************************************************************
-*  warp(IN in, IN ie, OUT out)						*
+*  warp(const Array2<T>& a, OUT out, OP op)				*
 ************************************************************************/
 //! CUDAによって2次元配列の転置処理を行う．
 /*!
@@ -135,27 +135,28 @@ Texture<T>::~Texture()
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T, class OUT, class OP> void
-warp(const Array2<T>& a, OUT out, OP op)				;
+template <class T, class OUT, class MAP> void
+warp(const Array2<T>& a, OUT out, MAP map)				;
     
 #if defined(__NVCC__)
 namespace device
 {
-  template <class T, class OUT, class OP, class STRIDE_O> __global__ static void
-  warp(cudaTextureObject_t tex, OUT out, OP op,
+  template <class T, class OUT, class MAP, class STRIDE_O> __global__
+  static void
+  warp(cudaTextureObject_t tex, OUT out, MAP map,
        int x0, int y0, STRIDE_O stride_o)
   {
-      const auto	x  = x0 + blockIdx.x*blockDim.x + threadIdx.x;
-      const auto	y  = y0 + blockIdx.y*blockDim.y + threadIdx.y;
-      const auto	p = op(x, y);
+      const auto	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const auto	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+      const auto	p = map(x, y);
 
       advance_stride(out, y * stride_o);
       out[x] = tex2D<T>(tex, p.x, p.y);
   }
 }	// namespace device
 
-template <class T, class OUT, class OP> inline void
-warp(const Array2<T>& a, OUT out, OP op)
+template <class T, class OUT, class MAP> inline void
+warp(const Array2<T>& a, OUT out, MAP map)
 {
     const auto		nrow     = a.nrow();
     const auto		ncol     = a.ncol();
@@ -166,13 +167,13 @@ warp(const Array2<T>& a, OUT out, OP op)
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
-					 op, 0, 0, stride_o);
+					 map, 0, 0, stride_o);
   // 右上
     const auto	x0 = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
-					 op, x0, 0, stride_o);
+					 map, x0, 0, stride_o);
   // 左下
     const auto	y0 = blocks.y*threads.y;
     threads.x = BlockDimX;
@@ -180,12 +181,12 @@ warp(const Array2<T>& a, OUT out, OP op)
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
-					 op, 0, y0, stride_o);
+					 map, 0, y0, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
-					 op, x0, y0, stride_o);
+					 map, x0, y0, stride_o);
 }
 #endif    
 

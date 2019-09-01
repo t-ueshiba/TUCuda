@@ -41,8 +41,8 @@ install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
 
 add_subdirectory(TU)
 
-option(BUILD_TUTOOLSPP_TEST_PROGRAMS "Building test programs for TUCuda++" OFF)
+option(BUILD_TUCUDAPP_TEST_PROGRAMS "Building test programs for TUCuda++" OFF)
 
-if(BUILD_TUTOOLSPP_TEST_PROGRAMS)
+if(BUILD_TUCUDAPP_TEST_PROGRAMS)
   add_subdirectory(Testprog)
 endif()

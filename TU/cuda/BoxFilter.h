@@ -42,7 +42,6 @@ box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
     const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
 
-  //loadTileV(in + __mul24(y0, strideI) + x0, strideI, in_s, winSize - 1);
     advance_stride(in, y0*strideI);
     in += x0;
     loadTileV(in, strideI, in_s, winSize - 1);

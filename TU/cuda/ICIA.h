@@ -19,40 +19,110 @@ namespace cuda
 #if defined(__NVCC__)
 namespace device
 {
+namespace detail
+{
+  template <class OUT, class VEC> __device__
+  std::enable_if_t<ncol<VEC>() == 1, OUT>
+  assign_grad(OUT out, const VEC& v, int stride)
+  {
+      *out = v;
+      advance_stride(out, stride);
+      return out;
+  }
+    
+  template <class OUT, class T, size_t C> __device__ OUT
+  assign_grad(OUT out, const Mat2x<T, C>& m, int stride)
+  {
+      return assign_grad(assign_grad(out, m.x, stride), m.y, stride);
+  }
+    
+  template <class OUT, class T, size_t C> __device__ OUT
+  assign_grad(OUT out, const Mat3x<T, C>& m, int stride)
+  {
+      return assign_grad(assign_grad(assign_grad(out, m.x, stride),
+				     m.y, stride),
+			 m.z, stride);
+  }
+    
+  template <class OUT, class T, size_t C> __device__ OUT
+  assign_grad(OUT out, const Mat4x<T, C>& m, int stride)
+  {
+      return assign_grad(assign_grad(assign_grad(assign_vec(out, m.x, stride),
+						 m.y, stride),
+				     m.z, stride),
+			 m.w, stride);
+  }
+    
+  template <class OUT, class VEC> __device__ OUT
+  std::enable_if_t<ncol<VEC>() == 1, OUT>
+  assign_moment(OUT out, const VEC& a, const VEC& b, int stride)
+  {
+      return assign_grad(out, ext(a, b), stride);
+  }
+    
+  template <class OUT, class T, size_t C> __device__ void
+  assign_moment(OUT out, const Mat2x<T, C>& a, const Mat2x<T, C>& b, int stride)
+  {
+      assign_moment(assign_moment(out, a.x, b.x, 2*stride),
+		    a.y, b.x, 2*stride);
+      assign_moment(assign_moment(out + stride, a.x, b.y, 2*stride),
+		    a.y, b.y, 2*stride);
+  }
+
+  __device__ float
+  clamp(float x, float lower, float upper)
+  {
+      return fminf(fmaxf(x, lower), upper);
+  }
+    
+  __device__ double
+  clamp(double x, double lower, double upper)
+  {
+      return fmin(fmax(x, lower), upper);
+  }
+}	// namespsace detail
+    
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template <class MAP, class EDGE, class GRAD, class MOMENT, class STRIDE_M>
+template <class MAP, class EDGE, class GRAD, class MOMENT>
 __global__ void
 compute_grad_and_moment(EDGE edgeH, EDGE edgeV, GRAD grad, MOMENT moment,
-			int strideE, int strideG, STRIDE_M strideM)
+			int strideE, int strideG, int strideM)
 {
-    const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-    const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
-    const int	p = y*strideE + x;
-    const auto	g = MAP::grad(edgeH[p], edgeV[p], x, y);
+    const auto	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+    const auto	p = __mul24(y, strideE) + x;
+    const auto	g = MAP::image_derivative0(edgeH[p], edgeV[p], x, y);
 
-    grad[y*strideG + x] = g;
+    advance_stride(grad, y*strideG);
+    detail::assign_grad(grad + x, g, strideG);
     advance_stride(moment, y*strideM);
-    moment[x] = MAP::moment(g);
+    detail::assign_moment(moment + x, g, g, strideM);
 }
 
-template <>
+template <class IN, class GRAD, class MAP>
 __global__ void
-sqrerr(IN src, IN dst, GRAD grad, int strideI, int strideG)
+sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
+       int x0, int y0, int strideI, int strideG)
 {
-    const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-    const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
-
-    const auto	sval = src[y*strideI + x];
-    const auto	dval = at(dst, );
+    using value_t = iterator_value<IN>;
+    
+    const int	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const int	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+    const auto	p = map(x, y);
+    
+    advance_stride(src, y*strideI);
+    
+    const auto	sval = src[x];
+    const auto	dval = tex2D<value_t>(dst, p.x, p.y);
 
     if (sval > 0.5 && dval > 0.5)
     {
-	const auto	dI = clamp(dval - sval,
-				   -intensityThresh, intensityThresh);
+	const auto	dI = detail::clamp(dval - sval,
+					   -intensityThresh, intensityThresh);
 	sqr = dI * dI;
-	g   = dI * grad[y*strideG + x];
+	dIg = dI * grad[y*strideG + x];
     }
     else
     {
@@ -63,7 +133,7 @@ sqrerr(IN src, IN dst, GRAD grad, int strideI, int strideG)
     
 }	//namespce device
 #endif	// __NVCC__
-    
+
 /************************************************************************
 *  class ICIA<MAP, CLOCK>						*
 ************************************************************************/
@@ -76,27 +146,33 @@ class ICIA : public Profiler<CLOCK>
     struct map_traits<Projectivity<float, 2, 2> >
     {
 	using element_type	= float;
-	using param_type	= float4;
+	using vec_type		= float4;
 
-	constexpr static size_t	NGRAD_PARAMS   = 2;
-	constexpr static size_t	NMOMENT_PARAMS = 16;
+	constexpr static size_t	GRAD_NVECS   = 2;
+	constexpr static size_t	MOMENT_NVECS = 16;
     };
     template <class T>
     struct map_traits<Affinity<T, 2, 2> >
     {
 	using element_type	= float;
-	using param_type	= float3;
+	using vec_type		= float3;
 
-	constexpr static size_t	NPARAMS = 2;
+	constexpr static size_t	GRAD_NVECS   = 2;
+	constexpr static size_t	MOMENT_NVECS = 6;
     };
     template <class T>
     struct map_traits<Rigidity<T, 2> >
     {
 	using element_type	= float;
-	using param_type	= float3;
+	using vec_type		= float3;
 
-	constexpr static size_t	NPARAMS = 1;
+	constexpr static size_t	GRAD_NVECS   = 1;
+	constexpr static size_t	MOMENT_NVECS = 3;
     };
+
+    constexpr static size_t	GRAD_NVECS   = map_traits<MAP>::GRAD_NVECS;
+    constexpr static size_t	MOMENT_NVECS = map_traits<MAP>::MOMENT_NVECS;
+    
     
   public:
     using element_type	= typename MAP::element_type;
@@ -127,104 +203,90 @@ class ICIA : public Profiler<CLOCK>
     ICIA(const Parameters& params=Parameters())
 	:super(3), _params(params)					{}
 
-    template <class IMAGE>
-    void	initialize(const IMAGE& src)				;
-    template <class IMAGE>
-    void	initialize(const IMAGE& edgeH, const IMAGE& edgeV)	;
-    template <class IMAGE>
-    value_type	operator ()(const IMAGE& src, const IMAGE& dst, MAP& f,
+    template <class T_>
+    void	initialize(const Array2<T_>& src)			;
+    void	initialize(const Array2<value_type>& edgeH,
+			   const Array2<value_type>& edgeV)		;
+    template <class T_>
+    value_type	operator ()(const Array2<T_>& src,
+			    const Array2<T_>& dst, MAP& f,
 			    size_t u0=0, size_t v0=0,
 			    size_t w=0, size_t h=0)			;
 
   private:
-    template <class IMAGE>
-    value_type	sqrerr(const IMAGE& src, const IMAGE& dst,
+    template <class T_>
+    value_type	sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
 		       const MAP& f, params_type& g,
 		       size_t u0, size_t v0, size_t w, size_t h) const	;
     matrix_type	moment(size_t u0, size_t v0, size_t w, size_t h) const	;
 
   private:
-    Parameters		_params;
-    Array2<value_type>	_grad[];
-    Array2<value_type>	_M[];
+    Parameters			_params;
+    Array3<param_vec_type>	_grad;
+    Array3<param_vec_type>	_M;
 };
 
-template <class MAP, class CLOCK> template <class IMAGE> void
-ICIA<MAP, CLOCK>::initialize(const IMAGE& src)
+template <class MAP, class CLOCK> template <class Array2<T_>> void
+ICIA<MAP, CLOCK>::initialize(const Array2<T_>& src)
 {
     using	std::cbegin;
     using	std::cend;
     
     start(0);
   // 位置に関する原画像の輝度勾配を求める．
-    Array2<value_type>			src_d(src);
     Array2<value_type>			edgeH(size<0>(src), size<1>(src));
     Array2<value_type>			edgeV(size<0>(src), size<1>(src));
     FIRGaussianConvolver2<value_type>	convolver(_params.sigma);
-    convolver.diffH(cbegin(src_d), cend(src_d), edgeH.begin());
-    convolver.diffV(cbegin(src_d), cend(src_d), edgeV.begin());
+    convolver.diffH(cbegin(src), cend(src), edgeH.begin());
+    convolver.diffV(cbegin(src), cend(src), edgeV.begin());
 
     initialize(edgeH, edgeV);
 }
 
-template <class MAP, class CLOCK> template <class IMAGE> void
-ICIA<MAP, CLOCK>::initialize(const IMAGE& edgeH, const IMAGE& edgeV)
+template <class MAP, class CLOCK> void
+ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
+			     const Array2<value_type>& edgeV)
 {
-    _grad.resize(size<0>(edgeH), size<1>(edgeH));
-    _M   .resize(size<0>(edgeH), size<1>(edgeH));
+    const auto	nrow = size<0>(edgeH);
+    const auto	ncol = size<1>(edgeH);
+    _grad.resize(GRAD_NVECS,   nrow, ncol);
+    _M   .resize(MOMENT_NVECS, nrow, ncol);
+
+    const auto	strideH = edgeH.stride();
+    const auto	strideV = edgeV.stride();
+    
+    const auto	stride_o = stride(out);
 
     start(1);
-  // 変換パラメータに関する原画像の輝度勾配とモーメント行列を求める．
-    for (size_t v = 0; v < _grad.nrow(); ++v)
-    {
-	using	std::cbegin;
-	using	std::begin;
-	
-	auto	eH   = cbegin(edgeH[v]);
-	auto	eV   = cbegin(edgeV[v]);
-	auto	grad = begin(_grad[v]);
-	auto	M    = begin(_M[v]);
-	
-	if (v == 0)
-	{
-	    matrix_type	val(MAP::DOF, MAP::DOF);
-	    
-	    for (size_t u = 0; u < _grad.ncol(); ++u)
-	    {
-		const auto	J = MAP::derivative0(u, v);
-		*grad = *eH * J[0] + *eV * J[1];
-		val  += *grad % *grad;
-		*M    = val;
-		++eH;
-		++eV;
-		++grad;
-		++M;
-	    }
-	}
-	else
-	{
-	    matrix_type	val(MAP::DOF, MAP::DOF);
-	    auto	Mp = _M[v-1].cbegin();
-
-	    for (size_t u = 0; u < _grad.ncol(); ++u)
-	    {
-		const auto	J = MAP::derivative0(u, v);
-		*grad = *eH * J[0] + *eV * J[1];
-		val  += *grad % *grad;
-		*M    = val + *Mp;
-		++eH;
-		++eV;
-		++grad;
-		++M;
-		++Mp;
-	    }
-	}
-    }
+  // 左上
+    dim3	threads(BlockDimX, BlockDimY);
+    dim3	blocks(ncol/threads.x, nrow/threads.y);
+    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+					 op, 0, 0, stride_o);
+  // 右上
+    const auto	x0 = blocks.x*threads.x;
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+					 op, x0, 0, stride_o);
+  // 左下
+    const auto	y0 = blocks.y*threads.y;
+    threads.x = BlockDimX;
+    blocks.x  = ncol/threads.x;
+    threads.y = nrow%threads.y;
+    blocks.y  = 1;
+    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+					 op, 0, y0, stride_o);
+  // 右下
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+					 op, x0, y0, stride_o);
 }
     
-template <class MAP, class CLOCK> template <class IMAGE> auto
-ICIA<MAP, CLOCK>::operator ()(const IMAGE& src, const IMAGE& dst, MAP& f,
-			      size_t u0, size_t v0, size_t w, size_t h)
+template <class MAP, class CLOCK> template <class T_> auto
+ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
+			      MAP& f, size_t u0, size_t v0, size_t w, size_t h)
     -> value_type
 {
 #ifdef ICIA_DEBUG
@@ -319,8 +381,8 @@ ICIA<MAP, CLOCK>::operator ()(const IMAGE& src, const IMAGE& dst, MAP& f,
     return -1.0;
 }
     
-template <class MAP, class CLOCK> template <class IMAGE> auto
-ICIA<MAP, CLOCK>::sqrerr(const IMAGE& src, const IMAGE& dst,
+template <class MAP, class CLOCK> template <class T_> auto
+ICIA<MAP, CLOCK>::sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
 			 const MAP& f, params_type& g,
 			 size_t u0, size_t v0, size_t w, size_t h) const
     -> value_type

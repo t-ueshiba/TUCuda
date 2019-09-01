@@ -45,21 +45,13 @@ doJob(const Image<T>& imageL,
 	      << std::endl;
     
     Image<S>	imageD(rectify.width(0), rectify.height(0));
-#if 1
+#if 0
   // コストを計算する．
     Array3<S>	costs;
     cudaJob(rectifiedImageL, rectifiedImageR, costs, params.windowSize,
 	    params.disparitySearchWidth, params.intensityDiffMax);
     
   // ステレオマッチングを行う．
-#  ifdef DISPARITY_MAJOR
-    DisparitySelector<S>	selector(params.disparityMax,
-					 params.disparityInconsistency);
-    selector.initialize(costs.size<1>(), costs.size<2>());
-    for (const auto& layer : costs)
-	selector.accumulate(layer.cbegin(), layer.cend());
-    selector.select(imageD.begin());
-#  else
     std::copy(costs.cbegin(), costs.cend(),
 	      make_range_iterator(make_matching_iterator<S>(
 				      imageD.begin()->begin(),
@@ -69,7 +61,6 @@ doJob(const Image<T>& imageL,
 				      params.doHorizontalBackMatch),
 				  stride(imageD.begin()),
 				  imageD.width()));
-#  endif    
 #else
   // コストを計算し，ステレオマッチングをを行う．
     cudaJob(rectifiedImageL, rectifiedImageR, imageD,

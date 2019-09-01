@@ -6,7 +6,7 @@ SUBDIR	= boxFilterTest		\
 	  guidedFilterTest	\
 	  mappedMemoryTest	\
 	  op3x3Test		\
-	  stereoTest		\
+	  cudaStereoTest	\
 	  subsampleTest		\
 	  testIIDCcuda		\
 	  transposeTest		\

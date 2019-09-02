@@ -107,9 +107,9 @@ class DisparitySelector
 template <class T> template <class ROW_D> void
 DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
 {
-    const auto	disparitySearchWidth = costs.size<0>();
-    const auto	height		     = costs.size<1>();
-    const auto	width		     = costs.size<2>();
+    const auto	disparitySearchWidth = size<0>(costs);
+    const auto	height		     = size<1>(costs);
+    const auto	width		     = size<2>(costs);
     const auto	strideX		     = costs.stride();
     const auto	strideYX	     = height * strideX;
     const auto	strideD		     = stride(rowD);

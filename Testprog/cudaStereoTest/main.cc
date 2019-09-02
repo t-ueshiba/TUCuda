@@ -45,7 +45,7 @@ doJob(const Image<T>& imageL,
 	      << std::endl;
     
     Image<S>	imageD(rectify.width(0), rectify.height(0));
-#if 0
+#if 1
   // コストを計算する．
     Array3<S>	costs;
     cudaJob(rectifiedImageL, rectifiedImageR, costs, params.windowSize,

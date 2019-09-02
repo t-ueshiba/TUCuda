@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG -DDISPARITY_MAJOR #-DUSE_TBB
+CPPFLAGS	= -DNDEBUG #-DDISPARITY_MAJOR #-DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 --expt-relaxed-constexpr #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)

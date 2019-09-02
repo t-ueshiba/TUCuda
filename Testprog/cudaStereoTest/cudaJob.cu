@@ -6,7 +6,6 @@
 #include "TU/cuda/StereoUtility.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
-#include "TU/cuda/fp16.h"
 
 namespace TU
 {

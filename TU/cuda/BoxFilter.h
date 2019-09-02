@@ -438,7 +438,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     const auto	strideL    = stride(rowL);
     const auto	strideR    = stride(rowR);
     const auto	strideD	   = _buf3.stride();
-    const auto	strideXD   = _buf3.size<1>()*strideD;
+    const auto	strideXD   = size<1>(_buf3)*strideD;
     const auto	strideX_O  = stride(std::cbegin(*rowO));
 
   // ---- 横方向積算 ----

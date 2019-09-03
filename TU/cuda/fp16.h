@@ -11,7 +11,7 @@
 #define TU_CUDA_FP16_H
 
 #include <cuda_fp16.h>		// for __half
-#include <emmintrin.h>		// for _cvtss_sh() and _cvtsh_ss()
+#include <immintrin.h>		// for _cvtss_sh() and _cvtsh_ss()
 #include <thrust/device_ptr.h>
 #include "TU/Array++.h"
 
@@ -26,7 +26,8 @@ struct to_half
     template <class T>
     __half	operator ()(T x) const
 		{
-		    const auto	y = _cvtss_sh(x, 0);
+		    const auto	y = _cvtss_sh(x, (_MM_FROUND_TO_NEAREST_INT |
+						  _MM_FROUND_NO_EXC));
 		    return *(reinterpret_cast<const __half*>(&y));
 		}
 };

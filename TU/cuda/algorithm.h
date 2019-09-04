@@ -145,6 +145,7 @@ namespace device
 constexpr static size_t	BlockDimX = 32;	//!< 1ブロックあたりのスレッド数(x方向)
 constexpr static size_t	BlockDimY = 16;	//!< 1ブロックあたりのスレッド数(y方向)
 constexpr static size_t	BlockDim  = 32;	//!< 1ブロックあたりのスレッド数(全方向)
+constexpr static size_t	BlockDim1 = BlockDimX * BlockDimX;
     
 /************************************************************************
 *  copyToConstantMemory(ITER begin, ITER end, T* dst)			*

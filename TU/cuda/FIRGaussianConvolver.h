@@ -31,6 +31,7 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
   public:
     FIRGaussianConvolver2(float sigma=1.0)				;
 
+    float			sigma()				const	;
     FIRGaussianConvolver2&	initialize(float sigma)			;
 
     template <class IN, class OUT>
@@ -47,6 +48,7 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
     void	diffVV(IN in, IN ie, OUT out, bool shift=false)		;
     
   private:
+    float		_sigma;
     TU::Array<float>	_lobe0;		//!< スムージングのためのローブ
     TU::Array<float>	_lobe1;		//!< 1階微分のためのローブ
     TU::Array<float>	_lobe2;		//!< 2階微分のためのローブ
@@ -58,8 +60,15 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
 */
 template <class T> inline
 FIRGaussianConvolver2<T>::FIRGaussianConvolver2(float sigma)
+    :_sigma(sigma)
 {
-    initialize(sigma);
+    initialize(_sigma);
+}
+
+template <class T> inline float
+FIRGaussianConvolver2<T>::sigma() const
+{
+    return _sigma;
 }
 
 //! Gauss核を初期化する
@@ -73,12 +82,14 @@ FIRGaussianConvolver2<T>::initialize(float sigma)
 {
     using namespace	std;
 
+    _sigma = sigma;
+    
   // 0/1/2階微分のためのローブを計算する．
     const size_t	sizMax = super::LobeSizeMax;
     float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
     for (size_t i = 0; i < sizMax; ++i)
     {
-	float	dx = float(i) / sigma, dxdx = dx*dx;
+	float	dx = float(i) / _sigma, dxdx = dx*dx;
 	
 	lobe0[i] = exp(-0.5f * dxdx);
 	lobe1[i] = -dx * lobe0[i];

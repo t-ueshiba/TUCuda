@@ -76,42 +76,8 @@
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 #include "TU/cuda/allocator.h"
+#include "TU/cuda/vec.h"
 #include "TU/Array++.h"
-
-//! thrust::device_ptr<S> 型の引数に対しADLによって名前解決を行う関数を収める名前空間
-namespace thrust
-{
-/************************************************************************
-*  algorithms overloaded for thrust::device_ptr<T>			*
-************************************************************************/
-template <size_t N, class S, class T> inline void
-copy(device_ptr<S> p, size_t n, device_ptr<T> q)
-{
-    copy_n(p, (N ? N : n), q);
-}
-    
-template <size_t N, class S, class T> inline void
-copy(device_ptr<S> p, size_t n, T* q)
-{
-    copy_n(p, (N ? N : n), q);
-}
-    
-template <size_t N, class S, class T> inline void
-copy(const S* p, size_t n, device_ptr<T> q)
-{
-    copy_n(p, (N ? N : n), q);
-}
-	
-template <size_t N, class T, class S> inline void
-fill(device_ptr<T> q, size_t n, const S& val)
-{
-    fill_n(q, (N ? N : n), val);
-}
-
-template <class T> ptrdiff_t
-stride(device_ptr<T>)							;
-    
-}	// namespace thrust
 
 //! 植芝によって開発されたクラスおよび関数を納める名前空間
 namespace TU
@@ -203,5 +169,208 @@ template <class T>
 using MappedArray3 = array<T, cuda::mapped_allocator<T>, 0, 0, 0>;
     
 }	// namespace cuda
+    
+/************************************************************************
+*  struct to_scalar<T>, to_vec3<VEC>, to_vec4<VEC>			*
+************************************************************************/
+//! カラー画素をCUDAベクトルへ変換する関数オブジェクト
+/*!
+  \param VEC	変換先のCUDAベクトルの型
+*/
+template <class T>
+struct to_scalar
+{
+    template <class S_>
+    T	operator ()(const S_& val) const
+	{
+	    return T(val);
+	}
+};
+
+template <class VEC>
+struct to_vec3
+{
+    template <class S_>
+    VEC	operator ()(const S_& val) const
+	{
+	    using elm_t	= cuda::element_t<VEC>;
+	    
+	    return {elm_t(val), elm_t(val), elm_t(val)};
+	}
+    template <class E_>
+    VEC	operator ()(const RGB_<E_>& rgb) const
+	{
+	    using elm_t	= cuda::element_t<VEC>;
+	    
+	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b)};
+	}
+};
+
+template <class VEC>
+struct to_vec4
+{
+    template <class S_>
+    VEC	operator ()(const S_& val) const
+	{
+	    using elm_t	= cuda::element_t<VEC>;
+	    
+	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(1)};
+	}
+    template <class E_>
+    std::enable_if_t<E_::size == 3, VEC>
+	operator ()(const RGB_<E_>& rgb) const
+	{
+	    using elm_t	= cuda::element_t<VEC>;
+	    
+	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(1)};
+	}
+    template <class E_>
+    std::enable_if_t<E_::size == 4, VEC>
+	operator ()(const RGB_<E_>& rgb) const
+	{
+	    using elm_t	= cuda::element_t<VEC>;
+	    
+	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(rgb.a)};
+	}
+};
+
+/************************************************************************
+*  struct from_device<T>						*
+************************************************************************/
+template <class T>
+struct from_device
+{
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 1, T>
+    	operator ()(const S_& val) const
+    	{
+    	    return T(val);
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 2, T>
+    	operator ()(const S_& yuv422) const
+    	{
+    	    using value_type = typename S_::value_type;
+	    
+    	    return T(value_type(yuv422).y);
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 3 ||
+		     cuda::size<typename S_::value_type>() == 4, T>
+    	operator ()(const S_& rgb) const
+    	{
+    	    using value_type = typename S_::value_type;
+	    
+    	    return T(0.229f*value_type(rgb).x + 0.587f*value_type(rgb).y +
+    		     0.114f*value_type(rgb).z);
+    	}
+};
+
+template <class E>
+struct from_device<RGB_<E> >
+{
+    using elm_t	 = typename E::element_type;
+    
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 1, RGB_<E> >
+    	operator ()(const S_& val) const
+    	{
+    	    return {elm_t(val), elm_t(val), elm_t(val)};
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 3, RGB_<E> >
+    	operator ()(const S_& rgb) const
+    	{
+	    using value_type = typename S_::value_type;
+	    
+    	    return {elm_t(value_type(rgb).x), elm_t(value_type(rgb).y),
+		    elm_t(value_type(rgb).z)};
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 4, RGB_<E> >
+	operator ()(const S_& rgba) const
+	{
+	    using value_type = typename S_::value_type;
+	    
+	    return {elm_t(value_type(rgba).x), elm_t(value_type(rgba).y),
+		    elm_t(value_type(rgba).z), elm_t(value_type(rgba).w)};
+	}
+};
+
+template <>
+struct from_device<YUV422>
+{
+    using elm_t	 = YUV422::element_type;
+    
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 1, YUV422>
+	operator ()(const thrust::device_reference<S_>& val) const
+	{
+	    using value_type = typename S_::value_type;
+	    
+	    return {elm_t(value_type(val))};
+	}
+    template <class S_>
+    std::enable_if_t<cuda::size<typename S_::value_type>() == 2, YUV422>
+	operator ()(const thrust::device_reference<S_>& yuv422) const
+	{
+	    using value_type = typename S_::value_type;
+	    
+	    return {elm_t(value_type(yuv422).y), elm_t(value_type(yuv422).x)};
+	}
+};
+
 }	// namespace TU
+
+//! thrust::device_ptr<S> 型の引数に対しADLによって名前解決を行う関数を収める名前空間
+namespace thrust
+{
+/************************************************************************
+*  algorithms overloaded for thrust::device_ptr<T>			*
+************************************************************************/
+template <size_t N, class S, class T> inline void
+copy(device_ptr<S> p, size_t n, device_ptr<T> q)
+{
+    copy_n(p, (N ? N : n), q);
+}
+    
+template <size_t N, class S, class T>
+inline std::enable_if_t<TU::cuda::size<T>() == 1>
+copy(const S* p, size_t n, device_ptr<T> q)
+{
+    copy_n(TU::make_map_iterator(TU::to_scalar<T>(), p), (N ? N : n), q);
+}
+
+template <size_t N, class S, class VEC>
+inline std::enable_if_t<TU::cuda::size<VEC>() == 3>
+copy(const S* p, size_t n, device_ptr<VEC> q)
+{
+    copy_n(TU::make_map_iterator(TU::to_vec3<VEC>(), p), (N ? N : n), q);
+}
+
+template <size_t N, class S, class VEC>
+inline std::enable_if_t<TU::cuda::size<VEC>() == 4>
+copy(const S* p, size_t n, device_ptr<VEC> q)
+{
+    copy_n(TU::make_map_iterator(TU::to_vec4<VEC>(), p), (N ? N : n), q);
+}
+
+template <size_t N, class S, class T> inline void
+copy(device_ptr<S> p, size_t n, T* q)
+{
+    copy_n(p, (N ? N : n),
+     	   TU::make_assignment_iterator(TU::from_device<T>(), q));
+}
+    
+template <size_t N, class T, class S> inline void
+fill(device_ptr<T> q, size_t n, const S& val)
+{
+    fill_n(q, (N ? N : n), val);
+}
+
+template <class T> ptrdiff_t
+stride(device_ptr<T>)							;
+    
+}	// namespace thrust
+
 #endif	// !TU_CUDA_ARRAYPP_H

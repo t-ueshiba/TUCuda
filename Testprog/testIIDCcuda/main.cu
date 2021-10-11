@@ -46,7 +46,7 @@ doJob(IIDCCameraArray& cameras)
   // 1フレームあたりの画像数とそのフォーマットを出力．
     Array<Image<T> >	images(cameras.size() + 1);
     cout << 'M' << images.size() << endl;
-    for (int i = 0; i < images.size(); ++i)
+    for (size_t i = 0; i < images.size(); ++i)
     {
 	images[i].resize(cameras[0].height(), cameras[0].width());
 	images[i].saveHeader(cout);

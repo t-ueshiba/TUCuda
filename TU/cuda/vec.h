@@ -912,5 +912,130 @@ class Rigidity : public Affinity<T, D, D>
 };
 
 }	// namespace cuda
+
+/************************************************************************
+*  class to_vec<T>							*
+************************************************************************/
+//! カラー画素をCUDAベクトルへ変換する関数オブジェクト
+/*!
+  \param T	変換先のCUDAベクトルの型
+*/
+template <class T>
+class to_vec
+{
+  public:
+    template <class S_>
+    T	operator ()(const S_& val) const
+	{
+	    return vec(val, std::integral_constant<size_t, cuda::size<T>()>());
+	}
+
+  private:
+    template <class S_>
+    T	vec(const S_& val, std::integral_constant<size_t, 1>) const
+	{
+	    return T(val);
+	}
+    template <class S_>
+    T	vec(const S_& val, std::integral_constant<size_t, 3>) const
+	{
+	    using elm_t	= cuda::element_t<T>;
+	    
+	    return {elm_t(val), elm_t(val), elm_t(val)};
+	}
+    template <class E_>
+    T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 3>) const
+	{
+	    using elm_t	= cuda::element_t<T>;
+	    
+	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b)};
+	}
+    template <class S_>
+    T	vec(const S_& val, std::integral_constant<size_t, 4>) const
+	{
+	    using elm_t	= cuda::element_t<T>;
+	    
+	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(1)};
+	}
+    template <class E_>
+    T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 4>) const
+	{
+	    using elm_t	= cuda::element_t<T>;
+	    
+	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(rgb.a)};
+	}
+};
+
+/************************************************************************
+*  struct from_vec<T>							*
+************************************************************************/
+template <class T>
+struct from_vec
+{
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 1, T>
+    	operator ()(const S_& val) const
+    	{
+    	    return T(val);
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 2, T>
+    	operator ()(const S_& yuv422) const
+    	{
+    	    return T(yuv422.y);
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 3 || cuda::size<S_>() == 4, T>
+    	operator ()(const S_& rgb) const
+    	{
+    	    return T(0.229f*rgb.x + 0.587f*rgb.y +0.114f*rgb.z);
+    	}
+};
+
+template <class E>
+struct from_vec<RGB_<E> >
+{
+    using elm_t	 = typename E::element_type;
+    
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 1, RGB_<E> >
+    	operator ()(const S_& val) const
+    	{
+    	    return {elm_t(val), elm_t(val), elm_t(val)};
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 3, RGB_<E> >
+    	operator ()(const S_& rgb) const
+    	{
+    	    return {elm_t(rgb.x), elm_t(rgb.y), elm_t(rgb.z)};
+    	}
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 4, RGB_<E> >
+	operator ()(const S_& rgba) const
+	{
+	    return {elm_t(rgba.x), elm_t(rgba.y),
+		    elm_t(rgba.z), elm_t(rgba.w)};
+	}
+};
+
+template <>
+struct from_vec<YUV422>
+{
+    using elm_t	 = YUV422::element_type;
+    
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 1, YUV422>
+	operator ()(const S_& val) const
+	{
+	    return {elm_t(val)};
+	}
+    template <class S_>
+    std::enable_if_t<cuda::size<S_>() == 2, YUV422>
+	operator ()(const S_& yuv422) const
+	{
+	    return {elm_t(yuv422.y), elm_t(yuv422.x)};
+	}
+};
+
 }	// namespace TU
 #endif	// !TU_CUDA_VEC_H

@@ -38,7 +38,7 @@ main(int argc, char *argv[])
 {
     using namespace	std;
     using namespace	TU;
-#if 0
+#if 1
     using pixel_t	= float;
     using mid_t		= float;
 #else

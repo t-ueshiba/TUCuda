@@ -362,11 +362,11 @@ FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
     using	std::cbegin;
     using	std::cend;
     
-    const auto	nrow = std::distance(in, ie);
+    const size_t	nrow = std::distance(in, ie);
     if (nrow < 4*(_lobeSizeV/2) + 1)
 	return;
 
-    const auto	ncol = std::distance(cbegin(*in), cend(*in));
+    const size_t	ncol = std::distance(cbegin(*in), cend(*in));
     if (ncol < 4*(_lobeSizeH/2) + 1)
 	return;
     

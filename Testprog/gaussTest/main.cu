@@ -58,10 +58,12 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-  //typedef u_char	in_t;
-    typedef float	in_t;
-  //typedef u_char	out_t;
-    typedef float	out_t;
+    typedef u_char	in_t;
+    typedef float	mid_t;
+    typedef u_char	out_t;
+    // typedef float3	in_t;
+    // typedef float3	mid_t;
+    // typedef float3	out_t;
     
     float		sigma	 = 1.0;
     u_int		lobeSize = 16;
@@ -84,9 +86,10 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRGaussianConvolver2<>	cudaFilter(sigma);
-	cuda::Array2<in_t>		in_d(in);
-	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
+	cuda::FIRGaussianConvolver2<mid_t>	cudaFilter(sigma);
+	cuda::Array2<in_t>			in_d(in);
+	cuda::Array2<out_t>			out_d(in_d.nrow(),
+						      in_d.ncol());
 	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
 	cudaDeviceSynchronize();
 
@@ -129,10 +132,10 @@ main(int argc, char *argv[])
 	outGold.save(cout);
 
       // 結果を比較する．
-	for (u_int u = lobeSize; u < out.width() - lobeSize; ++u)
-	    cerr << ' ' << 100*(out[240][u] - outGold[240][u])
-			      / abs(outGold[240][u]);
-	cerr <<  endl;
+	// for (u_int u = lobeSize; u < out.width() - lobeSize; ++u)
+	//     cerr << ' ' << 100*(out[240][u] - outGold[240][u])
+	// 		      / abs(outGold[240][u]);
+	// cerr <<  endl;
 
     }
     catch (exception& err)

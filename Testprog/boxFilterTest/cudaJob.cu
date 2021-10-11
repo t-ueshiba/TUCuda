@@ -36,8 +36,8 @@ cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize, bool shift)
 template void
 cudaJob<float>(const Array2<u_char>& in, Array2<float>& out,
 	       size_t winSize, bool shift);
-template void
-cudaJob<float4>(const Array2<RGBA>& in, Array2<RGBA>& out,
-		size_t winSize, bool shift);
+// template void
+// cudaJob<float4>(const Array2<RGBA>& in, Array2<RGBA>& out,
+// 		size_t winSize, bool shift);
     
 }	// namespace TU

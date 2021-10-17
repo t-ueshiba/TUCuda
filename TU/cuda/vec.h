@@ -70,8 +70,8 @@ namespace detail
   constexpr T					element_t(T)		;
   template <class E>
   constexpr typename E::element_type		element_t(RGB_<E>)	;
-  constexpr typename YUV444::element_type	element_t(YUV444)	;
-  constexpr typename YUV422::element_type	element_t(YUV422)	;
+  constexpr YUV444::element_type		element_t(YUV444)	;
+  constexpr YUV422::element_type		element_t(YUV422)	;
     
   constexpr int8_t				element_t(char1)	;
   constexpr int8_t				element_t(char2)	;

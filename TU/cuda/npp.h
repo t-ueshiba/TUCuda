@@ -71,7 +71,7 @@ nppiFilterGauss(const T* src, int src_type, T* dst, int dst_step,
 		NppStreamContext ctx)					;
     
 template <class IN, class OUT> NppStatus
-gauss_filter(IN in, IN ie, OUT out, NppiMaskSize mask_size)
+nppiFilterGauss(IN in, IN ie, OUT out, NppiMaskSize mask_size)
 {
     using value_t = value_t<iterator_value<IN> >;
 
@@ -86,8 +86,8 @@ gauss_filter(IN in, IN ie, OUT out, NppiMaskSize mask_size)
 }
     
 template <class IN, class OUT> NppStatus
-gauss_filter(IN in, IN ie, OUT out,
-	     NppiMaskSize mask_size, NppStreamContext ctx)
+nppiFilterGauss(IN in, IN ie, OUT out,
+		NppiMaskSize mask_size, NppStreamContext ctx)
 {
     using value_t = value_t<iterator_value<IN> >;
 

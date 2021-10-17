@@ -18,6 +18,12 @@ namespace detail
 {
   template <class T>
   constexpr std::integral_constant<size_t, 1>	size(T)			;
+  template <class E>
+  constexpr std::integral_constant<size_t, E::size>
+						size(RGB_<E>)		;
+  constexpr std::integral_constant<size_t, 3>	size(YUV444)		;
+  constexpr std::integral_constant<size_t, 2>	size(YUV422)		;
+  constexpr std::integral_constant<size_t, 2>	size(YUYV422)		;
     
   constexpr std::integral_constant<size_t, 1>	size(char1)		;
   constexpr std::integral_constant<size_t, 2>	size(char2)		;
@@ -60,6 +66,13 @@ namespace detail
   constexpr std::integral_constant<size_t, 1>	size(double1)		;
   constexpr std::integral_constant<size_t, 2>	size(double2)		;
 
+  template <class T>
+  constexpr T					element_t(T)		;
+  template <class E>
+  constexpr typename E::element_type		element_t(RGB_<E>)	;
+  constexpr typename YUV444::element_type	element_t(YUV444)	;
+  constexpr typename YUV422::element_type	element_t(YUV422)	;
+    
   constexpr int8_t				element_t(char1)	;
   constexpr int8_t				element_t(char2)	;
   constexpr int8_t				element_t(char3)	;
@@ -911,6 +924,21 @@ class Rigidity : public Affinity<T, D, D>
 		}
 };
 
+/************************************************************************
+*  TU::cuda::get_element_ptr()						*
+************************************************************************/
+template <class T> inline element_t<T>*
+get_element_ptr(thrust::device_ptr<T> p)
+{
+    return reinterpret_cast<element_t<T>*>(p.get());
+}
+
+template <class T> inline const element_t<T>*
+get_element_ptr(thrust::device_ptr<const T> p)
+{
+    return reinterpret_cast<const element_t<T>*>(p.get());
+}
+
 }	// namespace cuda
 
 /************************************************************************
@@ -955,7 +983,7 @@ class to_vec
 	{
 	    using elm_t	= cuda::element_t<T>;
 	    
-	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(1)};
+	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(255)};
 	}
     template <class E_>
     T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 4>) const

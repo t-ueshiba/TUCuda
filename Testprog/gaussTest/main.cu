@@ -6,6 +6,7 @@
 #include "TU/Profiler.h"
 #include "TU/cuda/FIRGaussianConvolver.h"
 #include "TU/cuda/chrono.h"
+#include "TU/cuda/vec.h"
 #include "filterImageGold.h"
 
 namespace TU
@@ -58,12 +59,12 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-    typedef u_char	in_t;
-    typedef float	mid_t;
-    typedef u_char	out_t;
-    // typedef float3	in_t;
-    // typedef float3	mid_t;
-    // typedef float3	out_t;
+    using in_t	= u_char;
+    using mid_t	= float;
+    using out_t	= u_char;
+    // using in_t	= RGB;
+    // using mid_t	= float3;
+    // using out_t	= RGB;
     
     float		sigma	 = 1.0;
     u_int		lobeSize = 16;

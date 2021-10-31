@@ -236,6 +236,13 @@ using mat = std::conditional_t<R == 2, mat2x<T, C>,
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 2, VM>
+operator -(const VM& a)
+{
+    return {-a.x, -a.y};
+}
+    
+template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator +=(VM& a, const VM& b)
 {
@@ -323,6 +330,13 @@ operator /(const VM& a, cuda::element_t<VM> c)
 /************************************************************************
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
+template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 3, VM>
+operator -(const VM& a)
+{
+    return {-a.x, -a.y, -a.z};
+}
+    
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator +=(VM& a, const VM& b)
@@ -415,6 +429,13 @@ operator /(const VM& a, cuda::element_t<VM> c)
 /************************************************************************
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
+template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 4, VM>
+operator -(const VM& a)
+{
+    return {-a.x, -a.y, -a.z, -a.w};
+}
+    
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator +=(VM& a, const VM& b)

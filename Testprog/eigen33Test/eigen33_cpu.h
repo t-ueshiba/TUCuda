@@ -259,7 +259,7 @@ eigen33(const T A[3][3], T Q[3][3], T w[3])
   // not cause problems: If w[0] = w[1], then A - w[0] * I has rank 1,
   // i.e. all columns of A - w[0] * I are linearly dependent.
     if (norm <= error)
-	return qr33(A, Q, w);
+    	return qr33(A, Q, w);
     else                      // This is the standard branch
     {
 	norm = std::sqrt(1.0 / norm);
@@ -274,7 +274,7 @@ eigen33(const T A[3][3], T Q[3][3], T w[3])
     Q[2][1]  = (A[0][0] - w[1]) * (A[1][1] - w[1]) - Q[2][1];
     norm     = SQR(Q[0][1]) + SQR(Q[1][1]) + SQR(Q[2][1]);
     if (norm <= error)
-	return qr33(A, Q, w);
+    	return qr33(A, Q, w);
     else
     {
 	norm = sqrt(1.0 / norm);

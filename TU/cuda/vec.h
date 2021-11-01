@@ -722,6 +722,67 @@ ext(const VEC0& a, const VEC1& b)
 }
     
 /************************************************************************
+*  transpose()								*
+************************************************************************/
+template <class T> __host__ __device__ inline mat2x<T, 2>
+transpose(const mat2x<T, 2>& a)
+{
+    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}};
+}
+    
+template <class T> __host__ __device__ inline mat3x<T, 2>
+transpose(const mat2x<T, 3>& a)
+{
+    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}, {a.x.z, a.y.z}};
+}
+    
+template <class T> __host__ __device__ inline mat4x<T, 2>
+transpose(const mat2x<T, 4>& a)
+{
+    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}, {a.x.z, a.y.z}, {a.x.w, a.y.w}};
+}
+    
+template <class T> __host__ __device__ inline mat2x<T, 3>
+transpose(const mat3x<T, 2>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x}, {a.x.y, a.y.y, a.z.y}};
+}
+    
+template <class T> __host__ __device__ inline mat3x<T, 3>
+transpose(const mat3x<T, 3>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x},
+	    {a.x.y, a.y.y, a.z.y}, {a.x.z, a.y.z, a.z.z}};
+}
+    
+template <class T> __host__ __device__ inline mat4x<T, 3>
+transpose(const mat3x<T, 4>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x}, {a.x.y, a.y.y, a.z.y},
+	    {a.x.z, a.y.z, a.z.z}, {a.x.w, a.y.w, a.z.w}};
+}
+    
+template <class T> __host__ __device__ inline mat2x<T, 4>
+transpose(const mat4x<T, 2>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x, a.w.x}, {a.x.y, a.y.y, a.z.y, a.w.y}};
+}
+    
+template <class T> __host__ __device__ inline mat3x<T, 4>
+transpose(const mat4x<T, 3>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x, a.w.x},
+	    {a.x.y, a.y.y, a.z.y, a.w.y}, {a.x.z, a.y.z, a.z.z, a.w.z}};
+}
+    
+template <class T> __host__ __device__ inline mat4x<T, 4>
+transpose(const mat4x<T, 4>& a)
+{
+    return {{a.x.x, a.y.x, a.z.x, a.w.x}, {a.x.y, a.y.y, a.z.y, a.w.y},
+	    {a.x.z, a.y.z, a.z.z, a.w.z}, {a.x.w, a.y.w, a.z.w, a.w.w}};
+}
+    
+/************************************************************************
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/
 template <class T, size_t DO, size_t DI>

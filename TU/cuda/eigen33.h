@@ -11,6 +11,10 @@ namespace cuda
 #if defined(__NVCC__)
 namespace device
 {
+template <class T>
+static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
+    
+    
 __device__ inline float	 sqr(float x)		    { return x*x; }
 __device__ inline float	 abs(float x)		    { return fabsf(x); }
 __device__ inline float	 sqrt(float x)		    { return sqrtf(x); }
@@ -130,7 +134,7 @@ tridiagonal33(mat3x<T, 3> A, mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 2>& e)
 	e.y = A.y.z;
     }
 }
-
+/*
 template <class T> bool
 qr33(mat3x<T, 3> A, mat3x<T, 3>& Q, vec<T, 3>& w)
 {
@@ -168,9 +172,10 @@ qr33(mat3x<T, 3> A, mat3x<T, 3>& Q, vec<T, 3>& w)
 		g = (w.y - w.x) / (e.x + e.x);
 		r = std::sqrt(SQR(g) + 1.0);
 		if (g > 0)
-		g = w[m] - w[l] + e[l]/(g + r);
-	    else
-		g = w[m] - w[l] + e[l]/(g - r);
+		    g = w[m] - w[l] + e[l]/(g + r);
+		else
+		    g = w[m] - w[l] + e[l]/(g - r);
+	    }
 
 	    s = c = 1.0;
 	    p = 0.0;
@@ -215,7 +220,7 @@ qr33(mat3x<T, 3> A, mat3x<T, 3>& Q, vec<T, 3>& w)
 
     return 0;
 }
-
+*/
 template <class T> __device__ inline bool
 eigen33(mat3x<T, 3> A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
@@ -230,18 +235,18 @@ eigen33(mat3x<T, 3> A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	u = t;
     else
 	u = sqr(t);
-    const T	error = T(256) * std::numeric_limits<T>::epsilon() * sqr(u);
+    const T	error = T(256) * epsilon<T> * sqr(u);
 
-    Qt.y.x = A.x.y*A.y.z - A.x.z*A.y.y;
+    Qt.x.y = A.x.y*A.y.z - A.x.z*A.y.y;
     Qt.y.y = A.x.z*A.x.y - A.y.z*A.x.x;
-    Qt.y.z = sqr(A.x.y);
+    Qt.z.y = sqr(A.x.y);
 
   // Calculate first eigenvector by the formula
   //   v.x = (A - w.x).e1 x (A - w.x).e2
-    Qt.x.x = Qt.y.x + A.x.z*w.x;
-    Qt.x.y = Qt.y.y + A.y.z*w.x;
-    Qt.x.z = (A.x.x - w.x) * (A.y.y - w.x) - Qt.y.z;
-    T	norm = dot(Qt.x, Qt.x);
+    Qt.x.x = Qt.x.y + A.x.z*w.x;
+    Qt.y.x = Qt.y.y + A.y.z*w.x;
+    Qt.z.x = (A.x.x - w.x) * (A.y.y - w.x) - Qt.z.y;
+    T	norm = sqr(Qt.x.x) + sqr(Qt.y.x) + sqr(Qt.z.x);
 
   // If vectors are nearly linearly dependent, or if there might have
   // been large cancellations in the calculation of A[i][i] - w.x, fall
@@ -249,27 +254,39 @@ eigen33(mat3x<T, 3> A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   // Note that this simultaneously ensures that multiple eigenvalues do
   // not cause problems: If w.x = w.y, then A - w.x * I has rank 1,
   // i.e. all columns of A - w.x * I are linearly dependent.
-    if (norm <= error)
-	return qr33(A, Qt, w);
-    else                      // This is the standard branch
-	Qt.x *= rsqrt(norm);
+    // if (norm <= error)
+    // 	return qr33(A, Qt, w);
+    // else                      // This is the standard branch
+    {
+	norm = rsqrt(norm);
+	Qt.x.x *= norm;
+	Qt.y.x *= norm;
+	Qt.z.x *= norm;
+    }
 
   // Calculate second eigenvector by the formula
   //   v.y = (A - w.y).e1 x (A - w.y).e2
-    Qt.y.x = Qt.y.x + A.x.z*w.y;
+    Qt.x.y = Qt.x.y + A.x.z*w.y;
     Qt.y.y = Qt.y.y + A.y.z*w.y;
-    Qt.y.z = (A.x.x - w.y) * (A.y.y - w.y) - Qt.y.z;
-    norm   = dot(Qt.y, Qt.y);
-    if (norm <= error)
-	return qr33(A, Qt, w);
-    else
-	Qt.y *= rsqrt(norm);
+    Qt.z.y = (A.x.x - w.y) * (A.y.y - w.y) - Qt.z.y;
+    norm   = sqr(Qt.x.y) + sqr(Qt.y.y) + sqr(Qt.z.y);
+    // if (norm <= error)
+    // 	return qr33(A, Qt, w);
+    // else
+    {
+	norm = rsqrt(norm);
+	Qt.x.y *= norm;
+	Qt.y.y *= norm;
+	Qt.z.y *= norm;
+    }
 
   // Calculate third eigenvector according to
   //   v.z = v.x x v.y
-    Qt.z = cross(Qt.x, Qt.y);
+    Qt.x.z = Qt.y.x * Qt.z.y - Qt.z.x * Qt.y.y;
+    Qt.y.z = Qt.z.x * Qt.x.y - Qt.x.x * Qt.z.y;
+    Qt.z.z = Qt.x.x * Qt.y.y - Qt.y.x * Qt.x.y;
 
-    return 0;
+    return true;
 }
 
 /************************************************************************
@@ -278,7 +295,7 @@ eigen33(mat3x<T, 3> A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 template <class T> __global__ void
 test_eigen33(const mat3x<T, 3>* A, mat3x<T, 3>* Qt, vec<T, 3>* w)
 {
-    *w = cardano(*A);
+    device::eigen33(*A, *Qt, *w);
 }
 
 template <class T> __global__ void
@@ -303,8 +320,9 @@ eigen33(mat3x<T, 3> A, mat3x<T, 3>& Qt)
 
     device::test_eigen33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]), get(&w_d[0]));
 
-  //mat_t	Qt_h = Qt_d[0];
-    vec_t	w = w_d[0];
+    thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
+    vec_t	w;
+    thrust::copy(w_d.begin(), w_d.end(), &w);
 
     return w;
 }

@@ -51,7 +51,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/home/artuser/src/TUTools++/TU/range.h \
 		/home/artuser/src/TUTools++/TU/tuple.h \
 		/home/artuser/src/TUTools++/TU/type_traits.h
-HDRS		= eigen33.h
+HDRS		= eigen33_cpu.h
 SRCS		= main.cu
 OBJS		= main.o
 
@@ -74,4 +74,4 @@ main.o: ../../TU/cuda/eigen33.h ../../TU/cuda/Array++.h \
 	/home/artuser/src/TUTools++/TU/Camera++.h \
 	/home/artuser/src/TUTools++/TU/Geometry++.h \
 	/home/artuser/src/TUTools++/TU/Minimize.h \
-	/home/artuser/src/TUTools++/TU/Vector++.h
+	/home/artuser/src/TUTools++/TU/Vector++.h eigen33_cpu.h

@@ -2,7 +2,7 @@
  * $Id$
  */
 #include "TU/cuda/eigen33.h"
-#include "eigen33.h"
+#include "eigen33_cpu.h"
 
 namespace TU
 {
@@ -21,8 +21,13 @@ doJob()
 	const auto		w = cuda::eigen33(A, Qt);
 
 	std::cerr << "  A = " << A << std::endl;
-	std::cerr << "  w = " << w << std::endl << std::endl;
-
+	std::cerr << "  w = " << w << std::endl;
+	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), transpose(Qt))
+		  << std::endl;
+	std::cerr << "  Qt*Q = " << dot(transpose(Qt), Qt)
+		  << std::endl << std::endl;
+									
+	    
 	cuda::vec<T, 3>		d;
 	cuda::vec<T, 2>		e;
 	cuda::tridiagonal33(A, Qt, d, e);
@@ -30,10 +35,14 @@ doJob()
 	std::cerr << "  Qt = " << Qt << std::endl;
 	std::cerr << "  d  = " << d << std::endl;
 	std::cerr << "  e  = " << e << std::endl;
+	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), transpose(Qt))
+		  << std::endl;
+	std::cerr << "  Qt*Q = " << dot(Qt, transpose(Qt))
+		  << std::endl;
 								       
       //============================================================
-	std::cerr << "======================" << std::endl;
-	const T	matA[3][3] = {{A.x.x, A.x.y, A.x.z},
+	std::cerr << "\n======================" << std::endl;
+	T	matA[3][3] = {{A.x.x, A.x.y, A.x.z},
 			      {A.y.x, A.y.y, A.y.z},
 			      {A.z.x, A.z.y, A.z.z}};
 	T	evalues[3];
@@ -41,15 +50,15 @@ doJob()
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
 
+							       
+
 	T	matQ[3][3], vecd[3], vece[2];
 	::tridiagonal33(matA, matQ, vecd, vece);
-	std::cerr << "=== matQ ===" << std::endl;
-	for (int i = 0; i < 3; ++i)
-	{
-	    for (int j = 0; j < 3; ++j)
-		std::cerr << ' ' << matQ[i][j];
-	    std::cerr << std::endl;
-	}
+
+	Matrix<T>	Am(&matA[0][0], 3, 3), Qm(&matQ[0][0], 3, 3);
+							       
+	std::cerr << "--- Q ---\n" << Qm;
+	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
 
 	std::cerr << "d = ";
 	for (int i = 0; i < 3; ++i)
@@ -61,7 +70,11 @@ doJob()
 	    std::cerr << ' ' << vece[i];
 	std::cerr << std::endl;
 					     
-				      
+	::eigen33(matA, matQ, evalues);
+	std::cerr << "  evalues = " << evalues[0]
+		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
+	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
+		     
 	std::cerr << ">> ";
     }
 }

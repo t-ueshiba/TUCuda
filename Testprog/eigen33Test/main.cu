@@ -16,28 +16,55 @@ doJob()
 	A.y.x = A.x.y;
 	A.z.x = A.x.z;
 	A.z.y = A.y.z;
+	std::cerr << "  A = " << A << std::endl;
 
 	cuda::mat3x<T, 3>	Qt;
-	const auto		w = cuda::eigen33(A, Qt);
+	set_zero(Qt);
+	std::cerr << Qt << std::endl;
+	cuda::vec<T, 3>		w;
+	cuda::device::eigen33(A, Qt, w);
 
-	std::cerr << "  A = " << A << std::endl;
-	std::cerr << "  w = " << w << std::endl;
-	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), transpose(Qt))
+	auto	B = A;
+	B.x.x -= w.x;
+	B.y.y -= w.x;
+	B.z.z -= w.x;
+	std::cerr << "  det.x = " << cuda::dot(cuda::cross(B.x, B.y), B.z)
 		  << std::endl;
-	std::cerr << "  Qt*Q = " << dot(transpose(Qt), Qt)
+
+	B = A;
+	B.x.x -= w.y;
+	B.y.y -= w.y;
+	B.z.z -= w.y;
+	std::cerr << "  det.y = " << cuda::dot(cuda::cross(B.x, B.y), B.z)
+		  << std::endl;
+
+	B = A;
+	B.x.x -= w.z;
+	B.y.y -= w.z;
+	B.z.z -= w.z;
+	std::cerr << "  det.z = " << cuda::dot(cuda::cross(B.x, B.y), B.z)
+		  << std::endl;
+
+	std::cerr << "  w = " << w << std::endl;
+	std::cerr << "  Qt = " << Qt << std::endl;
+	const auto	Q = cuda::transpose(Qt);
+	std::cerr << "  Q  = " << Q << std::endl;
+	std::cerr << "  Qt*Q = " << dot(Qt, Q)
 		  << std::endl << std::endl;
+	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), cuda::transpose(Qt))
+		  << std::endl;
 									
 	    
 	cuda::vec<T, 3>		d;
 	cuda::vec<T, 2>		e;
 	cuda::tridiagonal33(A, Qt, d, e);
 
-	std::cerr << "  Qt = " << Qt << std::endl;
 	std::cerr << "  d  = " << d << std::endl;
 	std::cerr << "  e  = " << e << std::endl;
-	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), transpose(Qt))
+	std::cerr << "  Qt = " << Qt << std::endl;
+	std::cerr << "  Qt*Q = " << dot(Qt, cuda::transpose(Qt))
 		  << std::endl;
-	std::cerr << "  Qt*Q = " << dot(Qt, transpose(Qt))
+	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), cuda::transpose(Qt))
 		  << std::endl;
 								       
       //============================================================

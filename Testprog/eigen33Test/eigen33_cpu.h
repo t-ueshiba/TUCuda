@@ -222,9 +222,9 @@ eigen33(const T A[3][3], T Q[3][3], T w[3])
   //  n1 = square(A[0][1]) + square(A[1][1]) + square(A[1][2]);
 
     T	t = std::abs(w[0]), u;
-    if ((u=std::abs(w[1])) > t)
+    if ((u = std::abs(w[1])) > t)
 	t = u;
-    if ((u=std::abs(w[2])) > t)
+    if ((u = std::abs(w[2])) > t)
 	t = u;
     if (t < 1.0)
 	u = t;

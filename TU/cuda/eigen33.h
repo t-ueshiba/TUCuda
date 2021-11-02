@@ -14,8 +14,7 @@ namespace device
 template <class T>
 static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
     
-    
-__host__ __device__ inline float	 sqr(float x)		    { return x*x; }
+__device__ inline float	 sqr(float x)		    { return x*x; }
 __device__ inline float	 abs(float x)		    { return fabsf(x); }
 __device__ inline float	 sqrt(float x)		    { return sqrtf(x); }
 __device__ inline float	 rsqrt(float x)		    { return rsqrtf(x); }
@@ -31,7 +30,7 @@ __device__ inline double sin(double x)		    { return sin(x); }
 __device__ inline double cos(double x)		    { return cos(x); }
 __device__ inline double atan2(double y, double x)  { return atan2(y, x); }
 
-template <class T> __host__ inline vec<T, 3>
+template <class T> __device__ inline vec<T, 3>
 cardano(const mat3x<T, 3>& A)
 {
   // Determine coefficients of characteristic poynomial. We write
@@ -50,14 +49,14 @@ cardano(const mat3x<T, 3>& A)
 
     const T p = m*m - T(3)*c1;
     const T q = m*(p - (T(3)/T(2))*c1) - (T(27)/T(2))*c0;
-    const T sqrt_p = std::sqrt(std::abs(p));
+    const T sqrt_p = sqrt(abs(p));
 
     T phi = T(27) * (T(0.25)*sqr(c1)*(p - c1) + c0*(q + T(27)/T(4)*c0));
-    phi = (T(1)/T(3)) * std::atan2(std::sqrt(std::abs(phi)), q);
+    phi = (T(1)/T(3)) * atan2(sqrt(abs(phi)), q);
 
     constexpr T	M_SQRT3 = 1.73205080756887729352744634151;	// sqrt(3)
-    const T	c = sqrt_p*std::cos(phi);
-    const T	s = (T(1)/M_SQRT3)*sqrt_p*std::sin(phi);
+    const T	c = sqrt_p*cos(phi);
+    const T	s = (T(1)/M_SQRT3)*sqrt_p*sin(phi);
 
     vec<T, 3>	w;
     w.y  = (T(1)/T(3))*(m - c);
@@ -68,7 +67,7 @@ cardano(const mat3x<T, 3>& A)
     return w;
 }
 
-template <class T> __host__ __device__ void
+template <class T> __device__ void
 tridiagonal33(const mat3x<T, 3>& A,
 	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 2>& e)
 // ----------------------------------------------------------------------------
@@ -171,7 +170,7 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Q, vec<T, 3>& w)
 	    if (l == 0)
 	    {
 		g = (w.y - w.x) / (e.x + e.x);
-		r = std::sqrt(SQR(g) + 1.0);
+		r = sqrt(SQR(g) + 1.0);
 		if (g > 0)
 		    g = w[m] - w[l] + e[l]/(g + r);
 		else
@@ -184,17 +183,17 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Q, vec<T, 3>& w)
 	    {
 		f = s * e[i];
 		b = c * e[i];
-		if (std::abs(f) > std::abs(g))
+		if (abs(f) > abs(g))
 		{
 		    c      = g / f;
-		    r      = std::sqrt(SQR(c) + 1.0);
+		    r      = sqrt(SQR(c) + 1.0);
 		    e[i+1] = f * r;
 		    c     *= (s = 1.0/r);
 		}
 		else
 		{
 		    s      = f / g;
-		    r      = std::sqrt(SQR(s) + 1.0);
+		    r      = sqrt(SQR(s) + 1.0);
 		    e[i+1] = g * r;
 		    s     *= (c = 1.0/r);
 		}
@@ -222,15 +221,15 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Q, vec<T, 3>& w)
     return 0;
 }
 */
-template <class T> __host__  inline bool
+template <class T> __device__  inline bool
 eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
     w = cardano(A);		// Calculate eigenvalues
 
-    T	t = std::abs(w.x), u = std::abs(w.y);
+    T	t = abs(w.x), u = abs(w.y);
     if (u > t)
 	t = u;
-    if ((u = std::abs(w.z)) > t)
+    if ((u = abs(w.z)) > t)
 	t = u;
     if (t < T(1.0))
 	u = t;
@@ -238,21 +237,11 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	u = sqr(t);
     const T	error = T(256) * epsilon<T> * sqr(u);
 
-    // auto	ax = A.x;
-    // auto	ay = A.y;
-    // ax.x -= w.x;
-    // ay.y -= w.x;
-    // Qt.x  = cross(ax, ay);
-    
-    // Qt.y.x = A.x.y*A.y.z - A.x.z*A.y.y;
-    // Qt.y.y = A.x.z*A.x.y - A.x.x*A.y.z;
-    // Qt.y.z = sqr(A.x.y);
-
-  // Calculate first eigenvector by the formula
-  //   v.x = (A - w.x).e1 x (A - w.x).e2
-    // Qt.x.x = Qt.y.x + A.x.z*w.x;
-    // Qt.x.y = Qt.y.y + A.y.z*w.x;
-    // Qt.x.z = (A.x.x - w.x) * (A.y.y - w.x) - Qt.y.z;
+    auto	a = A.x;
+    auto	b = A.y;
+    a.x -= w.x;
+    b.y -= w.x;
+    Qt.x  = cross(a, b);
     T	norm = dot(Qt.x, Qt.x);
 
   // If vectors are nearly linearly dependent, or if there might have
@@ -265,20 +254,22 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
     // 	return qr33(A, Qt, w);
     // else                      // This is the standard branch
     {
-	Qt.x *= 1.0/std::sqrt(norm);
+	Qt.x *= rsqrt(norm);
     }
 
   // Calculate second eigenvector by the formula
   //   v.y = (A - w.y).e1 x (A - w.y).e2
-    Qt.y.x = Qt.y.x + A.x.z*w.y;
-    Qt.y.y = Qt.y.y + A.y.z*w.y;
-    Qt.y.z = (A.x.x - w.y) * (A.y.y - w.y) - Qt.y.z;
-    norm   = dot(Qt.y, Qt.y);
+    a = A.x;
+    b = A.y;
+    a.x -= w.y;
+    b.y -= w.y;
+    Qt.y  = cross(a, b);
+    norm  = dot(Qt.y, Qt.y);
     // if (norm <= error)
     // 	return qr33(A, Qt, w);
     // else
     {
-	Qt.y *= 1.0/std::sqrt(norm);
+	Qt.y *= rsqrt(norm);
     }
 
   // Calculate third eigenvector according to

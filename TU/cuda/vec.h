@@ -161,11 +161,35 @@ namespace detail
 template <class T, size_t N>
 using vec = typename detail::vec<T, N>::type;
 
+template <class T, size_t C>	struct mat3x;
+template <class T, size_t C>	struct mat4x;
+    
 template <class T, size_t C>
 struct mat2x
 {
     using element_type	= T;
     using value_type	= vec<T, C>;
+
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 2, mat2x<T, 2> >
+    transpose()	const
+    {
+	return {{x.x, y.x}, {x.y, y.y}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 3, mat3x<T, 2> >
+    transpose()	const
+    {
+	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 4, mat4x<T, 2> >
+    transpose()	const
+    {
+	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}, {x.w, y.w}};
+    }
 
     value_type	x, y;
 };
@@ -176,6 +200,28 @@ struct mat3x
     using element_type	= T;
     using value_type	= vec<T, C>;
 
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 2, mat2x<T, 3> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x}, {x.y, y.y, z.y}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 3, mat3x<T, 3> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x}, {x.y, y.y, z.y}, {x.z, y.z, z.z}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 4, mat4x<T, 3> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x}, {x.y, y.y, z.y},
+		{x.z, y.z, z.z}, {x.w, y.w, z.w}};
+    }
+
     value_type	x, y, z;
 };
 
@@ -184,6 +230,29 @@ struct mat4x
 {
     using element_type	= T;
     using value_type	= vec<T, C>;
+
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 2, mat2x<T, 4> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x, w.x}, {x.y, y.y, z.y, w.y}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 3, mat3x<T, 4> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x, w.x},
+		{x.y, y.y, z.y, w.y}, {x.z, y.z, z.z, w.z}};
+    }
+	
+    template <size_t C_=C> __host__ __device__
+    std::enable_if_t<C_ == 4, mat4x<T, 4> >
+    transpose()	const
+    {
+	return {{x.x, y.x, z.x, w.x}, {x.y, y.y, z.y, w.y},
+		{x.z, y.z, z.z, w.z}, {x.w, y.w, z.w, w.w}};
+    }
 
     value_type	x, y, z, w;
 };
@@ -719,67 +788,6 @@ std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 4 && ncol<VEC1>() == 1,
 ext(const VEC0& a, const VEC1& b)
 {
     return {a.x * b, a.y * b, a.z * b, a.w * b};
-}
-    
-/************************************************************************
-*  transpose()								*
-************************************************************************/
-template <class T> __host__ __device__ inline mat2x<T, 2>
-transpose(const mat2x<T, 2>& a)
-{
-    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}};
-}
-    
-template <class T> __host__ __device__ inline mat3x<T, 2>
-transpose(const mat2x<T, 3>& a)
-{
-    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}, {a.x.z, a.y.z}};
-}
-    
-template <class T> __host__ __device__ inline mat4x<T, 2>
-transpose(const mat2x<T, 4>& a)
-{
-    return {{a.x.x, a.y.x}, {a.x.y, a.y.y}, {a.x.z, a.y.z}, {a.x.w, a.y.w}};
-}
-    
-template <class T> __host__ __device__ inline mat2x<T, 3>
-transpose(const mat3x<T, 2>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x}, {a.x.y, a.y.y, a.z.y}};
-}
-    
-template <class T> __host__ __device__ inline mat3x<T, 3>
-transpose(const mat3x<T, 3>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x},
-	    {a.x.y, a.y.y, a.z.y}, {a.x.z, a.y.z, a.z.z}};
-}
-    
-template <class T> __host__ __device__ inline mat4x<T, 3>
-transpose(const mat3x<T, 4>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x}, {a.x.y, a.y.y, a.z.y},
-	    {a.x.z, a.y.z, a.z.z}, {a.x.w, a.y.w, a.z.w}};
-}
-    
-template <class T> __host__ __device__ inline mat2x<T, 4>
-transpose(const mat4x<T, 2>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x, a.w.x}, {a.x.y, a.y.y, a.z.y, a.w.y}};
-}
-    
-template <class T> __host__ __device__ inline mat3x<T, 4>
-transpose(const mat4x<T, 3>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x, a.w.x},
-	    {a.x.y, a.y.y, a.z.y, a.w.y}, {a.x.z, a.y.z, a.z.z, a.w.z}};
-}
-    
-template <class T> __host__ __device__ inline mat4x<T, 4>
-transpose(const mat4x<T, 4>& a)
-{
-    return {{a.x.x, a.y.x, a.z.x, a.w.x}, {a.x.y, a.y.y, a.z.y, a.w.y},
-	    {a.x.z, a.y.z, a.z.z, a.w.z}, {a.x.w, a.y.w, a.z.w, a.w.w}};
 }
     
 /************************************************************************

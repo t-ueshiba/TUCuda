@@ -75,7 +75,7 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[2])
     for (int i = 0; i < 3; ++i)
     {
 	Q[i][i] = 1.0;
-	for (int j=0; j < i; ++j)
+	for (int j = 0; j < i; ++j)
 	    Q[i][j] = Q[j][i] = 0.0;
     }
 
@@ -104,7 +104,7 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[2])
 	K *= 0.5 * square(omega);
 
 	for (int i = 1; i < 3; ++i)
-	    q[i] = q[i] - K * u[i];
+	    q[i] -= K * u[i];
 
 	d[0] = A[0][0];
 	d[1] = A[1][1] - 2.0*q[1]*u[1];
@@ -115,7 +115,7 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[2])
 	{
 	    f = omega * u[j];
 	    for (int i = 1; i < 3; ++i)
-		Q[i][j] = Q[i][j] - f*u[i];
+		Q[i][j] -= f*u[i];
 	}
 
       // Calculate updated A[1][2] and store it in e[1]
@@ -149,7 +149,7 @@ qr33(const T A[3][3], T Q[3][3], T w[3])
 	  // element e(l) is zero
 	    for (m = l; m <= 1; ++m)
 	    {
-		const T	g = std::abs(w[m])+std::abs(w[m+1]);
+		const T	g = std::abs(w[m]) + std::abs(w[m+1]);
 		if (std::abs(e[m]) + g == g)
 		    break;
 	    }

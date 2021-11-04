@@ -59,14 +59,14 @@ cardano(const T A[3][3], T w[3])
 }
 
 template <class T> void
-tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
+tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[2])
 {
   // -----------------------------------------------------------------------
   // Reduces a symmetric 3x3 matrix to tridiagonal form by applying
   // (unitary) Householder transformations:
-  //            [ d[0]  e[1]       ]
-  //    A = Q . [ e[1]  d[1]  e[2] ] . Q^T
-  //            [       e[2]  d[2] ]
+  //            [ d[0]  e[0]       ]
+  //    A = Q . [ e[0]  d[1]  e[1] ] . Q^T
+  //            [       e[1]  d[2] ]
   // The function accesses only the diagonal and upper triangular parts of
   // A. The access is read-only.
   // -----------------------------------------------------------------------
@@ -82,8 +82,7 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
   // Bring first row and column to the desired form
     const T	h = square(A[0][1]) + square(A[0][2]);
     const T	g = (A[0][1] > 0 ? -std::sqrt(h) : std::sqrt(h));
-    e[0] = 0;
-    e[1] = g;
+    e[0] = g;
 
     T		f = g * A[0][1];
     T		omega = h - f;
@@ -119,89 +118,86 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
 		Q[i][j] -= f*u[i];
 	}
 
-      // Calculate updated A[1][2] and store it in e[2]
-	e[2] = A[1][2] - q[1]*u[2] - u[1]*q[2];
+      // Calculate updated A[1][2] and store it in e[1]
+	e[1] = A[1][2] - q[1]*u[2] - u[1]*q[2];
     }
     else
     {
 	for (int i = 0; i < 3; ++i)
 	    d[i] = A[i][i];
-	e[2] = A[1][2];
+	e[1] = A[1][2];
     }
 }
 
 template <class T> bool
-qr33(const T A[3][3], T Q[3][3], T w[3])
+qr33(const T A[3][3], T Qt[3][3], T w[3])
 {
   // Transform A to real tridiagonal form by the Householder method
-    T e[3];		// The 0-th element is used only as temporary
-    tridiagonal33(A, Q, w, e);
+    T e[3];		// The thrid element is used only as temporary
+    tridiagonal33(A, Qt, w, e);
 
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
   //
   // Loop over all off-diagonal elements
-    for (int n = 3; n-- > 0; )
+    for (int n = 3; --n > 0; )	// n = 2, 1
     {
 	for (int nIter = 0; ; ++nIter)
 	{
 	    if (nIter >= 30)
 		return false;
 	    
-	    int	m = n;
 	  // Check for convergence and exit iteration loop if off-diagonal
 	  // element e(l) is zero
-	    for (; m > 0; --m)
+	    int	m = n;
+	    for (; m > 0; --m)	// [n = 2]: m = 2, 1, [n = 1]: m = 1
 	    {
 		const T	g = std::abs(w[m]) + std::abs(w[m-1]);
-		if (std::abs(e[m]) + g == g)
+		if (std::abs(e[m-1]) + g == g)
 		    break;
 	    }
-	    if (m == n)
-		break;
+	    if (m == n)		// If e[n-1] is already zero, break loop
+		break;		// and make the next offdiagonal element zero.
 
-	  // Calculate g = d_m - k
-	    const T	g   = (w[n] - w[n-1]) / (e[n] + e[n]);
-	    const T	gg1 = std::sqrt(square(g) + 1.0);
-	    const T	x   = w[m] - w[n] + e[n]/(g > 0 ? g + gg1 : g - gg1);
-	    const T	y   = e[m+1];
+	  // Initialize parameters x and y for computing rotations.
+	    const T	g   = (w[n] - w[n-1]) / (e[n-1] + e[n-1]);
+	    const T	gg1 = std::sqrt(square(g) + T(1));
+	    T		x   = w[m] - w[n] + e[n-1]/(g > 0 ? g + gg1 : g - gg1);
+	    T		y   = e[m];
+	    T		c   = T(1);
+	    T		s   = T(1);
 	    
-	    if (std::abs(x) > std::abs(y))
+	    for (int i = m; i < n; ++i)
 	    {
-		l = ;
+		const T	absx = std::abs(x);
+		const T	absy = std::abs(y);
+		const T	l    = (std::abs(x) > std::abs(y) ?
+				absx * std::sqrt(square(absy/absx) + T(1)) :
+				absy * std::sqrt(square(absx/absy) + T(1)));
+		const T	c    = x/l;
+		const T	s    = y/l;
 
-	    
-	    T	s = 1.0;
-	    T	c = 1.0;
-	    T	p = 0.0;
-	    for (int i = m; ++i <= n; )
-	    {
-		const T	l = (std::abs(x) > std::abs(y) ?
-			     x * std::sqrt(square(y/x) + 1.0) :
-			     y * std::sqrt(square(x/y) + 1.0));
-		const T	c = x/l;
-		const T	s = y/l;
+		e[i-1]  = l;
 
-		g = w[i+1] - p;
-		r = (w[i] - g)*s + 2.0*c*b;
-		p = s * r;
-		w[i+1] = g + p;
-		g = c*r - b;
+		const T	q    = w[i] - w[i-1];
+		const T	d    = s*(s*q + T(2)*c*e[i-1]);
+
+		w[i-1] += d;
+		w[i]   -= d;
+		e[i]   += s*(c*q - T(2)*s*e[i]);
+
+		x	= e[i];
+		y	= s*e[i+1];
+		e[i+1] *= c;
 
 	      // Form eigenvectors
 		for (int k = 0; k < 3; ++k)
 		{
-		    // const auto	t = Q[k][i+1];
-		    // Q[k][i+1] = s*Q[k][i] + c*t;
-		    // Q[k][i]   = c*Q[k][i] - s*t;
-		    const auto	t = Q[i+1][k];		    
-		    Q[i  ][k] = c*Q[i][k] - s*t;
-		    Q[i+1][k] = s*Q[i][k] + c*t;
+		    const auto	t = Qt[i][k];		    
+		    Qt[i  ][k] =  c*t + s*Qt[i+1][k];
+		    Qt[i+1][k] = -s*t + c*Qt[i+1][k];
 		}
 	    }
-	    w[l] -= p;
-	    e[l]  = g;
-	    e[m]  = 0.0;
 	}
     }
 

@@ -57,7 +57,7 @@ doJob()
 	Matrix<T>	Am(&matA[0][0], 3, 3), Qm(&matQ[0][0], 3, 3);
 							       
 	std::cerr << "--- Q ---\n" << Qm;
-	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
+	std::cerr << "--- Qt*A*Q ---\n" << Qm * Am * transpose(Qm);
 
 	std::cerr << "d = ";
 	for (int i = 0; i < 3; ++i)

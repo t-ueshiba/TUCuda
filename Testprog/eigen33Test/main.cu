@@ -2,7 +2,8 @@
  * $Id$
  */
 #include "TU/cuda/eigen33.h"
-#include "eigen33_cpu.h"
+//#include "eigen33_cpu.h"
+#include "eigen33.h"
 
 namespace TU
 {
@@ -51,7 +52,7 @@ doJob()
 
 							       
 
-	T	matQ[3][3], vecd[3], vece[2];
+	T	matQ[3][3], vecd[3], vece[3];
 	::tridiagonal33(matA, matQ, vecd, vece);
 
 	Matrix<T>	Am(&matA[0][0], 3, 3), Qm(&matQ[0][0], 3, 3);
@@ -65,14 +66,14 @@ doJob()
 	std::cerr << std::endl;
 					     
 	std::cerr << "e = ";
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < 3; ++i)
 	    std::cerr << ' ' << vece[i];
-	std::cerr << std::endl;
+	std::cerr << std::endl << std::endl;
 					     
 	::eigen33(matA, matQ, evalues);
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
-	std::cerr << "--- Qt*A*Q ---\n" << Qm * Am * transpose(Qm);
+	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
 		     
 	std::cerr << ">> ";
     }

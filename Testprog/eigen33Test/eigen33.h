@@ -64,9 +64,9 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
   // -----------------------------------------------------------------------
   // Reduces a symmetric 3x3 matrix to tridiagonal form by applying
   // (unitary) Householder transformations:
-  //            [ d[0]  e[1]       ]
-  //    A = Q . [ e[0]  d[1]  e[2] ] . Q^T
-  //            [       e[2]  d[2] ]
+  //            [ d[0]  e[0]       ]
+  //    A = Q . [ e[0]  d[1]  e[1] ] . Q^T
+  //            [       e[1]  d[2] ]
   // The function accesses only the diagonal and upper triangular parts of
   // A. The access is read-only.
   // -----------------------------------------------------------------------
@@ -75,15 +75,14 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
     for (int i = 0; i < 3; ++i)
     {
 	Q[i][i] = 1.0;
-	for (int j = 0; j < i; ++j)
+	for (int j=0; j < i; ++j)
 	    Q[i][j] = Q[j][i] = 0.0;
     }
 
   // Bring first row and column to the desired form
     const T	h = square(A[0][1]) + square(A[0][2]);
     const T	g = (A[0][1] > 0 ? -std::sqrt(h) : std::sqrt(h));
-    e[0] = T(0);
-    e[1] = g;
+    e[0] = g;
 
     T		f = g * A[0][1];
     T		omega = h - f;
@@ -105,7 +104,7 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
 	K *= 0.5 * square(omega);
 
 	for (int i = 1; i < 3; ++i)
-	    q[i] -= K * u[i];
+	    q[i] = q[i] - K * u[i];
 
 	d[0] = A[0][0];
 	d[1] = A[1][1] - 2.0*q[1]*u[1];
@@ -116,102 +115,104 @@ tridiagonal33(const T A[3][3], T Q[3][3], T d[3], T e[3])
 	{
 	    f = omega * u[j];
 	    for (int i = 1; i < 3; ++i)
-		Q[i][j] -= f*u[i];
+		Q[i][j] = Q[i][j] - f*u[i];
 	}
 
-      // Calculate updated A[1][2] and store it in e[2]
-	e[2] = A[1][2] - q[1]*u[2] - u[1]*q[2];
+      // Calculate updated A[1][2] and store it in e[1]
+	e[1] = A[1][2] - q[1]*u[2] - u[1]*q[2];
     }
     else
     {
 	for (int i = 0; i < 3; ++i)
 	    d[i] = A[i][i];
-	e[2] = A[1][2];
+	e[1] = A[1][2];
     }
+
+    e[2] = 0.0;
 }
 
 template <class T> bool
-qr33(const T A[3][3], T Qt[3][3], T w[3])
+qr33(const T A[3][3], T Q[3][3], T w[3])
 {
   // Transform A to real tridiagonal form by the Householder method
-    T e[3];		// e[0] is set to zero and used as a sentinel.
-    tridiagonal33(A, Qt, w, e);
+    T e[3];                   // The third element is used only as temporary
+    tridiagonal33(A, Q, w, e);
 
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
   //
   // Loop over all off-diagonal elements
-    for (int n = 2; n > 0; --n)	// n = 2, 1: Try to make e[n] zero.
+    for (int n = 0; n < 2; ++n)	// l = 0, 1
     {
-	for (int nIter = 0; ; ++nIter)
+	for (int nIter = 0; ; )
 	{
-	    if (nIter >= 30)
-		return false;
-	    
-	  // Find maximum index 'i' s.t. off-diagonal element e[i] is zero.
 	    int	i = n;
-	    for (; i > 0; --i)
+	  // Check for convergence and exit iteration loop if off-diagonal
+	  // element e(n) is zero
+	    for (; i < 2; ++i)
 	    {
-		const T	g = std::abs(w[i]) + std::abs(w[i-1]);
+		const T	g = std::abs(w[i])+std::abs(w[i+1]);
 		if (std::abs(e[i]) + g == g)
 		{
 		    e[i] = 0;
 		    break;
 		}
 	    }
-	  // [n = 2]: i = 2, 1, 0; [n = 1]: i = 1, 0
-	    if (i == n)		// If e[n] is already zero, break loop
-		break;		// and make the next offdiagonal element zero.
+	    if (i == n)
+		break;
 
-	  // [n = 2]: i = 1, 0; [n = 1]: i = 0
-	  // Initialize parameters x and y for computing rotations.
-	    const T	g   = (w[n] - w[n-1]) / (e[n] + e[n]);
-	    const T	gg1 = std::sqrt(square(g) + T(1));
-	    T		x   = w[i] - w[n] + e[n]/(g > 0 ? g + gg1 : g - gg1);
-	    T		z   = T(0);
-	    T		c   = T(1);
-	    T		s   = T(1);
+	    if (nIter++ >= 30)
+		return false;
 
-	  // [n = 2, i = 1]: i = 2	(e[2] != 0)
-	  // [n = 2, i = 0]: i = 1, 2	(e[2] == 0, e[1] != 0)
-	  // [n = 1, i = 0]: i = 1	(e[1] != 0)
-	    while (++i <= n)
+	  // [n = 0]: i = 1, 2; [n = 1]: i = 2	    
+	    T	x = (w[n+1] - w[n]) / (e[n] + e[n]);
+	    T	r = std::sqrt(square(x) + 1.0);
+	    if (x > 0)
+		x = w[i] - w[n] + e[n]/(x + r);
+	    else
+		x = w[i] - w[n] + e[n]/(x - r);
+
+	    T	s = 1.0;
+	    T	c = 1.0;
+	    T	p = 0.0;
+
+	  // [n = 0, i = 1]: i = 0; [n = 0, i = 2]: i = 1, 0
+	  // [n = 1, i = 2]: i = 1
+	    while (--i >= n)
 	    {
-		const T	y = s*e[i];	// Broken tridiagonality element
-		const T	z = c*e[i];	// Firstly update e[i]
-		if (std::abs(x) > std::abs(y))
+		const T	y = s * e[i];
+		const T	z = c * e[i];
+		if (std::abs(y) > std::abs(x))
 		{
-		    const T	t = y/x;
-		    const T	r = std::sqrt(square(t) + T(1));
-		    c	   = T(1)/r;
-		    s	   = c*t;
-		    e[i-1] = x*r;		// Secondly update e[i-1]
+		    c      = x / y;
+		    r      = std::sqrt(square(c) + 1.0);
+		    e[i+1] = y * r;
+		    c     *= (s = 1.0/r);
 		}
 		else
 		{
-		    const T	t = x/y;
-		    const T	r = std::sqrt(square(t) + T(1));
-		    s	   = T(1)/r;
-		    c	   = s*t;
-		    e[i-1] = y*r;		// Secondly update e[i-1]
+		    s      = y / x;
+		    r      = std::sqrt(square(s) + 1.0);
+		    e[i+1] = x * r;
+		    s     *= (c = 1.0/r);
 		}
-		
-		const T	dw = w[i] - w[i-1];
-		const T	d  = s*(s*dw + T(2)*c*e[i]);
 
-		w[i-1] += d;
-		w[i]   -= d;
-		e[i]   += s*(c*dw - T(2)*s*e[i]);	// Firstly update e[i]
-		x       = e[i];
-		
+		x = w[i+1] - p;
+		r = (w[i] - x)*s + 2.0*c*z;
+		p = s * r;
+		w[i+1] = x + p;
+		x = c*r - z;
+
 	      // Form eigenvectors
-		for (int j = 0; j < 3; ++j)
+		for (int k = 0; k < 3; ++k)
 		{
-		    const auto	t = Qt[i-1][j];		    
-		    Qt[i-1][j] =  c*t + s*Qt[i][j];
-		    Qt[i  ][j] = -s*t + c*Qt[i][j];
+		    const auto	t = Q[k][i+1];
+		    Q[k][i+1] = s*Q[k][i] + c*t;
+		    Q[k][i]   = c*Q[k][i] - s*t;
 		}
 	    }
+	    w[n] -= p;
+	    e[n]  = x;
 	}
     }
 
@@ -228,9 +229,9 @@ eigen33(const T A[3][3], T Q[3][3], T w[3])
   //  n1 = square(A[0][1]) + square(A[1][1]) + square(A[1][2]);
 
     T	t = std::abs(w[0]), u;
-    if ((u = std::abs(w[1])) > t)
+    if ((u=std::abs(w[1])) > t)
 	t = u;
-    if ((u = std::abs(w[2])) > t)
+    if ((u=std::abs(w[2])) > t)
 	t = u;
     if (t < 1.0)
 	u = t;

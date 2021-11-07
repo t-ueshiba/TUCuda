@@ -45,7 +45,7 @@ cardano(const mat3x<T, 3>& A)
     const T c1 = (A.x.x*A.y.y + A.x.x*A.z.z + A.y.y*A.z.z)
 	       - (dd + ee + ff);    // a*b + a*c + b*c - d^2 - e^2 - f^2
     const T c0 = A.z.z*dd + A.x.x*ee + A.y.y*ff - A.x.x*A.y.y*A.z.z
-	       - T(2.0) * A.x.z*de;   // c*d^2 + a*e^2 + b*f^2 - a*b*c - 2*f*d*e)
+	       - T(2) * A.x.z*de;   // c*d^2 + a*e^2 + b*f^2 - a*b*c - 2*f*d*e)
 
     const T p = m*m - T(3)*c1;
     const T q = m*(p - (T(3)/T(2))*c1) - (T(27)/T(2))*c0;
@@ -94,25 +94,23 @@ tridiagonal33(const mat3x<T, 3>& A,
     {
 	const T	uy = A.x.y - g;
 	const T	uz = A.x.z;
-	T	K  = 0;
 
 	omega = T(1) / omega;
 
 	f    = A.y.y * uy + A.y.z * uz;
 	T qy = omega * f;			// p
-	K   += uy * f;				// u* A u
+	T K  = uy * f;				// u* A u
 	f    = A.y.z * uy + A.z.z * uz;
 	T qz = omega * f;			// p
 	K   += uz * f;				// u* A u
 
-	K *= T(0.5) * sqr(omega);
-
+	K  *= T(0.5) * sqr(omega);
 	qy -= K * uy;
 	qz -= K * uz;
 
 	d.x = A.x.x;
-	d.y = A.y.y - 2.0*qy*uy;
-	d.z = A.z.z - 2.0*qz*uz;
+	d.y = A.y.y - T(2)*qy*uy;
+	d.z = A.z.z - T(2)*qz*uz;
 
       // Store inverse Householder transformation in Q
 	f = omega * uy;

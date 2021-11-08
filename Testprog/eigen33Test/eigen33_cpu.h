@@ -168,7 +168,6 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 	    auto	x = w[i] - w[n] + e[n]/(t + (t > 0 ? r : -r));
 	    auto	s = T(1);
 	    auto	c = T(1);
-	    auto	p = T(0);
 
 	  // [n = 0, i = 1]: i = 0; [n = 0, i = 2]: i = 1, 0
 	  // [n = 1, i = 2]: i = 1
@@ -193,11 +192,11 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		    c	   = s*t;
 		}
 
-		const auto	u = w[i+1] - p;
-		const auto	v = s*(w[i] - u) + T(2)*c*z;
-		p      = s*v;
-		w[i+1] = u + p;
-		x      = c*v - z;
+		const auto	v = s*(w[i] - w[i+1]) + T(2)*c*z;
+		const auto	p = s*v;
+		w[i]   -= p;
+		w[i+1] += p;
+		x      = c*v - z;	// updated e[i]
 
 	      // Form eigenvectors
 		for (int k = 0; k < 3; ++k)
@@ -207,7 +206,6 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		    Qt[i+1][k] = s*t + c*Qt[i+1][k];
 		}
 	    }
-	    w[n] -= p;
 	    e[n]  = x;
 	}
     }

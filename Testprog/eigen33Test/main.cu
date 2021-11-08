@@ -2,8 +2,7 @@
  * $Id$
  */
 #include "TU/cuda/eigen33.h"
-//#include "eigen33_cpu.h"
-#include "eigen33.h"
+#include "eigen33_cpu.h"
 
 namespace TU
 {
@@ -52,13 +51,13 @@ doJob()
 
 							       
 
-	T	matQ[3][3], vecd[3], vece[3];
-	::tridiagonal33(matA, matQ, vecd, vece);
+	T	matQt[3][3], vecd[3], vece[3];
+	::tridiagonal33(matA, matQt, vecd, vece);
 
-	Matrix<T>	Am(&matA[0][0], 3, 3), Qm(&matQ[0][0], 3, 3);
+	Matrix<T>	AA(&matA[0][0], 3, 3), QQt(&matQt[0][0], 3, 3);
 							       
-	std::cerr << "--- Q ---\n" << Qm;
-	std::cerr << "--- Qt*A*Q ---\n" << Qm * Am * transpose(Qm);
+	std::cerr << "--- Q ---\n" << QQt;
+	std::cerr << "--- Qt*A*Q ---\n" << QQt * AA * transpose(QQt);
 
 	std::cerr << "d = ";
 	for (int i = 0; i < 3; ++i)
@@ -70,11 +69,10 @@ doJob()
 	    std::cerr << ' ' << vece[i];
 	std::cerr << std::endl << std::endl;
 					     
-	::qr33(matA, matQ, evalues);
+	::qr33(matA, matQt, evalues);
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
-      //std::cerr << "--- Qt*A*Q ---\n" << Qm * Am * transpose(Qm);
-	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
+	std::cerr << "--- Qt*A*Q ---\n" << QQt * AA * transpose(QQt);
 		     
 	std::cerr << ">> ";
     }

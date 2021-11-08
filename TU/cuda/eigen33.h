@@ -132,93 +132,153 @@ tridiagonal33(const mat3x<T, 3>& A,
 	e.y = A.y.z;
     }
 }
-/*
-template <class T> bool
-qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Q, vec<T, 3>& w)
+
+namespace detail
+{
+  template <class T> __device__ inline bool
+  off_diagonal_is_zero(T e, T g)
+  {
+      return abs(e) + g == g;
+  }
+  /*
+  template <class T> __device__ inline void
+  diagonalize(, vec<T, 3> mat3x<T, 3>::* row0, vec<T, 3> mat3x<T, 3>::* row0,
+	      T vec<T, 3>::* i0, T vec<T, 3>::* i1,
+	      vec<T, 3>& q0, vec<T, 3>& q1)
+  {
+      const auto	y = s*e.i0;
+      const auto	z = c*e.i0;
+      if (abs(y) > abs(x))
+      {
+	  const auto	t = x/y;
+	  const auto	r = sqrt(square(t) + T(1));
+	  e.i1 = y*r;
+	  s    = T(1)/r;
+	  c    = s*t;
+      }
+      else
+      {
+	  const auto	t = y/x;
+	  const auto	r = sqrt(square(t) + T(1));
+	  e.i1 = x*r;
+	  c    = T(1)/r;
+	  s    = c*t;
+      }
+
+      const auto	u = w.i1 - p;	// x: w[i] value before rotation
+      const auto	v = s*(w.i0 - u) + T(2)*c*z;
+      p    = s*v;
+      w.i1 = u + p;
+      x    = c*v - z;
+
+    // Form eigenvectors
+      const auto	q_tmp = q0;
+      (q0 *= c) -= s*q1;
+      (q1 *= c) += s*q_tmp;
+  }
+  */
+}	// namespace detail
+    
+template <class T> __device__ bool
+qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
   // Transform A to real tridiagonal form by the Householder method
-    vec<T, 2>	e;
-    tridiagonal33(A, Q, w, e);
+    vec<T, 3>	e;	// The third element is used only as temporary
+    tridiagonal33(A, Qt, w, e);
 
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
   //
   // Loop over all off-diagonal elements
-    for (int l = 0; l < 2; ++l)
+    for (int n = 0; n < 2; ++n)	// n = 0, 1
     {
-	int	nIter = 0;
-	for (;;)
+	for (int nIter = 0; ; )
 	{
-	  // Check for convergence and exit iteration loop if off-diagonal
-	  // element e(l) is zero
-	    if (l == 0)
-	    {
-		g = abs(w.x) + abs(w.y);
-		if (abs(e.x) + g == g)
-		    break;
-	    }
-	    g = abs(w.y) + abs(w.z);
-	    if (abs(e.y) + g == g && l == 1)
+	    int	i = n;
+	    if (i == 0)
+		if (detail::off_diagonal_is_zero(e.x, abs(w.x) + abs(w.y)))
+		    e.x = T(0);
+		else
+		    ++i;
+	    if (i == 1)
+		if (detail::off_diagonal_is_zero(e.y, abs(w.y) + abs(w.z)))
+		    e.y = T(0);
+		else
+		    ++i;
+	    if (i == n)
 		break;
-
+	    
 	    if (nIter++ >= 30)
 		return false;
 
-	  // Calculate g = d_m - k
-	    if (l == 0)
-	    {
-		g = (w.y - w.x) / (e.x + e.x);
-		r = sqrt(SQR(g) + 1.0);
-		if (g > 0)
-		    g = w[m] - w[l] + e[l]/(g + r);
-		else
-		    g = w[m] - w[l] + e[l]/(g - r);
-	    }
+	  // [n = 0]: i = 1, 2; [n = 1]: i = 2	    
+	    auto	x = (w[n+1] - w[n]) / (e[n] + e[n]);
+	    auto	r = std::sqrt(square(x) + 1.0);
+	    if (x > 0)
+		x = w[i] - w[n] + e[n]/(x + r);
+	    else
+		x = w[i] - w[n] + e[n]/(x - r);
 
-	    s = c = 1.0;
-	    p = 0.0;
-	    for (int i=m-1; i >= l; i--)
+	    T	s = 1.0;
+	    T	c = 1.0;
+	    T	p = 0.0;
+
+	  // [n = 0, i = 1]: i = 0; [n = 0, i = 2]: i = 1, 0
+	  // [n = 1, i = 2]: i = 1
+	    while (--i >= n)
 	    {
-		f = s * e[i];
-		b = c * e[i];
-		if (abs(f) > abs(g))
+		const auto	y = s*e[i];
+		const auto	z = c*e[i];
+		if (std::abs(y) > std::abs(x))
 		{
-		    c      = g / f;
-		    r      = sqrt(SQR(c) + 1.0);
-		    e[i+1] = f * r;
-		    c     *= (s = 1.0/r);
+		    const auto	t = x/y;
+		    const auto	r = std::sqrt(square(t) + T(1));
+		    e[i+1] = y*r;
+		    s	   = T(1)/r;
+		    c	   = s*t;
 		}
 		else
 		{
-		    s      = f / g;
-		    r      = sqrt(SQR(s) + 1.0);
-		    e[i+1] = g * r;
-		    s     *= (c = 1.0/r);
+		    const auto	t = y/x;
+		    const auto	r = std::sqrt(square(t) + T(1));
+		    e[i+1] = x*r;
+		    c	   = T(1)/r;
+		    s      = c*t;
 		}
-		
-		g = w[i+1] - p;
-		r = (w[i] - g)*s + 2.0*c*b;
-		p = s * r;
-		w[i+1] = g + p;
-		g = c*r - b;
+
+		const auto	u = w[i+1] - p;	// x: w[i] value before rotation
+		const auto	v = s*(w[i] - u) + T(2)*c*z;
+		p      = s*v;
+		w[i+1] = u + p;
+		x      = c*v - z;
 
 	      // Form eigenvectors
-		for (int k=0; k < n; k++)
+		for (int k = 0; k < 3; ++k)
 		{
-		    t = Q[k][i+1];
-		    Q[k][i+1] = s*Q[k][i] + c*t;
-		    Q[k][i]   = c*Q[k][i] - s*t;
+		    const auto	t = Qt[i+1][k];
+		    Qt[i+1][k] = s*Qt[i][k] + c*t;
+		    Qt[i][k]   = c*Qt[i][k] - s*t;
 		}
 	    }
-	    w[l] -= p;
-	    e[l]  = g;
-	    e[m]  = 0.0;
+	    w[n] -= p;
+	    e[n]  = x;
 	}
     }
 
-    return 0;
+    return true;
 }
-*/
+
+namespace detail
+{
+  template <class T> __device__ inline vec<T, 3>
+  eigen_vector(vec<T, 3> a, vec<T, 3> b, vec<T, 3> w, T vec<T, 3>::* xyz)
+  {
+      a.x -= w.*xyz;
+      b.y -= w.*xyz;
+      return cross(a, b);
+  }
+}
+  
 template <class T> __device__  inline bool
 eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
@@ -234,12 +294,14 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
     else
 	u = sqr(t);
     const T	error = T(256) * epsilon<T> * sqr(u);
-
+  /*
     auto	a = A.x;
     auto	b = A.y;
     a.x -= w.x;
     b.y -= w.x;
     Qt.x  = cross(a, b);
+  */
+    Qt.x = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::x);
     T	norm = dot(Qt.x, Qt.x);
 
   // If vectors are nearly linearly dependent, or if there might have
@@ -257,11 +319,14 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 
   // Calculate second eigenvector by the formula
   //   v.y = (A - w.y).e1 x (A - w.y).e2
+  /*
     a = A.x;
     b = A.y;
     a.x -= w.y;
     b.y -= w.y;
     Qt.y  = cross(a, b);
+  */
+    Qt.y = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::y);
     norm  = dot(Qt.y, Qt.y);
     // if (norm <= error)
     // 	return qr33(A, Qt, w);

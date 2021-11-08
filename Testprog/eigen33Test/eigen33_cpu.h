@@ -163,7 +163,7 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		return false;
 
 	  // [n = 0]: i = 1, 2; [n = 1]: i = 2	    
-	    const auto	t = (w[n+1] - w[n]) / (e[n] + e[n]);
+	    const auto	t = (w[n+1] - w[n])/(e[n] + e[n]);
 	    const auto	r = std::sqrt(square(t) + T(1));
 	    auto	x = w[i] - w[n] + e[n]/(t + (t > 0 ? r : -r));
 	    auto	s = T(1);
@@ -176,15 +176,7 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 	    {
 		const auto	y = s*e[i];
 		const auto	z = c*e[i];
-		if (std::abs(y) > std::abs(x))
-		{
-		    const auto	t = x/y;
-		    const auto	r = std::sqrt(square(t) + T(1));
-		    e[i+1] = y*r;
-		    s	   = T(1)/r;
-		    c	   = s*t;
-		}
-		else
+		if (std::abs(x) > std::abs(y))
 		{
 		    const auto	t = y/x;
 		    const auto	r = std::sqrt(square(t) + T(1));
@@ -192,8 +184,16 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		    c	   = T(1)/r;
 		    s      = c*t;
 		}
+		else
+		{
+		    const auto	t = x/y;
+		    const auto	r = std::sqrt(square(t) + T(1));
+		    e[i+1] = y*r;
+		    s	   = T(1)/r;
+		    c	   = s*t;
+		}
 
-		const auto	u = w[i+1] - p;	// x: w[i] value before rotation
+		const auto	u = w[i+1] - p;
 		const auto	v = s*(w[i] - u) + T(2)*c*z;
 		p      = s*v;
 		w[i+1] = u + p;

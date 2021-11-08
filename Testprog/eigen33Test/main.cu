@@ -16,19 +16,11 @@ doJob()
 	A.y.x = A.x.y;
 	A.z.x = A.x.z;
 	A.z.y = A.y.z;
-	std::cerr << "  A = " << A << std::endl;
+	std::cerr << "  A = " << A << std::endl << std::endl;
 
 	cuda::mat3x<T, 3>	Qt;
-	auto	w = cuda::eigen33(A, Qt);
-
-	std::cerr << "  w = " << w << std::endl;
-	std::cerr << "  Qt = " << Qt << std::endl;
-	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose()) << std::endl;
-	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
-		  << std::endl << std::endl;
-									
 	cuda::vec<T, 3>		d;
-	cuda::vec<T, 2>		e;
+	cuda::vec<T, 3>		e;
 	cuda::tridiagonal33(A, Qt, d, e);
 
 	std::cerr << "  d  = " << d << std::endl;
@@ -37,8 +29,16 @@ doJob()
 	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose())
 		  << std::endl;
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
-		  << std::endl;
+		  << std::endl << std::endl;
 								       
+	auto	w = cuda::eigen33(A, Qt);
+
+	std::cerr << "  w = " << w << std::endl;
+	std::cerr << "  Qt = " << Qt << std::endl;
+	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose()) << std::endl;
+	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
+		  << std::endl << std::endl;
+									
       //============================================================
 	std::cerr << "\n======================" << std::endl;
 	T	matA[3][3] = {{A.x.x, A.x.y, A.x.z},

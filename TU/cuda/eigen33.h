@@ -69,7 +69,7 @@ cardano(const mat3x<T, 3>& A)
 
 template <class T> __device__ void
 tridiagonal33(const mat3x<T, 3>& A,
-	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 2>& e)
+	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 3>& e)
 // ----------------------------------------------------------------------------
 // Reduces a symmetric 3x3 matrix to tridiagonal form by applying
 // (unitary) Householder transformations:
@@ -136,47 +136,62 @@ tridiagonal33(const mat3x<T, 3>& A,
 namespace detail
 {
   template <class T> __device__ inline bool
-  off_diagonal_is_zero(T e, T g)
+  is_zero(T e, T g)
   {
       return abs(e) + g == g;
   }
-  /*
-  template <class T> __device__ inline void
-  diagonalize(, vec<T, 3> mat3x<T, 3>::* row0, vec<T, 3> mat3x<T, 3>::* row0,
-	      T vec<T, 3>::* i0, T vec<T, 3>::* i1,
-	      vec<T, 3>& q0, vec<T, 3>& q1)
+
+  template <class T> __device__ T
+  init_offdiagonal(T w, T w0, T w1, T e0)
   {
-      const auto	y = s*e.i0;
-      const auto	z = c*e.i0;
-      if (abs(y) > abs(x))
+      const auto	t = (w1 - w0)/(e0 + e0);
+      const auto	r = sqrt(sqr(t) + T(1));
+      return w - w0 + e0/(t + (t > 0 ? r : -r));
+  }
+    
+  template <class T> __device__ inline void
+  diagonalize(vec<T, 3>& w, vec<T, 3>& e, vec<T, 3>& q0, vec<T, 3>& q1,
+	      T& c, T& s, T vec<T, 3>::* i0, T vec<T, 3>::* i1)
+  {
+      const auto	x = e.*i1;
+      const auto	y = s*e.*i0;
+      const auto	z = c*e.*i0;
+      if (abs(x) > abs(y))
       {
-	  const auto	t = x/y;
-	  const auto	r = sqrt(square(t) + T(1));
-	  e.i1 = y*r;
-	  s    = T(1)/r;
-	  c    = s*t;
+	  const auto	t = y/x;
+	  const auto	r = sqrt(sqr(t) + T(1));
+	  e.*i1 = x*r;
+	  c     = T(1)/r;
+	  s     = c*t;
       }
       else
       {
-	  const auto	t = y/x;
-	  const auto	r = sqrt(square(t) + T(1));
-	  e.i1 = x*r;
-	  c    = T(1)/r;
-	  s    = c*t;
+	  const auto	t = x/y;
+	  const auto	r = sqrt(sqr(t) + T(1));
+	  e.*i1 = y*r;
+	  s     = T(1)/r;
+	  c     = s*t;
       }
 
-      const auto	u = w.i1 - p;	// x: w[i] value before rotation
-      const auto	v = s*(w.i0 - u) + T(2)*c*z;
-      p    = s*v;
-      w.i1 = u + p;
-      x    = c*v - z;
+      const auto	v = s*(w.*i0 - w.*i1) + T(2)*c*z;
+      const auto	p = s*v;
+      w.*i0 -= p;
+      w.*i1 += p;
+      e.*i0  = c*v - z;
 
     // Form eigenvectors
       const auto	q_tmp = q0;
       (q0 *= c) -= s*q1;
       (q1 *= c) += s*q_tmp;
   }
-  */
+
+  template <class T> __device__ inline vec<T, 3>
+  eigen_vector(vec<T, 3> a, vec<T, 3> b, vec<T, 3> w, T vec<T, 3>::* xyz)
+  {
+      a.x -= w.*xyz;
+      b.y -= w.*xyz;
+      return cross(a, b);
+  }
 }	// namespace detail
     
 template <class T> __device__ bool
@@ -184,7 +199,7 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
   // Transform A to real tridiagonal form by the Householder method
     vec<T, 3>	e;	// The third element is used only as temporary
-    tridiagonal33(A, Qt, w, e);
+    device::tridiagonal33(A, Qt, w, e);
 
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
@@ -196,12 +211,12 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	{
 	    int	i = n;
 	    if (i == 0)
-		if (detail::off_diagonal_is_zero(e.x, abs(w.x) + abs(w.y)))
+		if (detail::is_zero(e.x, abs(w.x) + abs(w.y)))
 		    e.x = T(0);
 		else
 		    ++i;
 	    if (i == 1)
-		if (detail::off_diagonal_is_zero(e.y, abs(w.y) + abs(w.z)))
+		if (detail::is_zero(e.y, abs(w.y) + abs(w.z)))
 		    e.y = T(0);
 		else
 		    ++i;
@@ -211,80 +226,39 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	    if (nIter++ >= 30)
 		return false;
 
-	  // [n = 0]: i = 1, 2; [n = 1]: i = 2	    
-	    auto	x = (w[n+1] - w[n]) / (e[n] + e[n]);
-	    auto	r = std::sqrt(square(x) + 1.0);
-	    if (x > 0)
-		x = w[i] - w[n] + e[n]/(x + r);
+	  // [n = 0]: i = 1, 2; [n = 1]: i = 2
+	    if (n == 0)
+		if (i == 1)
+		    e.y = detail::init_offdiagonal(w.y, w.x, w.y, e.x);
+		else
+		    e.z = detail::init_offdiagonal(w.z, w.x, w.y, e.x);
 	    else
-		x = w[i] - w[n] + e[n]/(x - r);
+		e.z = detail::init_offdiagonal(w.z, w.y, w.z, e.y);
 
-	    T	s = 1.0;
-	    T	c = 1.0;
-	    T	p = 0.0;
-
+	    auto	s = T(1);
+	    auto	c = T(1);
 	  // [n = 0, i = 1]: i = 0; [n = 0, i = 2]: i = 1, 0
 	  // [n = 1, i = 2]: i = 1
 	    while (--i >= n)
-	    {
-		const auto	y = s*e[i];
-		const auto	z = c*e[i];
-		if (std::abs(y) > std::abs(x))
-		{
-		    const auto	t = x/y;
-		    const auto	r = std::sqrt(square(t) + T(1));
-		    e[i+1] = y*r;
-		    s	   = T(1)/r;
-		    c	   = s*t;
-		}
+		if (i == 1)
+		    detail::diagonalize(w, e, Qt.y, Qt.z, c, s,
+					&vec<T, 3>::y, &vec<T, 3>::z);
 		else
-		{
-		    const auto	t = y/x;
-		    const auto	r = std::sqrt(square(t) + T(1));
-		    e[i+1] = x*r;
-		    c	   = T(1)/r;
-		    s      = c*t;
-		}
-
-		const auto	u = w[i+1] - p;	// x: w[i] value before rotation
-		const auto	v = s*(w[i] - u) + T(2)*c*z;
-		p      = s*v;
-		w[i+1] = u + p;
-		x      = c*v - z;
-
-	      // Form eigenvectors
-		for (int k = 0; k < 3; ++k)
-		{
-		    const auto	t = Qt[i+1][k];
-		    Qt[i+1][k] = s*Qt[i][k] + c*t;
-		    Qt[i][k]   = c*Qt[i][k] - s*t;
-		}
-	    }
-	    w[n] -= p;
-	    e[n]  = x;
+		    detail::diagonalize(w, e, Qt.x, Qt.y, c, s,
+					&vec<T, 3>::x, &vec<T, 3>::y);
 	}
     }
 
     return true;
 }
 
-namespace detail
-{
-  template <class T> __device__ inline vec<T, 3>
-  eigen_vector(vec<T, 3> a, vec<T, 3> b, vec<T, 3> w, T vec<T, 3>::* xyz)
-  {
-      a.x -= w.*xyz;
-      b.y -= w.*xyz;
-      return cross(a, b);
-  }
-}
-  
 template <class T> __device__  inline bool
 eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
     w = cardano(A);		// Calculate eigenvalues
 
-    T	t = abs(w.x), u = abs(w.y);
+    auto	t = abs(w.x);
+    auto	u = abs(w.y);
     if (u > t)
 	t = u;
     if ((u = abs(w.z)) > t)
@@ -293,16 +267,10 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	u = t;
     else
 	u = sqr(t);
-    const T	error = T(256) * epsilon<T> * sqr(u);
-  /*
-    auto	a = A.x;
-    auto	b = A.y;
-    a.x -= w.x;
-    b.y -= w.x;
-    Qt.x  = cross(a, b);
-  */
+    const auto	error = T(256) * epsilon<T> * sqr(u);
+
     Qt.x = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::x);
-    T	norm = dot(Qt.x, Qt.x);
+    auto	norm = dot(Qt.x, Qt.x);
 
   // If vectors are nearly linearly dependent, or if there might have
   // been large cancellations in the calculation of A[i][i] - w.x, fall
@@ -310,27 +278,21 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   // Note that this simultaneously ensures that multiple eigenvalues do
   // not cause problems: If w.x = w.y, then A - w.x * I has rank 1,
   // i.e. all columns of A - w.x * I are linearly dependent.
-    // if (norm <= error)
-    // 	return qr33(A, Qt, w);
-    // else                      // This is the standard branch
+    if (norm <= error)
+    	return qr33(A, Qt, w);
+    else                      // This is the standard branch
     {
 	Qt.x *= rsqrt(norm);
     }
 
   // Calculate second eigenvector by the formula
   //   v.y = (A - w.y).e1 x (A - w.y).e2
-  /*
-    a = A.x;
-    b = A.y;
-    a.x -= w.y;
-    b.y -= w.y;
-    Qt.y  = cross(a, b);
-  */
     Qt.y = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::y);
     norm  = dot(Qt.y, Qt.y);
-    // if (norm <= error)
-    // 	return qr33(A, Qt, w);
-    // else
+
+    if (norm <= error)
+    	return qr33(A, Qt, w);
+    else
     {
 	Qt.y *= rsqrt(norm);
     }
@@ -346,20 +308,65 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 *  __global__ functions							*
 ************************************************************************/
 template <class T> __global__ void
+test_tridiagonal33(const mat3x<T, 3>* A,
+		   mat3x<T, 3>* Qt, vec<T, 3>* d, vec<T, 3>* e)
+{
+    device::tridiagonal33(*A, *Qt, *d, *e);
+}
+
+template <class T> __global__ void
+test_qr33(const mat3x<T, 3>* A, mat3x<T, 3>* Qt, vec<T, 3>* w)
+{
+    device::qr33(*A, *Qt, *w);
+}
+
+template <class T> __global__ void
 test_eigen33(const mat3x<T, 3>* A, mat3x<T, 3>* Qt, vec<T, 3>* w)
 {
     device::eigen33(*A, *Qt, *w);
 }
 
-template <class T> __global__ void
-test_tridiagonal33(const mat3x<T, 3>* A,
-		   mat3x<T, 3>* Qt, vec<T, 3>* d, vec<T, 2>* e)
-{
-    device::tridiagonal33(*A, *Qt, *d, *e);
-}
-
 }	// namespace device
 #endif
+
+template <class T> vec<T, 3>
+tridiagonal33(const mat3x<T, 3>& A,
+	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 3>& e)
+{
+    using mat_t	 = mat3x<T, 3>;
+    using vec_t	 = vec<T, 3>;
+
+    thrust::device_vector<mat_t>	A_d{1, A};
+    thrust::device_vector<mat_t>	Qt_d(1);
+    thrust::device_vector<vec_t>	d_d(1);
+    thrust::device_vector<vec_t>	e_d(1);
+
+    device::test_tridiagonal33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]),
+					 get(&d_d[0]), get(&e_d[0]));
+
+    thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
+    d = d_d[0];
+    e = e_d[0];
+}
+
+template <class T> vec<T, 3>
+qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
+{
+    using mat_t	= mat3x<T, 3>;
+    using vec_t	= vec<T, 3>;
+
+    thrust::device_vector<mat_t>	A_d(1, A);
+    thrust::device_vector<mat_t>	Qt_d(1);
+    thrust::device_vector<vec_t>	w_d(1);
+
+    device::test_qr33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]), get(&w_d[0]));
+
+    thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
+    vec_t	w;
+    thrust::copy(w_d.begin(), w_d.end(), &w);
+
+    return w;
+}
 
 template <class T> vec<T, 3>
 eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
@@ -378,27 +385,6 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
     thrust::copy(w_d.begin(), w_d.end(), &w);
 
     return w;
-}
-
-template <class T> vec<T, 3>
-tridiagonal33(const mat3x<T, 3>& A,
-	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 2>& e)
-{
-    using mat_t	 = mat3x<T, 3>;
-    using vec_t	 = vec<T, 3>;
-    using vec2_t = vec<T, 2>;
-
-    thrust::device_vector<mat_t>	A_d{1, A};
-    thrust::device_vector<mat_t>	Qt_d(1);
-    thrust::device_vector<vec_t>	d_d(1);
-    thrust::device_vector<vec2_t>	e_d(1);
-
-    device::test_tridiagonal33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]),
-					 get(&d_d[0]), get(&e_d[0]));
-
-    thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
-    d = d_d[0];
-    e = e_d[0];
 }
 
 }	// namespace cuda

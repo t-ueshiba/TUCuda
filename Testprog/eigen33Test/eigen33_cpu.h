@@ -165,14 +165,15 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 	  // [n = 0]: i = 1, 2; [n = 1]: i = 2	    
 	    const auto	t = (w[n+1] - w[n])/(e[n] + e[n]);
 	    const auto	r = std::sqrt(square(t) + T(1));
-	    auto	x = w[i] - w[n] + e[n]/(t + (t > 0 ? r : -r));
+	    e[i] = w[i] - w[n] + e[n]/(t + (t > 0 ? r : -r));
+
 	    auto	s = T(1);
 	    auto	c = T(1);
-
 	  // [n = 0, i = 1]: i = 0; [n = 0, i = 2]: i = 1, 0
 	  // [n = 1, i = 2]: i = 1
 	    while (--i >= n)
 	    {
+		const auto	x = e[i+1];
 		const auto	y = s*e[i];
 		const auto	z = c*e[i];
 		if (std::abs(x) > std::abs(y))
@@ -196,8 +197,8 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		const auto	p = s*v;
 		w[i]   -= p;
 		w[i+1] += p;
-		x      = c*v - z;	// updated e[i]
-
+		e[i]    = c*v - z;	// updated e[i]
+		    
 	      // Form eigenvectors
 		for (int k = 0; k < 3; ++k)
 		{
@@ -206,7 +207,6 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 		    Qt[i+1][k] = s*t + c*Qt[i+1][k];
 		}
 	    }
-	    e[n]  = x;
 	}
     }
 

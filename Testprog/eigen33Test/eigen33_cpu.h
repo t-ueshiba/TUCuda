@@ -168,7 +168,6 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 	    const T	g   = (w[n] - w[n-1]) / (e[n] + e[n]);
 	    const T	gg1 = std::sqrt(square(g) + T(1));
 	    T		x   = w[i] - w[n] + e[n]/(g > 0 ? g + gg1 : g - gg1);
-	    T		z   = T(0);
 	    T		c   = T(1);
 	    T		s   = T(1);
 
@@ -177,7 +176,7 @@ qr33(const T A[3][3], T Qt[3][3], T w[3])
 	  // [n = 1, i = 0]: i = 1	(e[1] != 0)
 	    while (++i <= n)
 	    {
-		const T	y = s*e[i];	// Broken tridiagonality element
+		const T	y = s*e[i];	// Element with broken tridiagonality
 		const T	z = c*e[i];	// Firstly update e[i]
 		if (std::abs(x) > std::abs(y))
 		{

@@ -180,28 +180,30 @@ qr33(const T A[3][3], T Q[3][3], T w[3])
 	  // [n = 1, i = 2]: i = 1
 	    while (--i >= n)
 	    {
-		const T	y = s * e[i];
-		const T	z = c * e[i];
+		const T	y = s*e[i];
+		const T	z = c*e[i];
 		if (std::abs(y) > std::abs(x))
 		{
-		    c      = x / y;
-		    r      = std::sqrt(square(c) + 1.0);
-		    e[i+1] = y * r;
-		    c     *= (s = 1.0/r);
+		    const T	t = x/y;
+		    const T	r = std::sqrt(square(t) + 1.0);
+		    e[i+1] = y*r;
+		    s	   = 1.0/r;
+		    c	   = s*t;
 		}
 		else
 		{
-		    s      = y / x;
-		    r      = std::sqrt(square(s) + 1.0);
-		    e[i+1] = x * r;
-		    s     *= (c = 1.0/r);
+		    const T	t = y/x;
+		    const T	r = std::sqrt(square(t) + 1.0);
+		    e[i+1] = x*r;
+		    c	   = 1.0/r;
+		    s      = c*t;
 		}
 
-		x = w[i+1] - p;
-		r = (w[i] - x)*s + 2.0*c*z;
-		p = s * r;
-		w[i+1] = x + p;
-		x = c*r - z;
+		const T	u = w[i+1] - p;	// x: w[i] value before rotation.
+		const T	v = s*(w[i] - u) + 2.0*c*z;
+		p      = s*v;
+		w[i+1] = u + p;
+		x      = c*v - z;
 
 	      // Form eigenvectors
 		for (int k = 0; k < 3; ++k)

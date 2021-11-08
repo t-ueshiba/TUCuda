@@ -70,9 +70,10 @@ doJob()
 	    std::cerr << ' ' << vece[i];
 	std::cerr << std::endl << std::endl;
 					     
-	::eigen33(matA, matQ, evalues);
+	::qr33(matA, matQ, evalues);
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
+      //std::cerr << "--- Qt*A*Q ---\n" << Qm * Am * transpose(Qm);
 	std::cerr << "--- Qt*A*Q ---\n" << transpose(Qm) * Am * Qm;
 		     
 	std::cerr << ">> ";

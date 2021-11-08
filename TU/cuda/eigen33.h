@@ -186,10 +186,10 @@ namespace detail
   }
 
   template <class T> __device__ inline vec<T, 3>
-  eigen_vector(vec<T, 3> a, vec<T, 3> b, vec<T, 3> w, T vec<T, 3>::* xyz)
+  eigen_vector(vec<T, 3> a, vec<T, 3> b, T w)
   {
-      a.x -= w.*xyz;
-      b.y -= w.*xyz;
+      a.x -= w;
+      b.y -= w;
       return cross(a, b);
   }
 }	// namespace detail
@@ -269,7 +269,7 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	u = sqr(t);
     const auto	error = T(256) * epsilon<T> * sqr(u);
 
-    Qt.x = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::x);
+    Qt.x = detail::eigen_vector(A.x, A.y, w.x);
     auto	norm = dot(Qt.x, Qt.x);
 
   // If vectors are nearly linearly dependent, or if there might have
@@ -281,21 +281,17 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
     if (norm <= error)
     	return qr33(A, Qt, w);
     else                      // This is the standard branch
-    {
 	Qt.x *= rsqrt(norm);
-    }
 
   // Calculate second eigenvector by the formula
   //   v.y = (A - w.y).e1 x (A - w.y).e2
-    Qt.y = detail::eigen_vector(A.x, A.y, w, &vec<T, 3>::y);
+    Qt.y = detail::eigen_vector(A.x, A.y, w.y);
     norm  = dot(Qt.y, Qt.y);
 
     if (norm <= error)
     	return qr33(A, Qt, w);
     else
-    {
 	Qt.y *= rsqrt(norm);
-    }
 
   // Calculate third eigenvector according to
   //   v.z = v.x x v.y

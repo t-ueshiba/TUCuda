@@ -14,6 +14,8 @@ namespace device
 template <class T>
 static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
     
+__device__ inline float	 min(float x, float y)	    { return fminf(x, y); }
+__device__ inline float	 max(float x, float y)	    { return fmaxf(x, y); }
 __device__ inline float	 sqr(float x)		    { return x*x; }
 __device__ inline float	 abs(float x)		    { return fabsf(x); }
 __device__ inline float	 sqrt(float x)		    { return sqrtf(x); }
@@ -22,6 +24,8 @@ __device__ inline float	 sin(float x)		    { return sinf(x); }
 __device__ inline float	 cos(float x)		    { return cosf(x); }
 __device__ inline float	 atan2(float y, float x)    { return atan2f(y, x); }
 
+__device__ inline double min(double x, double y)    { return fmin(x, y); }
+__device__ inline double max(double x, double y)    { return fmax(x, y); }
 __device__ inline double sqr(double x)		    { return x*x; }
 __device__ inline double abs(double x)		    { return fabs(x); }
 __device__ inline double sqrt(double x)		    { return sqrt(x); }
@@ -73,11 +77,11 @@ tridiagonal33(const mat3x<T, 3>& A,
 // ----------------------------------------------------------------------------
 // Reduces a symmetric 3x3 matrix to tridiagonal form by applying
 // (unitary) Householder transformations:
-//            [ d[0]  e[0]       ]
-//    A = Q . [ e[0]  d[1]  e[1] ] . Q^T
-//            [       e[1]  d[2] ]
-// The function accesses only the diagonal and upper triangular parts of
-// A. The access is read-only.
+//             [ d[0]  e[0]       ]
+//    Qt.A.Q = [ e[0]  d[1]  e[1] ]
+//             [       e[1]  d[2] ]
+// The function accesses only the diagonal and upper triangular parts of A.
+// The access is read-only.
 // ---------------------------------------------------------------------------
 {
     set_zero(Qt);
@@ -149,40 +153,40 @@ namespace detail
       return w - w0 + e0/(t + (t > 0 ? r : -r));
   }
     
-  template <class T> __device__ inline void
-  diagonalize(vec<T, 3>& w, vec<T, 3>& e, vec<T, 3>& q0, vec<T, 3>& q1,
-	      T& c, T& s, T vec<T, 3>::* i0, T vec<T, 3>::* i1)
+  template <size_t I, class T> __device__ inline void
+  diagonalize(vec<T, 3>& w, vec<T, 3>& e,
+	      vec<T, 3>& q0, vec<T, 3>& q1, T& c, T& s)
   {
-      const auto	x = e.*i1;
-      const auto	y = s*e.*i0;
-      const auto	z = c*e.*i0;
+      const auto	x = val<I+1>(e);
+      const auto	y = s*val<I>(e);
+      const auto	z = c*val<I>(e);
       if (abs(x) > abs(y))
       {
 	  const auto	t = y/x;
 	  const auto	r = sqrt(sqr(t) + T(1));
-	  e.*i1 = x*r;
-	  c     = T(1)/r;
-	  s     = c*t;
+	  val<I+1>(e) = x*r;
+	  c 	      = T(1)/r;
+	  s	      = c*t;
       }
       else
       {
 	  const auto	t = x/y;
 	  const auto	r = sqrt(sqr(t) + T(1));
-	  e.*i1 = y*r;
-	  s     = T(1)/r;
-	  c     = s*t;
+	  val<I+1>(e) = y*r;
+	  s	      = T(1)/r;
+	  c	      = s*t;
       }
 
-      const auto	v = s*(w.*i0 - w.*i1) + T(2)*c*z;
+      const auto	v = s*(val<I>(w) - val<I+1>(w)) + T(2)*c*z;
       const auto	p = s*v;
-      w.*i0 -= p;
-      w.*i1 += p;
-      e.*i0  = c*v - z;
+      val<I  >(w) -= p;
+      val<I+1>(w) += p;
+      val<I  >(e)  = c*v - z;
 
     // Form eigenvectors
-      const auto	q_tmp = q0;
+      const auto	q0_old = q0;
       (q0 *= c) -= s*q1;
-      (q1 *= c) += s*q_tmp;
+      (q1 *= c) += s*q0_old;
   }
 
   template <class T> __device__ inline vec<T, 3>
@@ -241,11 +245,9 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 	  // [n = 1, i = 2]: i = 1
 	    while (--i >= n)
 		if (i == 1)
-		    detail::diagonalize(w, e, Qt.y, Qt.z, c, s,
-					&vec<T, 3>::y, &vec<T, 3>::z);
+		    detail::diagonalize<1>(w, e, Qt.y, Qt.z, c, s);
 		else
-		    detail::diagonalize(w, e, Qt.x, Qt.y, c, s,
-					&vec<T, 3>::x, &vec<T, 3>::y);
+		    detail::diagonalize<0>(w, e, Qt.x, Qt.y, c, s);
 	}
     }
 
@@ -257,44 +259,25 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
 {
     w = cardano(A);		// Calculate eigenvalues
 
-    auto	t = abs(w.x);
-    auto	u = abs(w.y);
-    if (u > t)
-	t = u;
-    if ((u = abs(w.z)) > t)
-	t = u;
-    if (t < T(1.0))
-	u = t;
-    else
-	u = sqr(t);
+    const auto	t     = min(min(abs(w.x), abs(w.y)), abs(w.z));
+    const auto	u     = (t < T(1) ? t : sqr(t));
     const auto	error = T(256) * epsilon<T> * sqr(u);
 
+  // 1st eigen vector
     Qt.x = detail::eigen_vector(A.x, A.y, w.x);
     auto	norm = dot(Qt.x, Qt.x);
-
-  // If vectors are nearly linearly dependent, or if there might have
-  // been large cancellations in the calculation of A[i][i] - w.x, fall
-  // back to QL algorithm
-  // Note that this simultaneously ensures that multiple eigenvalues do
-  // not cause problems: If w.x = w.y, then A - w.x * I has rank 1,
-  // i.e. all columns of A - w.x * I are linearly dependent.
     if (norm <= error)
     	return qr33(A, Qt, w);
-    else                      // This is the standard branch
-	Qt.x *= rsqrt(norm);
+    Qt.x *= rsqrt(norm);
 
-  // Calculate second eigenvector by the formula
-  //   v.y = (A - w.y).e1 x (A - w.y).e2
+  // 2nd eigen vector
     Qt.y = detail::eigen_vector(A.x, A.y, w.y);
     norm  = dot(Qt.y, Qt.y);
-
     if (norm <= error)
     	return qr33(A, Qt, w);
-    else
-	Qt.y *= rsqrt(norm);
+    Qt.y *= rsqrt(norm);
 
-  // Calculate third eigenvector according to
-  //   v.z = v.x x v.y
+  // 3rd eigen vector
     Qt.z = cross(Qt.x, Qt.y);
 
     return true;

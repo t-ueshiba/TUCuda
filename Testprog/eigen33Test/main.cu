@@ -10,7 +10,7 @@ template <class T> void
 doJob()
 {
     std::cerr << ">> ";
-    for (cuda::mat3x<T, 3> A; std::cin >> A.x.x; )
+    for (cuda::mat<T, 3, 3> A; std::cin >> A.x.x; )
     {
 	std::cin >> A.x.y >> A.x.z >> A.y.y >> A.y.z >> A.z.z;
 	A.y.x = A.x.y;
@@ -18,7 +18,7 @@ doJob()
 	A.z.y = A.y.z;
 	std::cerr << "  A = " << A << std::endl << std::endl;
 
-	cuda::mat3x<T, 3>	Qt;
+	cuda::mat<T, 3, 3>	Qt;
 	cuda::vec<T, 3>		d;
 	cuda::vec<T, 3>		e;
 	cuda::tridiagonal33(A, Qt, d, e);

@@ -114,6 +114,9 @@ namespace detail
   constexpr double				element_t(double1)	;
   constexpr double				element_t(double2)	;
 
+  template <class T>
+  constexpr auto	value_t(T val) -> decltype(element_t(val))	;
+
   template <class T, size_t N>	struct vec;
 
   template <>	struct vec<int8_t,   1>		{ using type = char1;	};
@@ -275,6 +278,12 @@ namespace detail
   constexpr std::integral_constant<size_t, C>	ncol(mat4x<T, C>)	;
   template <class MAT>
   constexpr typename MAT::element_type		element_t(MAT)		;
+  template <class T, size_t C>
+  constexpr typename mat2x<T, C>::value_type	value_t(mat2x<T, C>)	;
+  template <class T, size_t C>
+  constexpr typename mat3x<T, C>::value_type	value_t(mat3x<T, C>)	;
+  template <class T, size_t C>
+  constexpr typename mat4x<T, C>::value_type	value_t(mat4x<T, C>)	;
 }	// namespace detail
     
 template <class VM> constexpr static size_t
@@ -296,11 +305,36 @@ template <class T, size_t R, size_t C>
 using mat = std::conditional_t<R == 2, mat2x<T, C>,
 			       std::conditional_t<R == 3,
 						  mat3x<T, C>, mat4x<T, C> > >;
+
+template <class VM>
+using value_t	= decltype(detail::value_t(std::declval<VM>()));
+    
 }	// namespace cuda
 
 //  vec<T, N> はCUDA組み込みのベクトル型の別名であり global namespace
 //  で定義されている．これに関係する演算子は，ADLに頼らずに namespace TU
 //  から呼ぶために，namespace TU::cuda ではなく，namespace TU の中で定義する．
+/************************************************************************
+*  Access element by its integral index					*
+************************************************************************/
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 0, cuda::value_t<VM> >	val(const VM& a){ return a.x; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 1, cuda::value_t<VM> >	val(const VM& a){ return a.y; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 2, cuda::value_t<VM> >	val(const VM& a){ return a.z; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 3, cuda::value_t<VM> >	val(const VM& a){ return a.w; }
+
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 0, cuda::value_t<VM>&>	val(VM& a)	{ return a.x; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 1, cuda::value_t<VM>&>	val(VM& a)	{ return a.y; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 2, cuda::value_t<VM>&>	val(VM& a)	{ return a.z; }
+template <size_t I, class VM> __host__ __device__ inline
+std::enable_if_t<I == 3, cuda::value_t<VM>&>	val(VM& a)	{ return a.w; }
+
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/

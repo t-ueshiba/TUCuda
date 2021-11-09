@@ -24,12 +24,12 @@ namespace detail
   constexpr std::integral_constant<size_t, 3>	size(YUV444)		;
   constexpr std::integral_constant<size_t, 2>	size(YUV422)		;
   constexpr std::integral_constant<size_t, 2>	size(YUYV422)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(char1)		;
   constexpr std::integral_constant<size_t, 2>	size(char2)		;
   constexpr std::integral_constant<size_t, 3>	size(char3)		;
   constexpr std::integral_constant<size_t, 4>	size(char4)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(uchar1)		;
   constexpr std::integral_constant<size_t, 2>	size(uchar2)		;
   constexpr std::integral_constant<size_t, 3>	size(uchar3)		;
@@ -44,22 +44,22 @@ namespace detail
   constexpr std::integral_constant<size_t, 2>	size(ushort2)		;
   constexpr std::integral_constant<size_t, 3>	size(ushort3)		;
   constexpr std::integral_constant<size_t, 4>	size(ushort4)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(int1)		;
   constexpr std::integral_constant<size_t, 2>	size(int2)		;
   constexpr std::integral_constant<size_t, 3>	size(int3)		;
   constexpr std::integral_constant<size_t, 4>	size(int4)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(uint1)		;
   constexpr std::integral_constant<size_t, 2>	size(uint2)		;
   constexpr std::integral_constant<size_t, 3>	size(uint3)		;
   constexpr std::integral_constant<size_t, 4>	size(uint4)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(float1)		;
   constexpr std::integral_constant<size_t, 2>	size(float2)		;
   constexpr std::integral_constant<size_t, 3>	size(float3)		;
   constexpr std::integral_constant<size_t, 4>	size(float4)		;
-    
+
   constexpr std::integral_constant<size_t, 1>	size(longlong1)		;
   constexpr std::integral_constant<size_t, 2>	size(longlong2)		;
 
@@ -72,7 +72,7 @@ namespace detail
   constexpr typename E::element_type		element_t(RGB_<E>)	;
   constexpr YUV444::element_type		element_t(YUV444)	;
   constexpr YUV422::element_type		element_t(YUV422)	;
-    
+
   constexpr int8_t				element_t(char1)	;
   constexpr int8_t				element_t(char2)	;
   constexpr int8_t				element_t(char3)	;
@@ -107,7 +107,7 @@ namespace detail
   constexpr float				element_t(float2)	;
   constexpr float				element_t(float3)	;
   constexpr float				element_t(float4)	;
-    
+
   constexpr int64_t				element_t(longlong1)	;
   constexpr int64_t				element_t(longlong2)	;
 
@@ -123,7 +123,7 @@ namespace detail
   template <>	struct vec<int8_t,   2>		{ using type = char2;	};
   template <>	struct vec<int8_t,   3>		{ using type = char3;	};
   template <>	struct vec<int8_t,   4>		{ using type = char4;	};
-    
+
   template <>	struct vec<uint8_t,  1>		{ using type = uchar1;	};
   template <>	struct vec<uint8_t,  2>		{ using type = uchar2;	};
   template <>	struct vec<uint8_t,  3>		{ using type = uchar3;	};
@@ -160,13 +160,13 @@ namespace detail
   template <>	struct vec<double,   1>		{ using type = double1;	};
   template <>	struct vec<double,   2>		{ using type = double2;	};
 }	// namespace derail
-    
+
 template <class T, size_t N>
 using vec = typename detail::vec<T, N>::type;
 
 template <class T, size_t C>	struct mat3x;
 template <class T, size_t C>	struct mat4x;
-    
+
 template <class T, size_t C>
 struct mat2x
 {
@@ -179,14 +179,14 @@ struct mat2x
     {
 	return {{x.x, y.x}, {x.y, y.y}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 3, mat3x<T, 2> >
     transpose()	const
     {
 	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 4, mat4x<T, 2> >
     transpose()	const
@@ -209,14 +209,14 @@ struct mat3x
     {
 	return {{x.x, y.x, z.x}, {x.y, y.y, z.y}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 3, mat3x<T, 3> >
     transpose()	const
     {
 	return {{x.x, y.x, z.x}, {x.y, y.y, z.y}, {x.z, y.z, z.z}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 4, mat4x<T, 3> >
     transpose()	const
@@ -240,7 +240,7 @@ struct mat4x
     {
 	return {{x.x, y.x, z.x, w.x}, {x.y, y.y, z.y, w.y}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 3, mat3x<T, 4> >
     transpose()	const
@@ -248,7 +248,7 @@ struct mat4x
 	return {{x.x, y.x, z.x, w.x},
 		{x.y, y.y, z.y, w.y}, {x.z, y.z, z.z, w.z}};
     }
-	
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 4, mat4x<T, 4> >
     transpose()	const
@@ -285,7 +285,7 @@ namespace detail
   template <class T, size_t C>
   constexpr typename mat4x<T, C>::value_type	value_t(mat4x<T, C>)	;
 }	// namespace detail
-    
+
 template <class VM> constexpr static size_t
 size()
 {
@@ -300,7 +300,7 @@ ncol()
 
 template <class VM>
 using element_t	= decltype(detail::element_t(std::declval<VM>()));
-    
+
 template <class T, size_t R, size_t C>
 using mat = std::conditional_t<R == 2, mat2x<T, C>,
 			       std::conditional_t<R == 3,
@@ -308,7 +308,7 @@ using mat = std::conditional_t<R == 2, mat2x<T, C>,
 
 template <class VM>
 using value_t	= decltype(detail::value_t(std::declval<VM>()));
-    
+
 }	// namespace cuda
 
 //  vec<T, N> はCUDA組み込みのベクトル型の別名であり global namespace
@@ -344,7 +344,7 @@ operator -(const VM& a)
 {
     return {-a.x, -a.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator +=(VM& a, const VM& b)
@@ -353,7 +353,7 @@ operator +=(VM& a, const VM& b)
     a.y += b.y;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator -=(VM& a, const VM& b)
@@ -362,7 +362,7 @@ operator -=(VM& a, const VM& b)
     a.y -= b.y;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator *=(VM& a, cuda::element_t<VM> c)
@@ -371,7 +371,7 @@ operator *=(VM& a, cuda::element_t<VM> c)
     a.y *= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM&>
 operator /=(VM& a, cuda::element_t<VM> c)
@@ -380,54 +380,61 @@ operator /=(VM& a, cuda::element_t<VM> c)
     a.y /= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c};
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 2, VM>
+operator /(cuda::element_t<VM> c, const VM& a)
+{
+    return {c / a.x, c / a.y};
 }
 
 /************************************************************************
@@ -439,7 +446,7 @@ operator -(const VM& a)
 {
     return {-a.x, -a.y, -a.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator +=(VM& a, const VM& b)
@@ -449,7 +456,7 @@ operator +=(VM& a, const VM& b)
     a.z += b.z;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator -=(VM& a, const VM& b)
@@ -459,7 +466,7 @@ operator -=(VM& a, const VM& b)
     a.z -= b.z;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator *=(VM& a, cuda::element_t<VM> c)
@@ -469,7 +476,7 @@ operator *=(VM& a, cuda::element_t<VM> c)
     a.z *= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM&>
 operator /=(VM& a, cuda::element_t<VM> c)
@@ -479,54 +486,61 @@ operator /=(VM& a, cuda::element_t<VM> c)
     a.z /= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y, c * a.z};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c, a.z / c};
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 3, VM>
+operator /(cuda::element_t<VM> c, const VM& a)
+{
+    return {c / a.x, c / a.y, c / a.z};
 }
 
 /************************************************************************
@@ -538,7 +552,7 @@ operator -(const VM& a)
 {
     return {-a.x, -a.y, -a.z, -a.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator +=(VM& a, const VM& b)
@@ -549,7 +563,7 @@ operator +=(VM& a, const VM& b)
     a.w += b.w;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator -=(VM& a, const VM& b)
@@ -560,7 +574,7 @@ operator -=(VM& a, const VM& b)
     a.w -= b.w;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator *=(VM& a, cuda::element_t<VM> c)
@@ -571,7 +585,7 @@ operator *=(VM& a, cuda::element_t<VM> c)
     a.w *= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM&>
 operator /=(VM& a, cuda::element_t<VM> c)
@@ -582,56 +596,63 @@ operator /=(VM& a, cuda::element_t<VM> c)
     a.w /= c;
     return a;
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator *(cuda::element_t<VM> c, const VM& a)
 {
     return {c * a.x, c * a.y, c * a.z, c * a.w};
 }
-    
+
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator /(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x / c, a.y / c, a.z / c, a.w / c};
 }
-    
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<cuda::size<VM>() == 4, VM>
+operator /(cuda::element_t<VM> c, const VM& a)
+{
+    return {c / a.x, c / a.y, c / a.z, c / a.w};
+}
+
 /************************************************************************
 *  Output functions							*
 ************************************************************************/
@@ -704,14 +725,14 @@ homogeneous(const VEC& a)
 {
     return {a.x, a.y, element_t<VEC>(1)};
 }
-    
+
 template <class VEC> __host__ __device__ inline
 std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 3, vec<element_t<VEC>, 4> >
 homogeneous(const VEC& a)
 {
     return {a.x, a.y, a.z, element_t<VEC>(1)};
 }
-    
+
 /************************************************************************
 *  inhomogeneous()							*
 ************************************************************************/
@@ -721,14 +742,14 @@ inhomogeneous(const VEC& a)
 {
     return {a.x / a.z, a.y / a.z};
 }
-    
+
 template <class VEC> __host__ __device__ inline
 std::enable_if_t<ncol<VEC>() == 1 && size<VEC>() == 4, vec<element_t<VEC>, 3> >
 inhomogeneous(const VEC& a)
 {
     return {a.x / a.w, a.y / a.w, a.z / a.w};
 }
-    
+
 /************************************************************************
 *  dot()								*
 ************************************************************************/
@@ -740,7 +761,7 @@ dot(const VEC& a, const VM& b)
 {
     return a.x * b.x + a.y * b.y;
 }
-    
+
 template <class VEC, class VM, std::enable_if_t<ncol<VEC>() == 1 &&
 						size<VEC>() == 3 &&
 						size<VM>()  == 3>* = nullptr>
@@ -749,7 +770,7 @@ dot(const VEC& a, const VM& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
-    
+
 template <class VEC, class VM, std::enable_if_t<ncol<VEC>() == 1 &&
 						size<VEC>() == 4 &&
 						size<VM>()  == 4>* = nullptr>
@@ -758,7 +779,7 @@ dot(const VEC& a, const VM& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
-    
+
 template <class T, size_t C, class VM> __host__ __device__ inline
 std::enable_if_t<size<VM>() == C,
 		 std::conditional_t<ncol<VM>() == 1,
@@ -767,7 +788,7 @@ dot(const mat2x<T, C>& m, const VM& a)
 {
     return {dot(m.x, a), dot(m.y, a)};
 }
-    
+
 template <class T, size_t C, class VM> __host__ __device__ inline
 std::enable_if_t<size<VM>() == C,
 		 std::conditional_t<ncol<VM>() == 1,
@@ -796,7 +817,7 @@ cross(const VEC& a, const VEC& b)
     return {a.y * b.z - a.z * b.y,
 	    a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
-    
+
 /************************************************************************
 *  ext()								*
 ************************************************************************/
@@ -807,7 +828,7 @@ ext(const VEC0& a, const VEC1& b)
 {
     return {a.x * b, a.y * b};
 }
-    
+
 template <class VEC0, class VEC1> __host__ __device__ inline
 std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 3 && ncol<VEC1>() == 1,
 		 mat<element_t<VEC0>, 3, size<VEC1>()> >
@@ -815,7 +836,7 @@ ext(const VEC0& a, const VEC1& b)
 {
     return {a.x * b, a.y * b, a.z * b};
 }
-    
+
 template <class VEC0, class VEC1> __host__ __device__ inline
 std::enable_if_t<ncol<VEC0>() == 1 && size<VEC0>() == 4 && ncol<VEC1>() == 1,
 		 mat<element_t<VEC0>, 4, size<VEC1>()> >
@@ -823,7 +844,7 @@ ext(const VEC0& a, const VEC1& b)
 {
     return {a.x * b, a.y * b, a.z * b, a.w * b};
 }
-    
+
 /************************************************************************
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/
@@ -835,12 +856,12 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     constexpr static size_t	DI1	= DI + 1;
     constexpr static size_t	NPARAMS = DO1 * DI1;
     constexpr static size_t	DOF	= NPARAMS - 1;
-    
+
     using matrix_type	= mat<T, DO1, DI1>;
     using		typename matrix_type::element_type;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
-    
+
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	nparams()	{ return NPARAMS; }
@@ -898,14 +919,14 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		    this->x.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
 		    this->x.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
 		    this->x.z -= (t0*dt[2] + t1*dt[5]);
-		    
+
 		    t0 = this->y.x;
 		    t1 = this->y.y;
 		    t2 = this->y.z;
 		    this->y.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
 		    this->y.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
 		    this->y.z -= (t0*dt[2] + t1*dt[5]);
-		    
+
 		    t0 = this->z.x;
 		    t1 = this->z.y;
 		    t2 = this->z.z;
@@ -926,13 +947,13 @@ class Affinity : public mat<T, DO, DI + 1>
     constexpr static size_t	DI1	= DI + 1;
     constexpr static size_t	NPARAMS = DO * DI1;
     constexpr static size_t	DOF	= NPARAMS;
-    
+
     using matrix_type	= mat<T, DO, DI1>;
     using		typename matrix_type::element_type;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
     using param_type	= matrix_type;
-    
+
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	nparams()	{ return NPARAMS; }
@@ -994,7 +1015,7 @@ class Affinity : public mat<T, DO, DI + 1>
 		    this->x.x -= (t0*dt[0] + t1*dt[3]);
 		    this->x.y -= (t0*dt[1] + t1*dt[4]);
 		    this->x.z -= (t0*dt[2] + t1*dt[5]);
-		    
+
 		    t0 = this->y.x;
 		    t1 = this->y.y;
 		    this->y.x -= (t0*dt[0] + t1*dt[3]);
@@ -1015,7 +1036,7 @@ class Rigidity : public Affinity<T, D, D>
 
     using base_type	= Affinity<T, D, D>;
     using		typename base_type::matrix_type;
-    
+
     constexpr static size_t	dim()		{ return D; }
 
   public:
@@ -1033,13 +1054,13 @@ class Rigidity : public Affinity<T, D, D>
 		compose(const TU::Array<T, DOF>& dt)
 		{
 		    const auto	Rt = rotation(dt[2]);
-		    
+
 		    auto	r0 = this->x.x;
 		    auto	r1 = this->x.y;
 		    this->x.x  = r0*Rt[0][0] + r1*Rt[1][0];
 		    this->x.y  = r0*Rt[0][1] + r1*Rt[1][1];
 		    this->x.z -= (this->x.x*dt[0] + this->x.y*dt[1]);
-		    
+
 		    r0 = this->y.x;
 		    r1 = this->y.y;
 		    this->y.x  = r0*Rt[0][0] + r1*Rt[1][0];
@@ -1092,28 +1113,28 @@ class to_vec
     T	vec(const S_& val, std::integral_constant<size_t, 3>) const
 	{
 	    using elm_t	= cuda::element_t<T>;
-	    
+
 	    return {elm_t(val), elm_t(val), elm_t(val)};
 	}
     template <class E_>
     T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 3>) const
 	{
 	    using elm_t	= cuda::element_t<T>;
-	    
+
 	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b)};
 	}
     template <class S_>
     T	vec(const S_& val, std::integral_constant<size_t, 4>) const
 	{
 	    using elm_t	= cuda::element_t<T>;
-	    
+
 	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(255)};
 	}
     template <class E_>
     T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 4>) const
 	{
 	    using elm_t	= cuda::element_t<T>;
-	    
+
 	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(rgb.a)};
 	}
 };
@@ -1148,7 +1169,7 @@ template <class E>
 struct from_vec<RGB_<E> >
 {
     using elm_t	 = typename E::element_type;
-    
+
     template <class S_>
     std::enable_if_t<cuda::size<S_>() == 1, RGB_<E> >
     	operator ()(const S_& val) const
@@ -1174,7 +1195,7 @@ template <>
 struct from_vec<YUV422>
 {
     using elm_t	 = YUV422::element_type;
-    
+
     template <class S_>
     std::enable_if_t<cuda::size<S_>() == 1, YUV422>
 	operator ()(const S_& val) const

@@ -11,29 +11,6 @@ namespace cuda
 #if defined(__NVCC__)
 namespace device
 {
-template <class T>
-static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
-    
-__device__ inline float	 min(float x, float y)	    { return fminf(x, y); }
-__device__ inline float	 max(float x, float y)	    { return fmaxf(x, y); }
-__device__ inline float	 sqr(float x)		    { return x*x; }
-__device__ inline float	 abs(float x)		    { return fabsf(x); }
-__device__ inline float	 sqrt(float x)		    { return sqrtf(x); }
-__device__ inline float	 rsqrt(float x)		    { return rsqrtf(x); }
-__device__ inline float	 sin(float x)		    { return sinf(x); }
-__device__ inline float	 cos(float x)		    { return cosf(x); }
-__device__ inline float	 atan2(float y, float x)    { return atan2f(y, x); }
-
-__device__ inline double min(double x, double y)    { return fmin(x, y); }
-__device__ inline double max(double x, double y)    { return fmax(x, y); }
-__device__ inline double sqr(double x)		    { return x*x; }
-__device__ inline double abs(double x)		    { return fabs(x); }
-__device__ inline double sqrt(double x)		    { return sqrt(x); }
-__device__ inline double rsqrt(double x)	    { return rsqrt(x); }
-__device__ inline double sin(double x)		    { return sin(x); }
-__device__ inline double cos(double x)		    { return cos(x); }
-__device__ inline double atan2(double y, double x)  { return atan2(y, x); }
-
 template <class T> __device__ inline vec<T, 3>
 cardano(const mat3x<T, 3>& A)
 {
@@ -42,9 +19,9 @@ cardano(const mat3x<T, 3>& A)
   //  A =  | d*  b   e  |
   //       | f*  e*  c  |
     const T de = A.x.y * A.y.z;	    // d * e
-    const T dd = sqr(A.x.y);	    // d^2
-    const T ee = sqr(A.y.z);	    // e^2
-    const T ff = sqr(A.x.z);	    // f^2
+    const T dd = square(A.x.y);	    // d^2
+    const T ee = square(A.y.z);	    // e^2
+    const T ff = square(A.x.z);	    // f^2
     const T m  = A.x.x + A.y.y + A.z.z;
     const T c1 = (A.x.x*A.y.y + A.x.x*A.z.z + A.y.y*A.z.z)
 	       - (dd + ee + ff);    // a*b + a*c + b*c - d^2 - e^2 - f^2
@@ -55,7 +32,7 @@ cardano(const mat3x<T, 3>& A)
     const T q = m*(p - (T(3)/T(2))*c1) - (T(27)/T(2))*c0;
     const T sqrt_p = sqrt(abs(p));
 
-    T phi = T(27) * (T(0.25)*sqr(c1)*(p - c1) + c0*(q + T(27)/T(4)*c0));
+    T phi = T(27) * (T(0.25)*square(c1)*(p - c1) + c0*(q + T(27)/T(4)*c0));
     phi = (T(1)/T(3)) * atan2(sqrt(abs(phi)), q);
 
     constexpr T	M_SQRT3 = 1.73205080756887729352744634151;	// sqrt(3)
@@ -88,7 +65,7 @@ tridiagonal33(const mat3x<T, 3>& A,
     Qt.x.x = Qt.y.y = Qt.z.z = T(1);
 
   // Bring first row and column to the desired form
-    const T	h = sqr(A.x.y) + sqr(A.x.z);
+    const T	h = square(A.x.y) + square(A.x.z);
     const T	g = (A.x.y > 0 ? -sqrt(h) : sqrt(h));
     e.x = g;
 
@@ -108,7 +85,7 @@ tridiagonal33(const mat3x<T, 3>& A,
 	T qz = omega * f;			// p
 	K   += uz * f;				// u* A u
 
-	K  *= T(0.5) * sqr(omega);
+	K  *= T(0.5) * square(omega);
 	qy -= K * uy;
 	qz -= K * uz;
 
@@ -149,7 +126,7 @@ namespace detail
   init_offdiagonal(T w, T w0, T w1, T e0)
   {
       const auto	t = (w1 - w0)/(e0 + e0);
-      const auto	r = sqrt(sqr(t) + T(1));
+      const auto	r = sqrt(square(t) + T(1));
       return w - w0 + e0/(t + (t > 0 ? r : -r));
   }
     
@@ -163,7 +140,7 @@ namespace detail
       if (abs(x) > abs(y))
       {
 	  const auto	t = y/x;
-	  const auto	r = sqrt(sqr(t) + T(1));
+	  const auto	r = sqrt(square(t) + T(1));
 	  val<I+1>(e) = x*r;
 	  c 	      = T(1)/r;
 	  s	      = c*t;
@@ -171,7 +148,7 @@ namespace detail
       else
       {
 	  const auto	t = x/y;
-	  const auto	r = sqrt(sqr(t) + T(1));
+	  const auto	r = sqrt(square(t) + T(1));
 	  val<I+1>(e) = y*r;
 	  s	      = T(1)/r;
 	  c	      = s*t;
@@ -260,8 +237,8 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
     w = cardano(A);		// Calculate eigenvalues
 
     const auto	t     = min(min(abs(w.x), abs(w.y)), abs(w.z));
-    const auto	u     = (t < T(1) ? t : sqr(t));
-    const auto	error = T(256) * epsilon<T> * sqr(u);
+    const auto	u     = (t < T(1) ? t : square(t));
+    const auto	error = T(256) * epsilon<T> * square(u);
 
   // 1st eigen vector
     Qt.x = detail::eigen_vector(A.x, A.y, w.x);

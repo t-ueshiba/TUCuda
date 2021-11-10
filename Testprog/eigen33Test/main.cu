@@ -31,7 +31,7 @@ doJob()
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
 		  << std::endl << std::endl;
 								       
-	auto	w = cuda::eigen33(A, Qt);
+	auto	w = cuda::qr33(A, Qt);
 
 	std::cerr << "  w = " << w << std::endl;
 	std::cerr << "  Qt = " << Qt << std::endl;

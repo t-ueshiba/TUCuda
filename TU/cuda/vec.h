@@ -14,6 +14,35 @@ namespace TU
 {
 namespace cuda
 {
+#if defined(__NVCC__)
+namespace device
+{
+  template <class T>
+  static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
+    
+  __device__ inline float  min(float x, float y)	{ return fminf(x, y); }
+  __device__ inline float  max(float x, float y)	{ return fmaxf(x, y); }
+  __device__ inline float  square(float x)		{ return x*x; }
+  __device__ inline float  abs(float x)			{ return fabsf(x); }
+  __device__ inline float  sqrt(float x)		{ return sqrtf(x); }
+  __device__ inline float  rsqrt(float x)		{ return rsqrtf(x); }
+  __device__ inline float  sin(float x)			{ return sinf(x); }
+  __device__ inline float  cos(float x)			{ return cosf(x); }
+  __device__ inline float  atan2(float y, float x)	{ return atan2f(y, x); }
+
+  __device__ inline double min(double x, double y)	{ return fmin(x, y); }
+  __device__ inline double max(double x, double y)	{ return fmax(x, y); }
+  __device__ inline double square(double x)		{ return x*x; }
+  __device__ inline double abs(double x)		{ return fabs(x); }
+  __device__ inline double sqrt(double x)		{ return sqrt(x); }
+  __device__ inline double rsqrt(double x)		{ return rsqrt(x); }
+  __device__ inline double sin(double x)		{ return sin(x); }
+  __device__ inline double cos(double x)		{ return cos(x); }
+  __device__ inline double atan2(double y, double x)	{ return atan2(y, x); }
+
+}	// namespace device
+#endif	// __NVCC__
+    
 namespace detail
 {
   template <class T>
@@ -301,13 +330,13 @@ ncol()
 template <class VM>
 using element_t	= decltype(detail::element_t(std::declval<VM>()));
 
+template <class VM>
+using value_t	= decltype(detail::value_t(std::declval<VM>()));
+
 template <class T, size_t R, size_t C>
 using mat = std::conditional_t<R == 2, mat2x<T, C>,
 			       std::conditional_t<R == 3,
 						  mat3x<T, C>, mat4x<T, C> > >;
-
-template <class VM>
-using value_t	= decltype(detail::value_t(std::declval<VM>()));
 
 }	// namespace cuda
 
@@ -317,23 +346,23 @@ using value_t	= decltype(detail::value_t(std::declval<VM>()));
 /************************************************************************
 *  Access element by its integral index					*
 ************************************************************************/
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 0, cuda::value_t<VM> >	val(const VM& a){ return a.x; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 1, cuda::value_t<VM> >	val(const VM& a){ return a.y; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 2, cuda::value_t<VM> >	val(const VM& a){ return a.z; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 3, cuda::value_t<VM> >	val(const VM& a){ return a.w; }
+template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
+__host__ __device__ inline auto		val(const VM& a)	{ return a.x; }
+template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
+__host__ __device__ inline auto		val(const VM& a)	{ return a.y; }
+template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
+__host__ __device__ inline auto		val(const VM& a)	{ return a.z; }
+template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
+__host__ __device__ inline auto		val(const VM& a)	{ return a.w; }
 
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 0, cuda::value_t<VM>&>	val(VM& a)	{ return a.x; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 1, cuda::value_t<VM>&>	val(VM& a)	{ return a.y; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 2, cuda::value_t<VM>&>	val(VM& a)	{ return a.z; }
-template <size_t I, class VM> __host__ __device__ inline
-std::enable_if_t<I == 3, cuda::value_t<VM>&>	val(VM& a)	{ return a.w; }
+template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
+__host__ __device__ inline auto&	val(VM& a)		{ return a.x; }
+template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
+__host__ __device__ inline auto&	val(VM& a)		{ return a.y; }
+template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
+__host__ __device__ inline auto&	val(VM& a)		{ return a.z; }
+template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
+__host__ __device__ inline auto&	val(VM& a)		{ return a.w; }
 
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
@@ -373,15 +402,6 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM&>
-operator /=(VM& a, cuda::element_t<VM> c)
-{
-    a.x /= c;
-    a.y /= c;
-    return a;
-}
-
-template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator +(const VM& a, const VM& b)
 {
@@ -414,20 +434,6 @@ std::enable_if_t<cuda::size<VM>() == 2, VM>
 operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
-operator *(cuda::element_t<VM> c, const VM& a)
-{
-    return {c * a.x, c * a.y};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
-operator /(const VM& a, cuda::element_t<VM> c)
-{
-    return {a.x / c, a.y / c};
 }
 
 template <class VM> __host__ __device__ inline
@@ -478,16 +484,6 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM&>
-operator /=(VM& a, cuda::element_t<VM> c)
-{
-    a.x /= c;
-    a.y /= c;
-    a.z /= c;
-    return a;
-}
-
-template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator +(const VM& a, const VM& b)
 {
@@ -520,20 +516,6 @@ std::enable_if_t<cuda::size<VM>() == 3, VM>
 operator *(const VM& a, cuda::element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
-operator *(cuda::element_t<VM> c, const VM& a)
-{
-    return {c * a.x, c * a.y, c * a.z};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
-operator /(const VM& a, cuda::element_t<VM> c)
-{
-    return {a.x / c, a.y / c, a.z / c};
 }
 
 template <class VM> __host__ __device__ inline
@@ -587,17 +569,6 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM&>
-operator /=(VM& a, cuda::element_t<VM> c)
-{
-    a.x /= c;
-    a.y /= c;
-    a.z /= c;
-    a.w /= c;
-    return a;
-}
-
-template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator +(const VM& a, const VM& b)
 {
@@ -634,23 +605,33 @@ operator *(const VM& a, cuda::element_t<VM> c)
 
 template <class VM> __host__ __device__ inline
 std::enable_if_t<cuda::size<VM>() == 4, VM>
-operator *(cuda::element_t<VM> c, const VM& a)
-{
-    return {c * a.x, c * a.y, c * a.z, c * a.w};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
-operator /(const VM& a, cuda::element_t<VM> c)
-{
-    return {a.x / c, a.y / c, a.z / c, a.w / c};
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
 operator /(cuda::element_t<VM> c, const VM& a)
 {
     return {c / a.x, c / a.y, c / a.z, c / a.w};
+}
+
+/************************************************************************
+*  Multiplication and division by scalar				*
+************************************************************************/
+template <class VM> __host__ __device__ inline
+std::enable_if_t<(cuda::size<VM>() > 1), VM&>
+operator /=(VM& a, cuda::element_t<VM> c)
+{
+    return a *= (cuda::element_t<VM>(1)/c);
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<(cuda::size<VM>() > 1), VM>
+operator *(cuda::element_t<VM> c, const VM& a)
+{
+    return a * c;
+}
+
+template <class VM> __host__ __device__ inline
+std::enable_if_t<(cuda::size<VM>() > 1), VM>
+operator /(const VM& a, cuda::element_t<VM> c)
+{
+    return a * (cuda::element_t<VM>(1)/c);
 }
 
 /************************************************************************
@@ -807,6 +788,16 @@ dot(const mat4x<T, C>& m, const VM& a)
     return {dot(m.x, a), dot(m.y, a), dot(m.z, a), dot(m.w, a)};
 }
 
+/************************************************************************
+*  square()								*
+************************************************************************/
+template <class VEC, std::enable_if_t<ncol<VEC> ==1>* = nullptr>
+__host__ __device__ inline auto
+square(const VEC& a)
+{
+    return dot(a, a);
+}
+    
 /************************************************************************
 *  cross()								*
 ************************************************************************/

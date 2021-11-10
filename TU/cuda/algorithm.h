@@ -10,6 +10,7 @@
 
 #include "TU/cuda/allocator.h"
 #include "TU/cuda/iterator.h"
+#include "TU/cuda/vec.h"
 
 namespace TU
 {
@@ -582,6 +583,209 @@ transpose(IN in, IN ie, OUT out)
     detail::transpose(in, ie, out, 0, 0);
 }
 #endif    
+
+/************************************************************************
+*  canonical_xy(OUT out, OUT oe), depth_to_xyz(IN in, IN ie, OUT out)	*
+************************************************************************/
+template <class ITER_K, class ITER_D> void
+set_intrinsic_parameters(ITER_K K, ITER_D d)				;
+
+template <class OUT> void
+canonical_xy(OUT out, OUT oe)						;
+
+template <class IN, class OUT> void
+depth_to_xyz(IN in, IN ie, OUT out)					;
+
+#if defined(__NVCC__)
+namespace device
+{
+  /*
+   *  Static __constant__ variables
+   */
+  template <class T> __constant__ static vec<T, 2>	_flen;
+  template <class T> __constant__ static vec<T, 2>	_uv0;
+  template <class T> __constant__ static vec<T, 4>	_d;
+
+  /*
+   *  Static __device__ functions
+   */
+  template <class T, class S> __device__ static vec<T, 2>
+  undistort(S u, S v)
+  {
+      static constexpr T	MAX_ERR  = 0.001*0.001;
+      static constexpr int	MAX_ITER = 5;
+    
+      const vec<T, 2>	uv{T(u), T(v)};
+      auto		xy  = (uv - _uv0<T>)/_flen<T>;
+      const auto	xy0 = xy;
+
+    // compensate distortion iteratively
+      for (int n = 0; n < MAX_ITER; ++n)
+      {
+	  const auto	r2 = square(xy);
+	  const auto	k  = T(1) + (_d<T>.x + _d<T>.y*r2)*r2;
+	  if (k < T(0))
+	      break;
+
+	  const auto	a = T(2) * xy.x * xy.y;
+	  vec<T, 2>	delta{_d<T>.z*a + _d<T>.w*(r2 + T(2) * xy.x * xy.x),
+			      _d<T>.z*(r2 + T(2) * xy.y * xy.y) + _d<T>.w*a};
+	  const auto	uv_proj = _flen<T>*(k*xy + delta) + _uv0<T>;
+
+	  if (square(uv_proj - uv) < MAX_ERR)
+	      break;
+
+	  xy = (xy0 - delta)/k;	// compensate lens distortion
+      }
+	  
+      return xy;
+  }
+
+  template <class S, class T> __device__ static vec<T, 3>
+  undistort(S u, S v, T d)
+  {
+      const auto	xy = undistort<T>(u, v);
+      return {d*xy.x, d*xy.y, d};
+  }
+
+  /*
+   *  Static __global__ functions
+   */
+  template <class OUT, class STRIDE> __global__ static void
+  xy(OUT out, STRIDE stride)
+  {
+      using value_type	= typename std::iterator_traits<OUT>::value_type;
+
+      const int	u = blockIdx.x*blockDim.x + threadIdx.x;
+      const int	v = blockIdx.y*blockDim.y + threadIdx.y;
+
+      advance_stride(out, v*stride);
+
+      out[u] = undistort<value_type>(u, v);
+  }
+
+  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  __global__ static void
+  xyz(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
+  {
+      const int	u = blockIdx.x*blockDim.x + threadIdx.x;
+      const int	v = blockIdx.y*blockDim.y + threadIdx.y;
+
+      advance_stride(in,  v*stride_i);
+      advance_stride(out, v*stride_o);
+
+      out[u] = undistort(u, v, in[u]);
+  }
+}	// namespace device
+
+template <class ITER_K, class ITER_D> void
+set_intrinsic_parameters(ITER_K K, ITER_D d)
+{
+    using T	= typename std::iterator_traits<ITER_K>::value_type;
+
+    vec<T, 2>	flen, uv0;
+    flen.x = *K;
+    std::advance(K, 2);
+    uv0.x = *K;
+    std::advance(K, 2);
+    flen.y = *K;
+    ++K;
+    uv0.y = *K;
+
+    cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(device::_flen<T>), 0,
+		       cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(device::_uv0<T>), 0,
+		       cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_d<T>,  get(d), sizeof(device::_d<T>), 0,
+		       cudaMemcpyHostToDevice);
+}
+
+template <class OUT> void
+canonical_xy(OUT out, OUT oe)
+{
+    using	std::begin;
+    using	std::end;
+    
+    const auto	nrow = std::distance(out, oe);
+    if (nrow < 1)
+	return;
+
+    const auto	ncol = std::distance(begin(*out), end(*out));
+    if (ncol < 1)
+	return;
+	
+    const auto	stride_o = stride(out);
+
+  // 左上
+    dim3	threads(BlockDimX, BlockDimY);
+    dim3	blocks(ncol/threads.x, nrow/threads.y);
+    device::xyz<<<blocks, threads>>>(get(begin(*out)), stride_o);
+
+  // 右上
+    const auto	x = blocks.x*threads.x;
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::xyz<<<blocks, threads>>>(get(begin(*out) + x), stride_o);
+
+  // 左下
+    std::advance(out, blocks.y*threads.y);
+    threads.x = BlockDimX;
+    blocks.x  = ncol/threads.x;
+    threads.y = nrow%threads.y;
+    blocks.y  = 1;
+    device::xyz<<<blocks, threads>>>(get(begin(*out)), stride_o);
+
+  // 右下
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::xyz<<<blocks, threads>>>(get(begin(*out) + x), stride_o);
+}
+
+template <class IN, class OUT> void
+depth_to_xyz(IN in, IN ie, OUT out)
+{
+    using	std::cbegin;
+    using	std::cend;
+    using	std::begin;
+    
+    const auto	nrow = std::distance(in, ie);
+    if (nrow < 1)
+	return;
+
+    const auto	ncol = std::distance(cbegin(*in), cend(*in));
+    if (ncol < 1)
+	return;
+	
+    const auto	stride_i = stride(in);
+    const auto	stride_o = stride(out);
+
+  // 左上
+    dim3	threads(BlockDimX, BlockDimY);
+    dim3	blocks(ncol/threads.x, nrow/threads.y);
+    device::xyz<<<blocks, threads>>>(get(cbegin(*in)), get(begin(*out)),
+				     stride_i, stride_o);
+  // 右上
+    const auto	x = blocks.x*threads.x;
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::xyz<<<blocks, threads>>>(get(cbegin(*in) + x), get(begin(*out) + x),
+				     stride_i, stride_o);
+  // 左下
+    std::advance(in,  blocks.y*threads.y);
+    std::advance(out, blocks.y*threads.y);
+    threads.x = BlockDimX;
+    blocks.x  = ncol/threads.x;
+    threads.y = nrow%threads.y;
+    blocks.y  = 1;
+    device::xyz<<<blocks, threads>>>(get(cbegin(*in)), get(begin(*out)),
+				     stride_i, stride_o);
+  // 右下
+    threads.x = ncol%threads.x;
+    blocks.x  = 1;
+    device::xyz<<<blocks, threads>>>(get(cbegin(*in) + x), get(begin(*out) + x),
+				     stride_i, stride_o);
+}
+#endif
 
 }	// namespace cuda
 }	// namespace TU

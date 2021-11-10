@@ -4,7 +4,7 @@
 /*!
   \file		algorithm.h
   \brief	各種アルゴリズムの定義と実装
-*/ 
+*/
 #ifndef TU_CUDA_ALGORITHM_H
 #define TU_CUDA_ALGORITHM_H
 
@@ -39,7 +39,7 @@ namespace device
 	  dst[tx] = src[tx];
       } while ((tx += blockDim.x) < dx);
   }
-    
+
   //! スレッドブロックの横方向に指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指す反復子
@@ -52,7 +52,7 @@ namespace device
   loadTileH(S src, STRIDE stride, T dst[][W], int dx)
   {
       advance_stride(src, threadIdx.y * stride);
-      
+
       auto		tx = threadIdx.x;
       const auto	q  = dst[threadIdx.y];
       dx += blockDim.x;
@@ -61,7 +61,7 @@ namespace device
 	  q[tx] = src[tx];
       } while ((tx += blockDim.x) < dx);
   }
-    
+
   //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指す反復子
@@ -76,7 +76,7 @@ namespace device
       auto		ty = threadIdx.y;
       advance_stride(src, ty * stride);
       src += threadIdx.x;
-      
+
       dy += blockDim.y;
       do
       {
@@ -139,7 +139,7 @@ namespace device
   }
 }	// namespace device
 #endif
-    
+
 /************************************************************************
 *  global constatnt variables						*
 ************************************************************************/
@@ -147,7 +147,7 @@ constexpr static size_t	BlockDimX = 32;	//!< 1ブロックあたりのスレッ�
 constexpr static size_t	BlockDimY = 16;	//!< 1ブロックあたりのスレッド数(y方向)
 constexpr static size_t	BlockDim  = 32;	//!< 1ブロックあたりのスレッド数(全方向)
 constexpr static size_t	BlockDim1 = BlockDimX * BlockDimX;
-    
+
 /************************************************************************
 *  copyToConstantMemory(ITER begin, ITER end, T* dst)			*
 ************************************************************************/
@@ -193,14 +193,14 @@ namespace device
       out[x] = in[2*x];
   }
 }	// namespace device
-    
+
 template <class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     const auto	nrow = std::distance(in, ie)/2;
     if (nrow < 1)
 	return;
@@ -208,7 +208,7 @@ subsample(IN in, IN ie, OUT out)
     const auto	ncol = std::distance(cbegin(*in), cend(*in))/2;
     if (ncol < 1)
 	return;
-	
+
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
 
@@ -239,7 +239,7 @@ subsample(IN in, IN ie, OUT out)
 	get(cbegin(*in) + 2*x), get(begin(*out) + x), stride_i, stride_o);
 }
 #endif
-    
+
 /************************************************************************
 *  op3x3(IN in, IN ie, OUT out, OP op)					*
 ************************************************************************/
@@ -271,7 +271,7 @@ namespace device
 
       advance_stride(in, y0 * stride_i);
       advance_stride(out, (y0 + ty + 1)*stride_o);
-      
+
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
       __shared__ value_type	in_s[BlockDimY+2][BlockDimX+2];
       loadTile(in + x0, stride_i, in_s, 2, 2);
@@ -282,14 +282,14 @@ namespace device
 	  = op(in_s[ty] + tx, in_s[ty + 1] + tx, in_s[ty + 2] + tx);
   }
 }	// namespace device
-    
+
 template <class IN, class OUT, class OP> void
 op3x3(IN in, IN ie, OUT out, OP op)
 {
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     const auto	nrow = std::distance(in, ie) - 2;
     if (nrow < 1)
 	return;
@@ -297,7 +297,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
     const auto	ncol = std::distance(cbegin(*in), cend(*in)) - 2;
     if (ncol < 1)
 	return;
-    
+
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
 
@@ -332,7 +332,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
 				       op, stride_i, stride_o);
 }
 #endif
-    
+
 /************************************************************************
 *  suppressNonExtrema(							*
 *      IN in, IN ie, OUT out, OP op,					*
@@ -361,7 +361,7 @@ namespace device
 		    int stride_i, int stride_o)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
-    
+
     // in[] の index は負になり得るので，index 計算に
     // 使われる xy 等の変数の型は符号付きでなければならない．
       const int	bx2 = 2*blockDim.x;
@@ -383,13 +383,13 @@ namespace device
       {
 	  const int	lft = xy - 1;
 	  const int	rgt = xy + bx2;
-	
+
 	  in_s[y    ][0      ] = in[lft		  ];	// 左枠上
 	  in_s[y + 1][0      ] = in[lft + stride_i];	// 左枠下
 	  in_s[y    ][1 + bx2] = in[rgt		  ];	// 右枠上
 	  in_s[y + 1][1 + bx2] = in[rgt + stride_i];	// 右枠下半
       }
-    
+
       if (threadIdx.y == 0)	// ブロックの上端?
       {
 	  const int	top  = xy - stride_i;		// 現在位置の直上
@@ -450,7 +450,7 @@ namespace device
       out[xy + stride_o + 1] = in_s[y + 1][x + 1];
   }
 }	// namespace device
-    
+
 template <class IN, class OUT, class OP> void
 suppressNonExtrema3x3(
     IN in, IN ie, OUT out, OP op,
@@ -459,7 +459,7 @@ suppressNonExtrema3x3(
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     const auto	nrow = (std::distance(in, ie) - 1)/2;
     if (nrow < 1)
 	return;
@@ -467,10 +467,10 @@ suppressNonExtrema3x3(
     const auto	ncol = (std::distance(cbegin(*in), cend(*in)) - 1)/2;
     if (ncol < 1)
 	return;
-    
+
     const auto	stride_i = stride(in);
     const auto	stride_o = stride(out);
-    
+
   // 左上
     ++in;
     ++out;
@@ -516,7 +516,7 @@ suppressNonExtrema3x3(
 */
 template <class IN, class OUT> void
 transpose(IN in, IN ie, OUT out)					;
-    
+
 #if defined(__NVCC__)
 namespace device
 {
@@ -533,7 +533,7 @@ namespace device
       advance_stride(in, (by + threadIdx.y)*stride_i);
       tile[threadIdx.y][threadIdx.x] = in[bx + threadIdx.x];
       __syncthreads();
-      
+
       advance_stride(out, (bx + threadIdx.y)*stride_o);
       out[by + threadIdx.x] = tile[threadIdx.x][threadIdx.y];
   }
@@ -547,7 +547,7 @@ namespace detail
       using	std::cbegin;
       using	std::cend;
       using	std::begin;
-    
+
       size_t	r = std::distance(in, ie);
       if (r < 1)
 	  return;
@@ -576,13 +576,13 @@ namespace detail
       transpose(in_n, ie,   out,   i + r, j);			// 下
   }
 }	// namesapce detail
-    
+
 template <class IN, class OUT> inline void
 transpose(IN in, IN ie, OUT out)
 {
     detail::transpose(in, ie, out, 0, 0);
 }
-#endif    
+#endif
 
 /************************************************************************
 *  canonical_xy(OUT out, OUT oe), depth_to_xyz(IN in, IN ie, OUT out)	*
@@ -614,7 +614,7 @@ namespace device
   {
       static constexpr T	MAX_ERR  = 0.001*0.001;
       static constexpr int	MAX_ITER = 5;
-    
+
       const vec<T, 2>	uv{T(u), T(v)};
       auto		xy  = (uv - _uv0<T>)/_flen<T>;
       const auto	xy0 = xy;
@@ -637,7 +637,7 @@ namespace device
 
 	  xy = (xy0 - delta)/k;	// compensate lens distortion
       }
-	  
+
       return xy;
   }
 
@@ -652,29 +652,30 @@ namespace device
    *  Static __global__ functions
    */
   template <class OUT, class STRIDE> __global__ static void
-  xy(OUT out, STRIDE stride)
+  canonical_xy(OUT xy, STRIDE stride)
   {
       using value_type	= typename std::iterator_traits<OUT>::value_type;
 
       const int	u = blockIdx.x*blockDim.x + threadIdx.x;
       const int	v = blockIdx.y*blockDim.y + threadIdx.y;
 
-      advance_stride(out, v*stride);
+      advance_stride(xy, v*stride);
 
-      out[u] = undistort<value_type>(u, v);
+      xy[u] = undistort<value_type>(u, v);
   }
 
   template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
   __global__ static void
-  xyz(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
+  depth_to_points(IN depth, OUT point,
+		  STRIDE_I stride_i, STRIDE_O stride_o)
   {
       const int	u = blockIdx.x*blockDim.x + threadIdx.x;
       const int	v = blockIdx.y*blockDim.y + threadIdx.y;
 
-      advance_stride(in,  v*stride_i);
-      advance_stride(out, v*stride_o);
+      advance_stride(depth, v*stride_i);
+      advance_stride(point, v*stride_o);
 
-      out[u] = undistort(u, v, in[u]);
+      point[u] = undistort(u, v, depth[u]);
   }
 }	// namespace device
 
@@ -701,93 +702,96 @@ set_intrinsic_parameters(ITER_K K, ITER_D d)
 }
 
 template <class OUT> void
-canonical_xy(OUT out, OUT oe)
+canonical_xy(OUT xy, OUT xy_e)
 {
     using	std::begin;
     using	std::end;
-    
-    const auto	nrow = std::distance(out, oe);
+
+    const auto	nrow = std::distance(xy, xy_e);
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(begin(*out), end(*out));
+    const auto	ncol = std::distance(begin(*xy), end(*xy));
     if (ncol < 1)
 	return;
-	
-    const auto	stride_o = stride(out);
+
+    const auto	stride_o = stride(xy);
 
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::xyz<<<blocks, threads>>>(get(begin(*out)), stride_o);
+    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy)), stride_o);
 
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::xyz<<<blocks, threads>>>(get(begin(*out) + x), stride_o);
+    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy) + x), stride_o);
 
   // 左下
-    std::advance(out, blocks.y*threads.y);
+    std::advance(xy, blocks.y*threads.y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::xyz<<<blocks, threads>>>(get(begin(*out)), stride_o);
+    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy)), stride_o);
 
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::xyz<<<blocks, threads>>>(get(begin(*out) + x), stride_o);
+    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy) + x), stride_o);
 }
 
 template <class IN, class OUT> void
-depth_to_xyz(IN in, IN ie, OUT out)
+depth_to_points(IN depth, IN depth_e, OUT point)
 {
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
-    const auto	nrow = std::distance(in, ie);
+
+    const auto	nrow = std::distance(depth, depth_e);
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(cbegin(*in), cend(*in));
+    const auto	ncol = std::distance(cbegin(*depth), cend(*depth));
     if (ncol < 1)
 	return;
-	
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
+
+    const auto	stride_i = stride(depth);
+    const auto	stride_o = stride(point);
 
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::xyz<<<blocks, threads>>>(get(cbegin(*in)), get(begin(*out)),
-				     stride_i, stride_o);
+    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth)),
+						 get( begin(*point)),
+						 stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::xyz<<<blocks, threads>>>(get(cbegin(*in) + x), get(begin(*out) + x),
-				     stride_i, stride_o);
+    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth) + x),
+						 get( begin(*point) + x),
+						 stride_i, stride_o);
   // 左下
-    std::advance(in,  blocks.y*threads.y);
-    std::advance(out, blocks.y*threads.y);
+    std::advance(depth, blocks.y*threads.y);
+    std::advance(point, blocks.y*threads.y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::xyz<<<blocks, threads>>>(get(cbegin(*in)), get(begin(*out)),
-				     stride_i, stride_o);
+    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth)),
+						 get( begin(*point)),
+						 stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::xyz<<<blocks, threads>>>(get(cbegin(*in) + x), get(begin(*out) + x),
-				     stride_i, stride_o);
+    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth) + x),
+						 get( begin(*point) + x),
+						 stride_i, stride_o);
 }
 #endif
 
 }	// namespace cuda
 }	// namespace TU
 #endif	// !__CUDA_ALGORITHM_H
-

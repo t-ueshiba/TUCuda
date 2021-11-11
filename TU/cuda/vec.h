@@ -791,7 +791,8 @@ dot(const mat4x<T, C>& m, const VM& a)
 /************************************************************************
 *  square()								*
 ************************************************************************/
-template <class VEC, std::enable_if_t<ncol<VEC> ==1>* = nullptr>
+template <class VEC,
+	  std::enable_if_t<ncol<VEC>() == 1 && (size<VEC>() > 1)>* = nullptr>
 __host__ __device__ inline auto
 square(const VEC& a)
 {

@@ -602,9 +602,9 @@ namespace device
   /*
    *  Static __constant__ variables
    */
-  template <class T> __constant__ static vec<T, 2>	_flen;
-  template <class T> __constant__ static vec<T, 2>	_uv0;
-  template <class T> __constant__ static vec<T, 4>	_d;
+  template <class T> __constant__ static vec<T, 2>	_flen[1];
+  template <class T> __constant__ static vec<T, 2>	_uv0[1];
+  template <class T> __constant__ static T		_d[4];
 
   /*
    *  Static __device__ functions
@@ -616,23 +616,23 @@ namespace device
       static constexpr int	MAX_ITER = 5;
 
       const vec<T, 2>	uv{T(u), T(v)};
-      auto		xy  = (uv - _uv0<T>)/_flen<T>;
+      auto		xy  = (uv - _uv0<T>[0])/_flen<T>[0];
       const auto	xy0 = xy;
 
     // compensate distortion iteratively
       for (int n = 0; n < MAX_ITER; ++n)
       {
-	  const auto	r2 = square(xy);
-	  const auto	k  = T(1) + (_d<T>.x + _d<T>.y*r2)*r2;
+	  const auto	r2 = cuda::square(xy);
+	  const auto	k  = T(1) + (_d<T>[0] + _d<T>[1]*r2)*r2;
 	  if (k < T(0))
 	      break;
 
 	  const auto	a = T(2) * xy.x * xy.y;
-	  vec<T, 2>	delta{_d<T>.z*a + _d<T>.w*(r2 + T(2) * xy.x * xy.x),
-			      _d<T>.z*(r2 + T(2) * xy.y * xy.y) + _d<T>.w*a};
-	  const auto	uv_proj = _flen<T>*(k*xy + delta) + _uv0<T>;
+	  vec<T, 2>	delta{_d<T>[2]*a + _d<T>[3]*(r2 + T(2) * xy.x * xy.x),
+			      _d<T>[2]*(r2 + T(2) * xy.y * xy.y) + _d<T>[3]*a};
+	  const auto	uv_proj = _flen<T>[0]*(k*xy + delta) + _uv0<T>[0];
 
-	  if (square(uv_proj - uv) < MAX_ERR)
+	  if (cuda::square(uv_proj - uv) < MAX_ERR)
 	      break;
 
 	  xy = (xy0 - delta)/k;	// compensate lens distortion
@@ -679,11 +679,9 @@ namespace device
   }
 }	// namespace device
 
-template <class ITER_K, class ITER_D> void
+template <class T, class ITER_K, class ITER_D> void
 set_intrinsic_parameters(ITER_K K, ITER_D d)
 {
-    using T	= typename std::iterator_traits<ITER_K>::value_type;
-
     vec<T, 2>	flen, uv0;
     flen.x = *K;
     std::advance(K, 2);
@@ -692,12 +690,13 @@ set_intrinsic_parameters(ITER_K K, ITER_D d)
     flen.y = *K;
     ++K;
     uv0.y = *K;
+    const T	dd[] = {*d, *++d, *++d, *++d};
 
-    cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(device::_flen<T>), 0,
+    cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(flen), 0,
+    		       cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(uv0), 0,
 		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(device::_uv0<T>), 0,
-		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_d<T>,  get(d), sizeof(device::_d<T>), 0,
+    cudaMemcpyToSymbol(device::_d<T>,  dd, sizeof(dd), 0,
 		       cudaMemcpyHostToDevice);
 }
 

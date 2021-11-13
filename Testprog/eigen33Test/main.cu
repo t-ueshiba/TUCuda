@@ -1,7 +1,8 @@
 /*
  * $Id$
  */
-#include "TU/cuda/eigen33.h"
+#include "TU/cuda/algorithm.h"
+#include "eigen33_gpu.h"
 #include "eigen33_cpu.h"
 
 namespace TU

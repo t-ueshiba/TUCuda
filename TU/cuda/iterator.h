@@ -9,6 +9,7 @@
 
 #include <type_traits>
 #include <thrust/iterator/iterator_adaptor.h>
+#include "TU/range.h"
 #include "TU/cuda/tuple.h"
 
 namespace TU

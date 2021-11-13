@@ -4,9 +4,8 @@
 /*!
   \file		FIRFilter.h
   \brief	finite impulse responseフィルタの定義と実装
-*/ 
-#ifndef TU_CUDA_FIRFILTER_H
-#define TU_CUDA_FIRFILTER_H
+*/
+#pragma once
 
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
@@ -24,15 +23,15 @@ class FIRFilter2
 {
   public:
     using value_type	= T;
-    
+
     constexpr static size_t	LobeSizeMax = 17;
     constexpr static size_t	BlockDimX   = 32;
     constexpr static size_t	BlockDimY   = 16;
-    
+
   public:
   //! CUDAによる2次元フィルタを生成する．
     FIRFilter2()	:_lobeSizeH(0), _lobeSizeV(0)			{}
-    
+
     FIRFilter2&	initialize(const TU::Array<float>& lobeH,
 			   const TU::Array<float>& lobeV)		;
     template <class IN, class OUT>
@@ -43,13 +42,13 @@ class FIRFilter2
     size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
     size_t	offsetH()		const	{return _lobeSizeH & ~0x1;}
     size_t	offsetV()		const	{return _lobeSizeV & ~0x1;}
-    
+
   private:
     template <size_t L, class IN, class OUT>
     static void	convolveH(IN in, IN ie, OUT out)			;
     template <size_t L, class IN, class OUT>
     void	convolveV(IN in, IN ie, OUT out, bool shift)	const	;
-    
+
   private:
     size_t		_lobeSizeH;	//!< 水平方向フィルタのローブ長
     size_t		_lobeSizeV;	//!< 垂直方向フィルタのローブ長
@@ -90,7 +89,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 17>)
 	 + lobe[15] * (in[15] + in[17])
 	 + lobe[16] *  in[16];
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 16>)
 {
@@ -112,7 +111,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 16>)
 	 + lobe[14] * (in[14] - in[18])
 	 + lobe[15] * (in[15] - in[17]);
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 9>)
 {
@@ -127,7 +126,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 9>)
 	 + lobe[7] * (in[7] + in[ 9])
 	 + lobe[8] *  in[8];
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 8>)
 {
@@ -141,7 +140,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 8>)
 	 + lobe[6] * (in[6] - in[10])
 	 + lobe[7] * (in[7] - in[ 9]);
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 5>)
 {
@@ -152,7 +151,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 5>)
 	 + lobe[3] * (in[3] + in[5])
 	 + lobe[4] *  in[4];
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 4>)
 {
@@ -162,7 +161,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 4>)
 	 + lobe[2] * (in[2] - in[6])
 	 + lobe[3] * (in[3] - in[5]);
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 3>)
 {
@@ -171,15 +170,15 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 3>)
 	 + lobe[1] * (in[1] + in[3])
 	 + lobe[2] *  in[2];
 }
-    
+
 template <class IN, class T> __device__ inline auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 {
   // ローブ長が2画素の奇関数畳み込みカーネル
     return lobe[0] * (in[0] - in[4])
-	 + lobe[1] * (in[1] - in[3]);    
+	 + lobe[1] * (in[1] - in[3]);
 }
-    
+
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
@@ -188,7 +187,7 @@ template <class FILTER, size_t L,
 fir_filterH(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
@@ -196,13 +195,13 @@ fir_filterH(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 
     advance_stride(in,  y0*strideI);
     advance_stride(out, (y0 + threadIdx.y)*strideO);
-    
+
   // 原画像のブロックとその左右LobeSize分を共有メモリにコピー
     __shared__ value_type	in_s[FILTER::BlockDimY]
 				    [FILTER::BlockDimX + 2*LobeSize + 1];
     loadTileH(in + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
-    
+
   // 積和演算
     out[x0 + threadIdx.x] = convolve(&in_s[threadIdx.y][threadIdx.x], _lobeH,
 				     std::integral_constant<size_t, L>());
@@ -213,7 +212,7 @@ template <class FILTER, size_t L,
 fir_filterV(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     constexpr auto	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
     const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
@@ -221,13 +220,13 @@ fir_filterV(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 
     advance_stride(in,  y0*strideI);
     advance_stride(out, (y0 + threadIdx.y)*strideO);
-    
+
   // 原画像のブロックとその上下LobeSize分を転置して共有メモリにコピー
     __shared__ value_type	in_s[FILTER::BlockDimX]
 				    [FILTER::BlockDimY + 2*LobeSize + 1];
     loadTileVt(in + x0, strideI, in_s, 2*LobeSize);
     __syncthreads();
-    
+
   // 積和演算
     out[x0 + threadIdx.x] = convolve(&in_s[threadIdx.x][threadIdx.y], _lobeV,
 				     std::integral_constant<size_t, L>());
@@ -251,7 +250,7 @@ FIRFilter2<T>::initialize(const TU::Array<float>& lobeH,
 {
     if (lobeH.size() > LobeSizeMax || lobeV.size() > LobeSizeMax)
 	throw std::runtime_error("FIRFilter2<T>::initialize: too large lobe size!");
-    
+
     _lobeSizeH = lobeH.size();
     _lobeSizeV = lobeV.size();
     cudaMemcpyToSymbol(device::_lobeH, lobeH.data(),
@@ -268,7 +267,7 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     constexpr auto	LobeSizeH = L & ~0x1;	// 中心点を含まないローブ長
 
     const auto	nrow    = std::distance(in, ie);
@@ -309,19 +308,19 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     const auto	nrow	  = outSizeV(std::distance(in, ie));
     const auto	ncol	  = std::distance(cbegin(*in), cend(*in));
     const auto	strideI   = stride(in);
     const auto	strideO   = stride(out);
     size_t	dx	  = 0;
-    
+
     if (shift)
     {
 	out += offsetV();
 	dx   = offsetH();
     }
-    
+
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
@@ -361,7 +360,7 @@ FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
-    
+
     const size_t	nrow = std::distance(in, ie);
     if (nrow < 4*(_lobeSizeV/2) + 1)
 	return;
@@ -369,7 +368,7 @@ FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
     const size_t	ncol = std::distance(cbegin(*in), cend(*in));
     if (ncol < 4*(_lobeSizeH/2) + 1)
 	return;
-    
+
     _buf.resize(nrow, ncol - 4*(_lobeSizeH/2) + 1);
 
   // 横方向に畳み込む．
@@ -437,4 +436,3 @@ FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
 
 }
 }
-#endif	// !TU_CUDA_FIRFILTER_H

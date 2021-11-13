@@ -3,8 +3,7 @@
   \author	Toshio UESHIBA
   \brief	guided filterに関するクラスの定義と実装
 */
-#ifndef TU_CUDA_GUIDEDFILTER2_H
-#define TU_CUDA_GUIDEDFILTER2_H
+#pragma once
 
 #include "TU/cuda/tuple.h"
 #include "TU/cuda/vec.h"
@@ -40,7 +39,7 @@ struct init_coeffs
 {
     __host__ __device__
     init_coeffs(size_t n, T e)	:_n(n), _sq_e(e*e)			{}
-    
+
     __host__ __device__
     vec<T, 2>	operator ()(const vec<T, 4>& params) const
 		{
@@ -56,7 +55,7 @@ struct init_coeffs
 		{
 		    vec<T, 2>	coeffs;
 		    const auto	var = _n*params.y - params.x*params.x;
-		    
+
 		    coeffs.x = var/(var + _n*_n*_sq_e);
 		    coeffs.y = (params.x - coeffs.x*params.y)/_n;
 
@@ -87,7 +86,7 @@ class trans_guides
   private:
     size_t	_n;
 };
-    
+
 }	// namespace device
 
 /************************************************************************
@@ -100,12 +99,12 @@ class GuidedFilter2 : public Profiler<CLOCK>
 {
   public:
     using element_type	= T;
-    
+
   private:
     using params_t	= vec<T, 4>;
     using coeffs_t	= vec<T, 2>;
     using profiler_t	= Profiler<CLOCK>;
-    
+
   public:
     GuidedFilter2(size_t wrow, size_t wcol, T e)
 	:profiler_t(3),
@@ -148,10 +147,10 @@ class GuidedFilter2 : public Profiler<CLOCK>
 		    _coeffsFilter.setWinSizeH(winSizeH);
 		    return *this;
 		}
-    
+
     auto	epsilon()		const	{ return _e; }
     auto&	setEpsilon(T e)			{ _e = e; return *this; }
-    
+
     template <class IN, class GUIDE, class OUT>
     void	convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
 			 OUT out, bool shift=false)		  const	;
@@ -162,7 +161,7 @@ class GuidedFilter2 : public Profiler<CLOCK>
     size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
     size_t	offsetH()		const	{return winSizeH() - 1;}
     size_t	offsetV()		const	{return winSizeV() - 1;}
-    
+
   private:
     BoxFilter2<params_t, void, WMAX>	_paramsFilter;
     BoxFilter2<coeffs_t, void, WMAX>	_coeffsFilter;
@@ -186,7 +185,7 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     if (ib == ie)
 	return;
 
@@ -249,7 +248,7 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     if (ib == ie)
 	return;
 
@@ -259,7 +258,7 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
     const auto	ncols = TU::size(*ib);
 
     _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
-    
+
   // guided filterの2次元係数ベクトルを計算する．
     profiler_t::start(1);
     _paramsFilter.convolve(make_range_iterator(
@@ -294,4 +293,3 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_GUIDEDFILTER2_H

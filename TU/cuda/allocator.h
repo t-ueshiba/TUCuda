@@ -5,8 +5,7 @@
   \file		allocator.h
   \brief	アロケータの定義と実装
 */
-#ifndef TU_CUDA_ALLOCATOR_H
-#define TU_CUDA_ALLOCATOR_H
+#pragma once
 
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
@@ -35,7 +34,7 @@ class allocator
 
   public:
     constexpr static size_t	Alignment = 256;
-    
+
   public:
 		allocator()					{}
     template <class T_>
@@ -86,7 +85,7 @@ class mapped_ptr : public thrust::pointer<std::remove_cv_t<T>,
 
   public:
     using reference	= typename super::reference;
-    
+
   public:
     __host__ __device__
     mapped_ptr(T* p)			:super(p)		{}
@@ -103,7 +102,7 @@ class mapped_ptr : public thrust::pointer<std::remove_cv_t<T>,
 		}
   */
 };
-    
+
 /************************************************************************
 *  class mapped_allocator<T>						*
 ************************************************************************/
@@ -152,19 +151,18 @@ class mapped_allocator
 /*!
   cuda-9.1 まではテンプレート引数を介して thrust::device_ptr<T> を
   device関数に渡せないbugがあるので，これを回避するための関数．
- */ 
+ */
 template <class ITER> inline const ITER&
 get(const ITER& iter)
 {
     return iter;
 }
-    
+
 template <class T> inline T*
 get(thrust::device_ptr<T> p)
 {
     return p.get();
 }
-    
+
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_ALLOCATOR_H

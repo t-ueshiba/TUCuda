@@ -30,7 +30,7 @@ doJob()
 		  << std::endl;
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
 		  << std::endl << std::endl;
-								       
+
 	auto	w = cuda::qr33(A, Qt);
 
 	std::cerr << "  w = " << w << std::endl;
@@ -38,7 +38,7 @@ doJob()
 	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose()) << std::endl;
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
 		  << std::endl << std::endl;
-									
+
       //============================================================
 	std::cerr << "\n======================" << std::endl;
 	T	matA[3][3] = {{A.x.x, A.x.y, A.x.z},
@@ -49,13 +49,13 @@ doJob()
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
 
-							       
+
 
 	T	matQt[3][3], vecd[3], vece[3];
 	::tridiagonal33(matA, matQt, vecd, vece);
 
 	Matrix<T>	AA(&matA[0][0], 3, 3), QQt(&matQt[0][0], 3, 3);
-							       
+
 	std::cerr << "--- Q ---\n" << QQt;
 	std::cerr << "--- Qt*A*Q ---\n" << QQt * AA * transpose(QQt);
 
@@ -63,17 +63,17 @@ doJob()
 	for (int i = 0; i < 3; ++i)
 	    std::cerr << ' ' << vecd[i];
 	std::cerr << std::endl;
-					     
+
 	std::cerr << "e = ";
 	for (int i = 0; i < 3; ++i)
 	    std::cerr << ' ' << vece[i];
 	std::cerr << std::endl << std::endl;
-					     
+
 	::qr33(matA, matQt, evalues);
 	std::cerr << "  evalues = " << evalues[0]
 		  << ' ' << evalues[1] << ' ' << evalues[2] << std::endl;
 	std::cerr << "--- Qt*A*Q ---\n" << QQt * AA * transpose(QQt);
-		     
+
 	std::cerr << ">> ";
     }
 }

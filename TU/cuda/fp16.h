@@ -6,9 +6,8 @@
   \brief	半精度浮動小数点に燗する各種アルゴリズムの定義と実装
 
   本ヘッダを使用する場合，nvccに -arch=sm_53 以上を，g++に -mf16c を指定する．
-*/ 
-#ifndef TU_CUDA_FP16_H
-#define TU_CUDA_FP16_H
+*/
+#pragma once
 
 #include <cuda_fp16.h>		// for __half
 #include <immintrin.h>		// for _cvtss_sh() and _cvtsh_ss()
@@ -76,4 +75,3 @@ copy(device_ptr<const __half> p, size_t n, T* q)
 }
 
 }	// namespace thrust
-#endif	// !TU_CUDA_FP16_H

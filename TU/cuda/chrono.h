@@ -4,9 +4,8 @@
 /*!
   \file		chrono.h
   \brief	GPUクロックの定義と実装
-*/ 
-#ifndef TU_CUDA_CHRONO_H
-#define TU_CUDA_CHRONO_H
+*/
+#pragma once
 
 #include <chrono>
 #include <cuda_runtime.h>
@@ -21,7 +20,7 @@ class clock
   public:
     typedef float				rep;		//!< 表現
     typedef std::milli				period;		//!< 解像度
-    typedef std::chrono::duration<rep, period>	duration;	//!< 時間 
+    typedef std::chrono::duration<rep, period>	duration;	//!< 時間
     typedef std::chrono::time_point<clock>	time_point;	//!< 時刻
 
   private:
@@ -52,7 +51,7 @@ class clock
 	cudaEvent_t	_epoch;
 	cudaEvent_t	_now;
     };
-    
+
   public:
   //! 現在の時刻を返す.
     static time_point	now() noexcept
@@ -66,5 +65,3 @@ class clock
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_CHRONO_H
-

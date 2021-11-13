@@ -3,8 +3,7 @@
   \author	Toshio UESHIBA
   \brief	thrust::tupleの用途拡張のためのユティリティ
 */
-#ifndef TU_CUDA_TUPLE_H
-#define TU_CUDA_TUPLE_H
+#pragma once
 
 #include "TU/type_traits.h"
 #include <thrust/iterator/zip_iterator.h>
@@ -26,7 +25,7 @@ namespace detail
 //! 与えられた型が thrust::tuple 又はそれに変換可能であるか判定する
 /*!
   \param T	判定対象となる型
-*/ 
+*/
 template <class T>
 using is_cons = decltype(detail::check_cons(std::declval<T>()));
 
@@ -35,7 +34,7 @@ using is_cons = decltype(detail::check_cons(std::declval<T>()));
 ************************************************************************/
 template <class T>
 using is_null = std::is_convertible<T, thrust::null_type>;
-    
+
 /************************************************************************
 *  tuple_for_each(TUPLES..., FUNC)				`	*
 ************************************************************************/
@@ -53,7 +52,7 @@ namespace detail
   {
       return x.get_head();
   }
-    
+
   template <class T, std::enable_if_t<!is_cons<T>::value>* = nullptr>
   __host__ __device__ inline decltype(auto)
   get_tail(T&& x)
@@ -112,7 +111,7 @@ tuple_transform(FUNC f, TUPLES&&... x)
 				 detail::get_tail(std::forward<TUPLES>(x))...));
 }
 }	// namespace cuda
-    
+
 /************************************************************************
 *  Arithmetic operators							*
 ************************************************************************/
@@ -256,7 +255,7 @@ namespace detail
       return print(out << '(', x) << ')';
   }
 }
-    
+
 /************************************************************************
 *  Applying a multi-input function to a tuple of arguments		*
 ************************************************************************/
@@ -269,7 +268,7 @@ namespace detail
       return f(thrust::get<IDX>(std::forward<TUPLE>(t))...);
   }
 }
-    
+
 template <class FUNC, class TUPLE,
 	  std::enable_if_t<cuda::is_cons<TUPLE>::value>* = nullptr>
 __host__ __device__ inline decltype(auto)
@@ -287,7 +286,7 @@ apply(FUNC&& f, T&& t)
 {
     return f(std::forward<T>(t));
 }
-    
+
 /************************************************************************
 *  begin|end|rbegin|rend|size for tuples				*
 ************************************************************************/
@@ -359,4 +358,3 @@ size(const thrust::detail::cons<HEAD, TAIL>& t)
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_TUPLE_H

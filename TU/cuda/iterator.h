@@ -4,9 +4,8 @@
 /*!
   \file		iterator.h
   \brief	半精度浮動小数点に燗する各種アルゴリズムの定義と実装
-*/ 
-#ifndef TU_CUDA_ITERATOR_H
-#define TU_CUDA_ITERATOR_H
+*/
+#pragma once
 
 #include <type_traits>
 #include <thrust/iterator/iterator_adaptor.h>
@@ -49,20 +48,20 @@ class map_iterator
 
   public:
     using	typename super::reference;
-	
+
   public:
     __host__ __device__
 		map_iterator(FUNC func, const ITER& iter)
 		    :super(iter), _func(func)				{}
-	
+
   private:
     __host__ __device__
     reference	dereference()	const	{ return apply(_func, *super::base()); }
-	
+
   private:
     FUNC	_func;	//!< 演算子
 };
-    
+
 template <class FUNC, class ITER>
 __host__ __device__ inline map_iterator<FUNC, ITER>
 make_map_iterator(FUNC func, const ITER& iter)
@@ -81,7 +80,7 @@ make_map_iterator(FUNC func,
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
-  
+
 /************************************************************************
 *  class assignment_iterator<FUNC, ITER>				*
 ************************************************************************/
@@ -102,7 +101,7 @@ namespace detail
       using is_binary_func	= decltype(check_func(std::declval<ITER>(),
 						      std::declval<T_>(),
 						      std::declval<FUNC>()));
-      
+
     public:
       __host__ __device__
       assignment_proxy(const ITER& iter, const FUNC& func)
@@ -170,7 +169,7 @@ namespace detail
       const FUNC&	_func;
   };
 }	// namespace detail
-    
+
 //! operator *()を左辺値として使うときに，この左辺値と右辺値に指定された関数を適用するための反復子
 /*!
   \param FUNC	変換を行う関数オブジェクトの型
@@ -194,7 +193,7 @@ class assignment_iterator
 				thrust::use_default,
 				detail::assignment_proxy<FUNC, ITER> >;
     friend	class thrust::iterator_core_access;
-    
+
   public:
     using	typename super::reference;
 
@@ -208,12 +207,12 @@ class assignment_iterator
   private:
     __host__ __device__
     reference	dereference()	const	{ return {super::base(), _func}; }
-    
+
   private:
     FUNC 	_func;	// 代入を可能にするためconstは付けない
 };
 #endif	// __NVCC__
-    
+
 template <class FUNC, class ITER>
 __host__ __device__ inline assignment_iterator<FUNC, ITER>
 make_assignment_iterator(const FUNC& func, const ITER& iter)
@@ -273,7 +272,7 @@ advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 	       const thrust::detail::cons<HEAD, TAIL>& stride)
 {
     using tuple_t = std::decay_t<decltype(iter.get_iterator_tuple())>;
-    
+
     tuple_for_each([](auto&& x, const auto& y){ advance_stride(x, y); },
 		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
@@ -283,10 +282,9 @@ advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
     -> TU::void_t<decltype(iter.base())>
 {
     using base_t = std::decay_t<decltype(iter.base())>;
-    
+
     advance_stride(const_cast<base_t&>(iter.base()), stride);
 }
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_ITERATOR_H

@@ -3,8 +3,7 @@
   \author	Toshio UESHIBA
   \brief	ステレオビジョンをサポートする各種クラスの定義と実装
 */
-#ifndef TU_CUDA_STEREOUTILITY_H
-#define TU_CUDA_STEREOUTILITY_H
+#pragma once
 
 #include <limits>
 #include "TU/cuda/Array++.h"
@@ -42,13 +41,13 @@ select_disparity(COL colC, int width, COL_D colD,
     cminR[x] = std::numeric_limits<value_type>::max();
     dminR[x] = 0;
     __syncthreads();
-    
+
     for (int d = 0; d < disparitySearchWidth; ++d)
     {
 	const auto	cost = *colC;	// cost[d][y][x]
 
 	colC += strideYX;		// points to cost[d+1][y][x]
-	
+
 	if (cost < cminL)
 	{
 	    cminL = cost;
@@ -56,7 +55,7 @@ select_disparity(COL colC, int width, COL_D colD,
 	}
 
 	const auto	xR = x + d;
-	
+
 	if (xR < width)
 	{
 	    if (cost < cminR[xR])
@@ -69,14 +68,14 @@ select_disparity(COL colC, int width, COL_D colD,
     }
 
     const auto	dR = dminR[x + dminL];
-    
+
     *colD = ((dminL > dR ? dminL - dR : dR - dminL) < disparityInconsistency ?
 	     disparityMax - dminL : 0);
 }
-    
+
 }	// namespace device
 #endif
-    
+
 /************************************************************************
 *  class DisparitySelector<T>						*
 ************************************************************************/
@@ -88,7 +87,7 @@ class DisparitySelector
 
     constexpr static size_t	BlockDimX = 32;
     constexpr static size_t	BlockDimY = 16;
-    
+
   public:
     DisparitySelector(int disparityMax, int disparityInconsistency)
 	:_disparityMax(disparityMax),
@@ -96,7 +95,7 @@ class DisparitySelector
 
     template <class ROW_D>
     void	select(const Array3<T>& costs, ROW_D rowD)		;
-    
+
   private:
     const int	_disparityMax;
     const int	_disparityInconsistency;
@@ -177,7 +176,6 @@ DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
 						  get(_dminR[y].begin() + x),
 						  _dminR.stride());
 }
-    
+
 }	// namespace cuda
 }	// namepsace TU
-#endif	// !TU_CUDA_STEREOUTILITY_H

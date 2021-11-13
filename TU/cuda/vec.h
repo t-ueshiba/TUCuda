@@ -3,8 +3,7 @@
   \author	Toshio UESHIBA
   \brief	cudaベクトルクラスとその演算子の定義
 */
-#ifndef TU_CUDA_VEC_H
-#define TU_CUDA_VEC_H
+#pragma once
 
 #include <cstdint>
 #include <thrust/device_ptr.h>
@@ -19,7 +18,9 @@ namespace device
 {
   template <class T>
   static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
-    
+
+  __device__ inline float  fma(float x,
+			       float y, float z)	{ return fmaf(x, y, z);}
   __device__ inline float  min(float x, float y)	{ return fminf(x, y); }
   __device__ inline float  max(float x, float y)	{ return fmaxf(x, y); }
   __device__ inline float  square(float x)		{ return x*x; }
@@ -29,20 +30,16 @@ namespace device
   __device__ inline float  sin(float x)			{ return sinf(x); }
   __device__ inline float  cos(float x)			{ return cosf(x); }
   __device__ inline float  atan2(float y, float x)	{ return atan2f(y, x); }
+  __device__ inline float  floor(float x)		{ return floorf(x); }
+  __device__ inline float  ceil(float x)		{ return ceilf(x); }
 
   __device__ inline double min(double x, double y)	{ return fmin(x, y); }
   __device__ inline double max(double x, double y)	{ return fmax(x, y); }
   __device__ inline double square(double x)		{ return x*x; }
   __device__ inline double abs(double x)		{ return fabs(x); }
-  __device__ inline double sqrt(double x)		{ return sqrt(x); }
-  __device__ inline double rsqrt(double x)		{ return rsqrt(x); }
-  __device__ inline double sin(double x)		{ return sin(x); }
-  __device__ inline double cos(double x)		{ return cos(x); }
-  __device__ inline double atan2(double y, double x)	{ return atan2(y, x); }
-
 }	// namespace device
 #endif	// __NVCC__
-    
+
 namespace detail
 {
   template <class T>
@@ -798,7 +795,7 @@ square(const VEC& a)
 {
     return dot(a, a);
 }
-    
+
 /************************************************************************
 *  cross()								*
 ************************************************************************/
@@ -1203,4 +1200,3 @@ struct from_vec<YUV422>
 };
 
 }	// namespace TU
-#endif	// !TU_CUDA_VEC_H

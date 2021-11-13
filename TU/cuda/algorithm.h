@@ -5,8 +5,7 @@
   \file		algorithm.h
   \brief	各種アルゴリズムの定義と実装
 */
-#ifndef TU_CUDA_ALGORITHM_H
-#define TU_CUDA_ALGORITHM_H
+#pragma once
 
 #include "TU/cuda/allocator.h"
 #include "TU/cuda/iterator.h"
@@ -790,7 +789,5 @@ depth_to_points(IN depth, IN depth_e, OUT point)
 						 stride_i, stride_o);
 }
 #endif
-
 }	// namespace cuda
 }	// namespace TU
-#endif	// !__CUDA_ALGORITHM_H

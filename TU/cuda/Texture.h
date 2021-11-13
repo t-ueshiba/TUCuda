@@ -4,9 +4,8 @@
 /*!
   \file		Texture.h
   \brief	CUDAテクスチャメモリに関連するクラスの定義と実装
-*/ 
-#ifndef TU_CUDA_TEXTURE_H
-#define TU_CUDA_TEXTURE_H
+*/
+#pragma once
 
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/Array++.h"
@@ -30,7 +29,7 @@ class Texture
 {
   public:
     using value_type	= T;
-    
+
   public:
     Texture(const Array<T>& a, bool normalize=false, bool interpolate=true,
 	    enum cudaTextureAddressMode addressMode=cudaAddressModeBorder);
@@ -65,7 +64,7 @@ Texture<T>::Texture(const Array<T>& a, bool normalize, bool interpolate,
     resdesc.res.linear.devPtr	   = TU::cuda::get(a.data());
     resdesc.res.linear.desc	   = cudaCreateChannelDesc<T>();
     resdesc.res.linear.sizeInBytes = a.size()*sizeof(T);
-    
+
     cudaTextureDesc	texdesc;
     memset(&texdesc, 0, sizeof(texdesc));
     texdesc.addressMode[0]   = addressMode;
@@ -74,7 +73,7 @@ Texture<T>::Texture(const Array<T>& a, bool normalize, bool interpolate,
     texdesc.readMode	     = (normalize   ? cudaReadModeNormalizedFloat
 					    : cudaReadModeElementType);
     texdesc.normalizedCoords = 0;
-    
+
     const auto	err = cudaCreateTextureObject(&_tex, &resdesc, &texdesc, NULL);
     if (err != cudaSuccess)
 	throw std::runtime_error("Texture<T>::Texture(): failed to create a texture object bound to the given 1D array!");
@@ -103,7 +102,7 @@ Texture<T>::Texture(const Array2<T>& a, bool normalize, bool interpolate,
     resdesc.res.pitch2D.width		= a.ncol();
     resdesc.res.pitch2D.height		= a.nrow();
     resdesc.res.pitch2D.pitchInBytes	= a.stride()*sizeof(T);
-    
+
     cudaTextureDesc	texdesc;
     memset(&texdesc, 0, sizeof(texdesc));
     texdesc.addressMode[0]   = addressMode;
@@ -113,7 +112,7 @@ Texture<T>::Texture(const Array2<T>& a, bool normalize, bool interpolate,
     texdesc.readMode	     = (normalize   ? cudaReadModeNormalizedFloat
 					    : cudaReadModeElementType);
     texdesc.normalizedCoords = 0;
-    
+
     const auto	err = cudaCreateTextureObject(&_tex, &resdesc, &texdesc, NULL);
     if (err != cudaSuccess)
 	throw std::runtime_error("Texture<T>::Texture(): failed to create a texture object bound to the given 2D array!");
@@ -137,7 +136,7 @@ Texture<T>::~Texture()
 */
 template <class T, class OUT, class MAP> void
 warp(const Array2<T>& a, OUT out, MAP map)				;
-    
+
 #if defined(__NVCC__)
 namespace device
 {
@@ -162,7 +161,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
     const auto		ncol     = a.ncol();
     const auto		stride_o = stride(out);
     const Texture<T>	tex(a);
-    
+
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
@@ -188,8 +187,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
 					 map, x0, y0, stride_o);
 }
-#endif    
+#endif
 
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_TEXTURE_H

@@ -3,8 +3,7 @@
   \author	Toshio UESHIBA
   \brief	クラス TU::cuda::ICIA の定義と実装
 */
-#ifndef TU_ICIA_H
-#define TU_ICIA_H
+#pragma once
 
 #include "TU/Geometry++.h"
 #include "TU/Image++.h"
@@ -29,13 +28,13 @@ namespace detail
       advance_stride(out, stride);
       return out;
   }
-    
+
   template <class OUT, class T, size_t C> __device__ OUT
   assign_grad(OUT out, const Mat2x<T, C>& m, int stride)
   {
       return assign_grad(assign_grad(out, m.x, stride), m.y, stride);
   }
-    
+
   template <class OUT, class T, size_t C> __device__ OUT
   assign_grad(OUT out, const Mat3x<T, C>& m, int stride)
   {
@@ -43,7 +42,7 @@ namespace detail
 				     m.y, stride),
 			 m.z, stride);
   }
-    
+
   template <class OUT, class T, size_t C> __device__ OUT
   assign_grad(OUT out, const Mat4x<T, C>& m, int stride)
   {
@@ -52,14 +51,14 @@ namespace detail
 				     m.z, stride),
 			 m.w, stride);
   }
-    
+
   template <class OUT, class VEC> __device__ OUT
   std::enable_if_t<ncol<VEC>() == 1, OUT>
   assign_moment(OUT out, const VEC& a, const VEC& b, int stride)
   {
       return assign_grad(out, ext(a, b), stride);
   }
-    
+
   template <class OUT, class T, size_t C> __device__ void
   assign_moment(OUT out, const Mat2x<T, C>& a, const Mat2x<T, C>& b, int stride)
   {
@@ -74,14 +73,14 @@ namespace detail
   {
       return fminf(fmaxf(x, lower), upper);
   }
-    
+
   __device__ double
   clamp(double x, double lower, double upper)
   {
       return fmin(fmax(x, lower), upper);
   }
 }	// namespsace detail
-    
+
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
@@ -107,13 +106,13 @@ sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
        int x0, int y0, int strideI, int strideG)
 {
     using value_t = iterator_value<IN>;
-    
+
     const int	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
     const int	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
     const auto	p = map(x, y);
-    
+
     advance_stride(src, y*strideI);
-    
+
     const auto	sval = src[x];
     const auto	dval = tex2D<value_t>(dst, p.x, p.y);
 
@@ -130,7 +129,7 @@ sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
 	set_zero(g);
     }
 }
-    
+
 }	//namespce device
 #endif	// __NVCC__
 
@@ -172,8 +171,8 @@ class ICIA : public Profiler<CLOCK>
 
     constexpr static size_t	GRAD_NVECS   = map_traits<MAP>::GRAD_NVECS;
     constexpr static size_t	MOMENT_NVECS = map_traits<MAP>::MOMENT_NVECS;
-    
-    
+
+
   public:
     using element_type	= typename MAP::element_type;
     using value_type	= typename MAP::value_type;
@@ -190,12 +189,12 @@ class ICIA : public Profiler<CLOCK>
 	value_type	intensityThresh;
 	value_type	tol;
     };
-    
+
   private:
     using super		= Profiler<CLOCK>;
     using params_type	= Array< value_type, MAP::DOF>;
     using matrix_type	= Array2<value_type, MAP::DOF, MAP::DOF>;
-    
+
   public:
     using	super::start;
     using	super::nextFrame;
@@ -231,7 +230,7 @@ ICIA<MAP, CLOCK>::initialize(const Array2<T_>& src)
 {
     using	std::cbegin;
     using	std::cend;
-    
+
     start(0);
   // 位置に関する原画像の輝度勾配を求める．
     Array2<value_type>			edgeH(size<0>(src), size<1>(src));
@@ -254,7 +253,7 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
 
     const auto	strideH = edgeH.stride();
     const auto	strideV = edgeV.stride();
-    
+
     const auto	stride_o = stride(out);
 
     start(1);
@@ -283,7 +282,7 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
     device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
 					 op, x0, y0, stride_o);
 }
-    
+
 template <class MAP, class CLOCK> template <class T_> auto
 ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 			      MAP& f, size_t u0, size_t v0, size_t w, size_t h)
@@ -300,7 +299,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 	w = size<1>(src) - u0;
     if (h == 0)
 	h = size<0>(src) - v0;
-    
+
     if (_params.newton)
     {
 	const auto	Minv = inverse(moment(u0, v0, w, h));
@@ -328,7 +327,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 	params_type	diagM(M.size());
 	for (size_t i = 0; i < diagM.size(); ++i)
 	    diagM[i] = M[i][i];
-	
+
 	params_type	g;
 	auto		sqr = sqrerr(src, dst, f, g, u0, v0, w, h);
 #ifdef _DEBUG
@@ -346,7 +345,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 	    f_new.compose(dtheta);
 	    params_type	g_new;
 	    const auto	sqr_new = sqrerr(src, dst, f_new, g_new, u0, v0, w, h);
-#ifdef _DEBUG	    
+#ifdef _DEBUG
 	    std::cerr << "[" << std::setw(2) << n << "] sqr = " << sqr_new
 		 << ", sqr_old = " << sqr
 		 << ",\tlambda = " << lambda << std::endl;
@@ -361,7 +360,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 		    nextFrame();
 		    return sqr_new;
 		}
-		
+
 		g   = g_new;
 		sqr = sqr_new;
 		lambda *= 0.1;		// L-M反復のパラメータを減らす．
@@ -380,7 +379,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
 
     return -1.0;
 }
-    
+
 template <class MAP, class CLOCK> template <class T_> auto
 ICIA<MAP, CLOCK>::sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
 			 const MAP& f, params_type& g,
@@ -393,16 +392,16 @@ ICIA<MAP, CLOCK>::sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
 #endif
     g.resize(MAP::DOF);
     g = 0;
-    
+
     value_type	sqr = 0.0;
     size_t	npoints = 0;
     for (size_t v = v0; v < v0 + h; ++v)
     {
 	using	std::cbegin;
-	
+
 	auto	sval = cbegin(src[v]) + u0;
 	auto	grad = _grad[v].cbegin() + u0;
-		
+
 	for (size_t u = u0; u < u0 + w; ++u)
 	{
 	    const auto	p = f(u, v);
@@ -446,10 +445,10 @@ ICIA<MAP, CLOCK>::sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
 #endif
     if (npoints < MAP::DOF)
 	throw std::runtime_error("ICIA::sqrerr(): not enough points!");
-    
+
     return sqr / npoints;
 }
-    
+
 template <class MAP, class CLOCK> auto
 ICIA<MAP, CLOCK>::moment(size_t u0, size_t v0, size_t w, size_t h) const
     -> matrix_type
@@ -478,7 +477,6 @@ ICIA<MAP, CLOCK>::moment(size_t u0, size_t v0, size_t w, size_t h) const
 
     return val;
 }
-    
+
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_ICIA_H

@@ -1,9 +1,8 @@
 /*!
   \file		BoxFilter.h
   \brief	boxフィルタの定義と実装
-*/ 
-#ifndef TU_CUDA_BOXFILTER_H
-#define TU_CUDA_BOXFILTER_H
+*/
+#pragma once
 
 #include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
@@ -34,7 +33,7 @@ __global__ void
 box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
 				    [FILTER::BlockDim + 1];
     __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
@@ -79,7 +78,7 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
 	    int strideL, int strideR, int strideXD, int strideD)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     __shared__ value_type	val_s[FILTER::WinSizeMax]
 				     [FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
@@ -95,7 +94,7 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
     for (int i = 0; ++i != winSizeH; )
 	val += (val_s[i][threadIdx.y][threadIdx.x] = op(*++inL, *++inR));
     *out = val;
-    
+
   // 逐次的にvalを更新して出力
     for (int i = 0; --ncols; )
     {
@@ -111,7 +110,7 @@ template <class FILTER, class IN> __global__ void
 box_filterV(IN in, int nrows, int winSizeV, int strideXD, int strideD)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     __shared__ value_type	in_s[FILTER::WinSizeMax]
 				    [FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
@@ -125,7 +124,7 @@ box_filterV(IN in, int nrows, int winSizeV, int strideXD, int strideD)
     for (int i = 0; ++i < winSizeV; )
   	val += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD));
     *out = val;
-    
+
     for (int i = 0; --nrows; )
     {
 	val -= in_s[i][threadIdx.y][threadIdx.x];
@@ -142,7 +141,7 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 	    int strideXD, int strideD, int strideYX_O, int strideX_O)
 {
     using value_type  =	typename FILTER::value_type;
-    
+
     __shared__ value_type	in_s[FILTER::WinSizeMax]
 				    [FILTER::BlockDim][FILTER::BlockDim + 1];
     __shared__ value_type	out_s[BlockDimY][BlockDimX + 1];
@@ -187,7 +186,7 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 }
 }	// namespace device
 #endif	// __NVCC__
-    
+
 /************************************************************************
 *  class BoxFilter2<T, CLOCK, WMAX>					*
 ************************************************************************/
@@ -200,18 +199,18 @@ class BoxFilter2 : public Profiler<CLOCK>
 
   public:
     using value_type	= T;
-    
+
     constexpr static size_t	WinSizeMax = WMAX;
     constexpr static size_t	BlockDim   = 16;
     constexpr static size_t	BlockDimX  = 32;
     constexpr static size_t	BlockDimY  = 16;
-    
+
   public:
   //! CUDAによる2次元boxフィルタを生成する．
   /*!
     \param winSizeV	boxフィルタのウィンドウの行幅(高さ)
     \param winSizeH	boxフィルタのウィンドウの列幅(幅)
-   */	
+   */
 		BoxFilter2(size_t winSizeV, size_t winSizeH)
 		    :profiler_t(3), _winSizeV(winSizeV), _winSizeH(winSizeH)
 		{
@@ -252,14 +251,14 @@ class BoxFilter2 : public Profiler<CLOCK>
 		    _winSizeH = winSize;
 		    return *this;
 		}
-    
+
   //! 与えられた高さを持つ入力データ列に対する出力データ列の高さを返す．
   /*!
     \param inSizeV	入力データ列の高さ
     \return		出力データ列の高さ
    */
     size_t	outSizeV(size_t inSize)	const	{return inSize + 1 - _winSizeV;}
-    
+
   //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
   /*!
     \param inSizeH	入力データ列の幅
@@ -273,7 +272,7 @@ class BoxFilter2 : public Profiler<CLOCK>
     \return		出力データ列の高さ
    */
     size_t	offsetV()		const	{return _winSizeV/2;}
-    
+
   //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
   /*!
     \param inSizeH	入力データ列の幅
@@ -303,7 +302,7 @@ class BoxFilter2 : public Profiler<CLOCK>
     template <class ROW, class ROW_O, class OP>
     void	convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 			 OP op, size_t disparitySearchWidth)	const	;
-    
+
   private:
     size_t		_winSizeV;
     size_t		_winSizeH;
@@ -322,11 +321,11 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     using	std::begin;
 
     profiler_t::start(0);
-    
+
     auto	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
-    
+
     auto	ncols = std::distance(cbegin(*row), cend(*row));
     if (ncols < _winSizeH)
 	return;
@@ -376,7 +375,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
 	rowO += offsetV();
 	dx    = offsetH();
     }
-    
+
     cudaDeviceSynchronize();
     profiler_t::start(2);
     nrows = outSizeH(nrows);
@@ -422,19 +421,19 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-    
+
     profiler_t::start(0);
-    
+
     auto	nrows = std::distance(rowL, rowLe);
     if (nrows < _winSizeV)
 	return;
-    
+
     auto	ncols = std::distance(cbegin(*rowL), cend(*rowL));
     if (ncols < _winSizeH)
 	return;
 
     _buf3.resize(nrows, ncols, disparitySearchWidth);
-    
+
     const auto	strideL    = stride(rowL);
     const auto	strideR    = stride(rowR);
     const auto	strideD	   = _buf3.stride();
@@ -565,4 +564,3 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
 #endif	// __NVCC__
 }	// namespace cuda
 }	// namespace TU
-#endif	// !TU_CUDA_BOXFILTER_H

@@ -608,44 +608,47 @@ namespace device
   /*
    *  Static __device__ functions
    */
-  template <class T, class S> __device__ static vec<T, 2>
-  undistort(S u, S v)
+  template <class T>
+  struct undistort
   {
-      static constexpr T	MAX_ERR  = 0.001*0.001;
-      static constexpr int	MAX_ITER = 5;
-
-      const vec<T, 2>	uv{T(u), T(v)};
-      auto		xy  = (uv - _uv0<T>[0])/_flen<T>[0];
-      const auto	xy0 = xy;
-
-    // compensate distortion iteratively
-      for (int n = 0; n < MAX_ITER; ++n)
+      __device__ vec<T, 2>
+      operator ()(const vec<T, 2>& uv) const
       {
-	  const auto	r2 = cuda::square(xy);
-	  const auto	k  = T(1) + (_d<T>[0] + _d<T>[1]*r2)*r2;
-	  if (k < T(0))
-	      break;
+	  static constexpr T	MAX_ERR  = 0.001*0.001;
+	  static constexpr int	MAX_ITER = 5;
 
-	  const auto	a = T(2) * xy.x * xy.y;
-	  vec<T, 2>	delta{_d<T>[2]*a + _d<T>[3]*(r2 + T(2) * xy.x * xy.x),
-			      _d<T>[2]*(r2 + T(2) * xy.y * xy.y) + _d<T>[3]*a};
-	  const auto	uv_proj = _flen<T>[0]*(k*xy + delta) + _uv0<T>[0];
+	  auto		xy  = (uv - _uv0<T>[0])/_flen<T>[0];
+	  const auto	xy0 = xy;
 
-	  if (cuda::square(uv_proj - uv) < MAX_ERR)
-	      break;
+	// compensate distortion iteratively
+	  for (int n = 0; n < MAX_ITER; ++n)
+	  {
+	      const auto	r2 = cuda::square(xy);
+	      const auto	k  = T(1) + (_d<T>[0] + _d<T>[1]*r2)*r2;
+	      if (k < T(0))
+		  break;
 
-	  xy = (xy0 - delta)/k;	// compensate lens distortion
+	      const auto a = T(2) * xy.x * xy.y;
+	      vec<T, 2>	 delta{_d<T>[2]*a + _d<T>[3]*(r2 + T(2)*xy.x*xy.x),
+			       _d<T>[2]*(r2 + T(2)*xy.y*xy.y) + _d<T>[3]*a};
+	      const auto uv_proj = _flen<T>[0]*(k*xy + delta) + _uv0<T>[0];
+
+	      if (cuda::square(uv_proj - uv) < MAX_ERR)
+		  break;
+
+	      xy = (xy0 - delta)/k;	// compensate lens distortion
+	  }
+
+	  return xy;
       }
 
-      return xy;
-  }
-
-  template <class S, class T> __device__ static vec<T, 3>
-  undistort(S u, S v, T d)
-  {
-      const auto	xy = undistort<T>(u, v);
-      return {d*xy.x, d*xy.y, d};
-  }
+      __device__ vec<T, 3>
+      operator ()(const vec<T, 3>& uvd) const
+      {
+	  const auto	xy = (*this)(vec<T, 2>{uvd.x, uvd.y});
+	  return {uvd.z*xy.x, uvd.z*xy.y, uvd.z};
+      }
+  };
 
   /*
    *  Static __global__ functions
@@ -653,14 +656,15 @@ namespace device
   template <class OUT, class STRIDE> __global__ static void
   canonical_xy(OUT xy, STRIDE stride)
   {
-      using value_type	= typename std::iterator_traits<OUT>::value_type;
+      using element_type = element_t<typename std::iterator_traits<OUT>
+						 ::value_type>;
 
       const int	u = blockIdx.x*blockDim.x + threadIdx.x;
       const int	v = blockIdx.y*blockDim.y + threadIdx.y;
 
       advance_stride(xy, v*stride);
 
-      xy[u] = undistort<value_type>(u, v);
+      xy[u] = undistort<element_type>()({element_type(u), element_type(v)});
   }
 
   template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
@@ -668,13 +672,16 @@ namespace device
   depth_to_points(IN depth, OUT point,
 		  STRIDE_I stride_i, STRIDE_O stride_o)
   {
+      using element_type = typename std::iterator_traits<IN>::value_type;
+      
       const int	u = blockIdx.x*blockDim.x + threadIdx.x;
       const int	v = blockIdx.y*blockDim.y + threadIdx.y;
 
       advance_stride(depth, v*stride_i);
       advance_stride(point, v*stride_o);
 
-      point[u] = undistort(u, v, depth[u]);
+      point[u] = undistort<element_type>()(vec<element_type, 3>{element_type(u),
+					    element_type(v), depth[u]});
   }
 }	// namespace device
 

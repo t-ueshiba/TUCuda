@@ -215,72 +215,49 @@ struct diff
 };
 
 /************************************************************************
-*  undistortion operators						*
+*  undistortion operator						*
 ************************************************************************/
-template <class ITER_K, class ITER_D> void
-set_intrinsic_parameters(ITER_K K, ITER_D d)				;
-
-#if defined(__NVCC__)
-namespace device
-{
-  /*
-   *  Static __constant__ variables
-   */
-  template <class T> __constant__ static vec<T, 2>	_flen[1];
-  template <class T> __constant__ static vec<T, 2>	_uv0[1];
-  template <class T> __constant__ static T		_d[4];
-
-}	// namespace device
-
 template <class T>
 struct undistort
 {
-    template <class ITER_K, class ITER_D>
+    template <class ITER_K, class ITER_D> __host__ __device__
     undistort(ITER_K K, ITER_D d)
     {
-	vec<T, 2>	flen, uv0;
-	flen.x = *K;
+	_flen.x = *K;
 	std::advance(K, 2);
-	uv0.x = *K;
+	_uv0.x = *K;
 	std::advance(K, 2);
-	flen.y = *K;
+	_flen.y = *K;
 	++K;
-	uv0.y = *K;
-	const T	dd[] = {*d, *++d, *++d, *++d};
-
-	cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(flen), 0,
-			   cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(uv0), 0,
-			   cudaMemcpyHostToDevice);
-	cudaMemcpyToSymbol(device::_d<T>,  dd, sizeof(dd), 0,
-			   cudaMemcpyHostToDevice);
+	_uv0.y = *K;
+	_d[0] = *d;
+	_d[1] = *++d;
+	_d[2] = *++d;
+	_d[3] = *++d;
     }
     
-    __device__ vec<T, 2>
+    __host__ __device__ vec<T, 2>
     operator ()(T u, T v) const
     {
 	static constexpr T	MAX_ERR  = 0.001*0.001;
 	static constexpr int	MAX_ITER = 5;
 
 	const vec<T, 2>	uv{u, v};
-	auto		xy  = (uv - device::_uv0<T>[0])/device::_flen<T>[0];
+	auto		xy  = (uv - _uv0)/_flen;
 	const auto	xy0 = xy;
 
       // compensate distortion iteratively
 	for (int n = 0; n < MAX_ITER; ++n)
 	{
 	    const auto	r2 = cuda::square(xy);
-	    const auto	k  = T(1) + (device::_d<T>[0] + device::_d<T>[1]*r2)*r2;
+	    const auto	k  = T(1) + (_d[0] + _d[1]*r2)*r2;
 	    if (k < T(0))
 		break;
 
 	    const auto	a = T(2)*xy.x*xy.y;
-	    vec<T, 2>	delta{device::_d<T>[2]*a +
-			      device::_d<T>[3]*(r2 + T(2)*xy.x*xy.x),
-			      device::_d<T>[2]*(r2 + T(2)*xy.y*xy.y) +
-			      device::_d<T>[3]*a};
-	    const auto	uv_proj = device::_flen<T>[0]*(k*xy + delta)
-				+ device::_uv0<T>[0];
+	    vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + T(2)*xy.x*xy.x),
+			      _d[2]*(r2 + T(2)*xy.y*xy.y) + _d[3]*a};
+	    const auto	uv_proj = _flen*(k*xy + delta) + _uv0;
 
 	    if (cuda::square(uv_proj - uv) < MAX_ERR)
 		break;
@@ -297,28 +274,11 @@ struct undistort
 	const auto	xy = (*this)(u, v);
 	return {d*xy.x, d*xy.y, d};
     }
+
+  private:
+    vec<T, 2>	_flen;
+    vec<T, 2>	_uv0;
+    T		_d[4];
 };
-
-template <class T, class ITER_K, class ITER_D> void
-set_intrinsic_parameters(ITER_K K, ITER_D d)
-{
-    vec<T, 2>	flen, uv0;
-    flen.x = *K;
-    std::advance(K, 2);
-    uv0.x = *K;
-    std::advance(K, 2);
-    flen.y = *K;
-    ++K;
-    uv0.y = *K;
-    const T	dd[] = {*d, *++d, *++d, *++d};
-
-    cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(flen), 0,
-    		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(uv0), 0,
-		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_d<T>,  dd, sizeof(dd), 0,
-		       cudaMemcpyHostToDevice);
-}
-#endif    
 }	// namespace cuda
 }	// namespace TU

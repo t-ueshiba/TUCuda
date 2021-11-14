@@ -152,10 +152,10 @@ class mapped_allocator
   cuda-9.1 まではテンプレート引数を介して thrust::device_ptr<T> を
   device関数に渡せないbugがあるので，これを回避するための関数．
  */
-template <class ITER> inline const ITER&
-get(const ITER& iter)
+template <class ITER> inline ITER&&
+get(ITER&& iter)
 {
-    return iter;
+    return std::forward<ITER>(iter);
 }
 
 template <class T> inline T*

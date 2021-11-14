@@ -279,13 +279,13 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out)), strideI, strideO);
+	cbegin(*in), begin(*out), strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in) + x), get(begin(*out) + x), strideI, strideO);
+	cbegin(*in) + x, begin(*out) + x, strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -294,12 +294,12 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out)), strideI, strideO);
+	cbegin(*in), begin(*out), strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in) + x), get(begin(*out) + x), strideI, strideO);
+	cbegin(*in) + x, begin(*out) + x, strideI, strideO);
 }
 
 template <class T> template <size_t L, class IN, class OUT> void
@@ -325,13 +325,13 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out) + dx), strideI, strideO);
+	cbegin(*in), begin(*out) + dx, strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in) + x), get(begin(*out) + x + dx), strideI, strideO);
+	cbegin(*in) + x, begin(*out) + x + dx, strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -340,12 +340,12 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out) + dx), strideI, strideO);
+	cbegin(*in), begin(*out) + dx, strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	get(cbegin(*in) + x), get(begin(*out) + x + dx), strideI, strideO);
+	cbegin(*in) + x, begin(*out) + x + dx, strideI, strideO);
 }
 #endif	// __NVCC__
 

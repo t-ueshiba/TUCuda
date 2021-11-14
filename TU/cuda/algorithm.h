@@ -214,14 +214,14 @@ subsample(IN in, IN ie, OUT out)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::subsample<<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out)), stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
+					   stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(
-	get(cbegin(*in) + 2*x), get(begin(*out) + x), stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(cbegin(*in) + 2*x, begin(*out) + x,
+					   stride_i, stride_o);
   // 左下
     std::advance(in, 2*blocks.y*threads.y);
     std::advance(out,  blocks.y*threads.y);
@@ -229,13 +229,13 @@ subsample(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::subsample<<<blocks, threads>>>(
-	get(cbegin(*in)), get(begin(*out)), stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
+					   stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(
-	get(cbegin(*in) + 2*x), get(begin(*out) + x), stride_i, stride_o);
+    device::subsample<<<blocks, threads>>>(cbegin(*in) + 2*x, begin(*out) + x,
+					   stride_i, stride_o);
 }
 #endif
 
@@ -303,15 +303,13 @@ op3x3(IN in, IN ie, OUT out, OP op)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::op3x3<<<blocks, threads>>>(get(cbegin(*in)),
-				       get(begin(*out)),
+    device::op3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
 				       op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
-				       get(begin(*out) + x),
+    device::op3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 				       op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
@@ -320,14 +318,12 @@ op3x3(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::op3x3<<<blocks, threads>>>(get(cbegin(*in)),
-				       get(begin(*out)),
+    device::op3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
 				       op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
-				       get(begin(*out) + x),
+    device::op3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 				       op, stride_i, stride_o);
 }
 #endif
@@ -394,8 +390,8 @@ namespace device
 	  const int	top  = xy - stride_i;		// 現在位置の直上
 	  const int	bot  = xy + by2*stride_i;	// 現在位置の下端
 
-	  in_s[0      ][x    ] = in[top    ];	// 上枠左
-	  in_s[0      ][x + 1] = in[top + 1];	// 上枠右
+	  in_s[0      ][x    ] = in[top    ];		// 上枠左
+	  in_s[0      ][x + 1] = in[top + 1];		// 上枠右
 	  in_s[1 + by2][x    ] = in[bot    ];		// 下枠左
 	  in_s[1 + by2][x + 1] = in[bot + 1];		// 下枠右
 
@@ -475,15 +471,13 @@ suppressNonExtrema3x3(
     ++out;
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in)),
-					    get(begin(*out)),
+    device::extrema3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, nulval, stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
-					    get(begin(*out) + x),
+    device::extrema3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 					    op, nulval, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
@@ -492,14 +486,12 @@ suppressNonExtrema3x3(
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in)),
-					    get(begin(*out)),
+    device::extrema3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, nulval, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(get(cbegin(*in) + x),
-					    get(begin(*out) + x),
+    device::extrema3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 					    op, nulval, stride_i, stride_o);
 }
 #endif
@@ -560,8 +552,8 @@ namespace detail
       const auto	blockDim = std::min({BlockDim, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<<<blocks, threads>>>(get(cbegin(*in) + j),
-						   get(begin(*out) + i),
+      cuda::device::transpose<<<blocks, threads>>>(cbegin(*in) + j,
+						   begin(*out) + i,
 						   stride_i, stride_o); // 左上
 
       r = blocks.y*threads.y;
@@ -629,15 +621,13 @@ transform2(IN in, IN ie, OUT out, OP op)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::transform2<<<blocks, threads>>>(get(cbegin(*in)),
-					    get( begin(*out)),
+    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(get(cbegin(*in)  + x),
-					    get( begin(*out) + x),
+    device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 					    op, stride_i, stride_o);
   // 左下
     std::advance(in, blocks.y*threads.y);
@@ -646,14 +636,12 @@ transform2(IN in, IN ie, OUT out, OP op)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::transform2<<<blocks, threads>>>(get(cbegin(*in)),
-					    get( begin(*out)),
+    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(get(cbegin(*in)  + x),
-					    get( begin(*out) + x),
+    device::transform2<<<blocks, threads>>>(cbegin(*in)  + x, begin(*out) + x,
 					    op, stride_i, stride_o);
 }
 #endif

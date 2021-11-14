@@ -61,7 +61,7 @@ Texture<T>::Texture(const Array<T>& a, bool normalize, bool interpolate,
     cudaResourceDesc	resdesc;
     memset(&resdesc, 0, sizeof(resdesc));
     resdesc.resType		   = cudaResourceTypeLinear;
-    resdesc.res.linear.devPtr	   = TU::cuda::get(a.data());
+    resdesc.res.linear.devPtr	   = a.data().get();
     resdesc.res.linear.desc	   = cudaCreateChannelDesc<T>();
     resdesc.res.linear.sizeInBytes = a.size()*sizeof(T);
 
@@ -97,7 +97,7 @@ Texture<T>::Texture(const Array2<T>& a, bool normalize, bool interpolate,
     cudaResourceDesc	resdesc;
     memset(&resdesc, 0, sizeof(resdesc));
     resdesc.resType			= cudaResourceTypePitch2D;
-    resdesc.res.pitch2D.devPtr		= TU::cuda::get(a.data());
+    resdesc.res.pitch2D.devPtr		= a.data().get();
     resdesc.res.pitch2D.desc		= cudaCreateChannelDesc<T>();
     resdesc.res.pitch2D.width		= a.ncol();
     resdesc.res.pitch2D.height		= a.nrow();

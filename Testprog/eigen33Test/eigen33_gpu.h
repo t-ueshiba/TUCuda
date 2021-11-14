@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TU/cuda/algorithm.h"
+#include "TU/cuda/functional.h"
 #include <thrust/device_vector.h>
 
 namespace TU

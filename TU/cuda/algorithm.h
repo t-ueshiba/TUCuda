@@ -584,216 +584,77 @@ transpose(IN in, IN ie, OUT out)
 #endif
 
 /************************************************************************
-*  canonical_xy(OUT out, OUT oe), depth_to_xyz(IN in, IN ie, OUT out)	*
+*  transform2(IN in, IN ie, OUT out, OP op)				*
 ************************************************************************/
-template <class ITER_K, class ITER_D> void
-set_intrinsic_parameters(ITER_K K, ITER_D d)				;
-
-template <class OUT> void
-canonical_xy(OUT out, OUT oe)						;
-
-template <class IN, class OUT> void
-depth_to_xyz(IN in, IN ie, OUT out)					;
+template <class IN, class OUT, class OP> void
+transform2(IN in, IN ie, OUT out, OP op)				;
 
 #if defined(__NVCC__)
 namespace device
 {
-  /*
-   *  Static __constant__ variables
-   */
-  template <class T> __constant__ static vec<T, 2>	_flen[1];
-  template <class T> __constant__ static vec<T, 2>	_uv0[1];
-  template <class T> __constant__ static T		_d[4];
-
-  /*
-   *  Static __device__ functions
-   */
-  template <class T>
-  struct undistort
-  {
-      __device__ vec<T, 2>
-      operator ()(const vec<T, 2>& uv) const
-      {
-	  static constexpr T	MAX_ERR  = 0.001*0.001;
-	  static constexpr int	MAX_ITER = 5;
-
-	  auto		xy  = (uv - _uv0<T>[0])/_flen<T>[0];
-	  const auto	xy0 = xy;
-
-	// compensate distortion iteratively
-	  for (int n = 0; n < MAX_ITER; ++n)
-	  {
-	      const auto	r2 = cuda::square(xy);
-	      const auto	k  = T(1) + (_d<T>[0] + _d<T>[1]*r2)*r2;
-	      if (k < T(0))
-		  break;
-
-	      const auto a = T(2) * xy.x * xy.y;
-	      vec<T, 2>	 delta{_d<T>[2]*a + _d<T>[3]*(r2 + T(2)*xy.x*xy.x),
-			       _d<T>[2]*(r2 + T(2)*xy.y*xy.y) + _d<T>[3]*a};
-	      const auto uv_proj = _flen<T>[0]*(k*xy + delta) + _uv0<T>[0];
-
-	      if (cuda::square(uv_proj - uv) < MAX_ERR)
-		  break;
-
-	      xy = (xy0 - delta)/k;	// compensate lens distortion
-	  }
-
-	  return xy;
-      }
-
-      __device__ vec<T, 3>
-      operator ()(const vec<T, 3>& uvd) const
-      {
-	  const auto	xy = (*this)(vec<T, 2>{uvd.x, uvd.y});
-	  return {uvd.z*xy.x, uvd.z*xy.y, uvd.z};
-      }
-  };
-
-  /*
-   *  Static __global__ functions
-   */
-  template <class OUT, class STRIDE> __global__ static void
-  canonical_xy(OUT xy, STRIDE stride)
-  {
-      using element_type = element_t<typename std::iterator_traits<OUT>
-						 ::value_type>;
-
-      const int	u = blockIdx.x*blockDim.x + threadIdx.x;
-      const int	v = blockIdx.y*blockDim.y + threadIdx.y;
-
-      advance_stride(xy, v*stride);
-
-      xy[u] = undistort<element_type>()({element_type(u), element_type(v)});
-  }
-
-  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
-  depth_to_points(IN depth, OUT point,
-		  STRIDE_I stride_i, STRIDE_O stride_o)
+  transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o)
   {
       using element_type = typename std::iterator_traits<IN>::value_type;
       
       const int	u = blockIdx.x*blockDim.x + threadIdx.x;
       const int	v = blockIdx.y*blockDim.y + threadIdx.y;
 
-      advance_stride(depth, v*stride_i);
-      advance_stride(point, v*stride_o);
+      advance_stride(in,  v*stride_i);
+      advance_stride(out, v*stride_o);
 
-      point[u] = undistort<element_type>()(vec<element_type, 3>{element_type(u),
-					    element_type(v), depth[u]});
+      out[u] = op(u, v, in[u]);
   }
 }	// namespace device
 
-template <class T, class ITER_K, class ITER_D> void
-set_intrinsic_parameters(ITER_K K, ITER_D d)
-{
-    vec<T, 2>	flen, uv0;
-    flen.x = *K;
-    std::advance(K, 2);
-    uv0.x = *K;
-    std::advance(K, 2);
-    flen.y = *K;
-    ++K;
-    uv0.y = *K;
-    const T	dd[] = {*d, *++d, *++d, *++d};
-
-    cudaMemcpyToSymbol(device::_flen<T>, &flen, sizeof(flen), 0,
-    		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_uv0<T>, &uv0, sizeof(uv0), 0,
-		       cudaMemcpyHostToDevice);
-    cudaMemcpyToSymbol(device::_d<T>,  dd, sizeof(dd), 0,
-		       cudaMemcpyHostToDevice);
-}
-
-template <class OUT> void
-canonical_xy(OUT xy, OUT xy_e)
-{
-    using	std::begin;
-    using	std::end;
-
-    const auto	nrow = std::distance(xy, xy_e);
-    if (nrow < 1)
-	return;
-
-    const auto	ncol = std::distance(begin(*xy), end(*xy));
-    if (ncol < 1)
-	return;
-
-    const auto	stride_o = stride(xy);
-
-  // 左上
-    dim3	threads(BlockDimX, BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy)), stride_o);
-
-  // 右上
-    const auto	x = blocks.x*threads.x;
-    threads.x = ncol%threads.x;
-    blocks.x  = 1;
-    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy) + x), stride_o);
-
-  // 左下
-    std::advance(xy, blocks.y*threads.y);
-    threads.x = BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow%threads.y;
-    blocks.y  = 1;
-    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy)), stride_o);
-
-  // 右下
-    threads.x = ncol%threads.x;
-    blocks.x  = 1;
-    device::canonical_xy<<<blocks, threads>>>(get(begin(*xy) + x), stride_o);
-}
-
-template <class IN, class OUT> void
-depth_to_points(IN depth, IN depth_e, OUT point)
+template <class IN, class OUT, class OP> void
+transform2(IN in, IN ie, OUT out, OP op)
 {
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
 
-    const auto	nrow = std::distance(depth, depth_e);
+    const auto	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
 
-    const auto	ncol = std::distance(cbegin(*depth), cend(*depth));
+    const auto	ncol = std::distance(cbegin(*in), cend(*in));
     if (ncol < 1)
 	return;
 
-    const auto	stride_i = stride(depth);
-    const auto	stride_o = stride(point);
+    const auto	stride_i = stride(in);
+    const auto	stride_o = stride(out);
 
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth)),
-						 get( begin(*point)),
-						 stride_i, stride_o);
+    device::transform2<<<blocks, threads>>>(get(cbegin(*in)),
+					    get( begin(*out)),
+					    op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth) + x),
-						 get( begin(*point) + x),
-						 stride_i, stride_o);
+    device::transform2<<<blocks, threads>>>(get(cbegin(*in)  + x),
+					    get( begin(*out) + x),
+					    op, stride_i, stride_o);
   // 左下
-    std::advance(depth, blocks.y*threads.y);
-    std::advance(point, blocks.y*threads.y);
+    std::advance(in, blocks.y*threads.y);
+    std::advance(out, blocks.y*threads.y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth)),
-						 get( begin(*point)),
-						 stride_i, stride_o);
+    device::transform2<<<blocks, threads>>>(get(cbegin(*in)),
+					    get( begin(*out)),
+					    op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::depth_to_points<<<blocks, threads>>>(get(cbegin(*depth) + x),
-						 get( begin(*point) + x),
-						 stride_i, stride_o);
+    device::transform2<<<blocks, threads>>>(get(cbegin(*in)  + x),
+					    get( begin(*out) + x),
+					    op, stride_i, stride_o);
 }
 #endif
 

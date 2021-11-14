@@ -553,7 +553,7 @@ struct plane_moment_generator
 };
 
 template <class T>
-struct plane_generator
+struct plane_estimator
 {
     using result_type = mat3x<T, 3>;
 
@@ -573,7 +573,7 @@ struct plane_generator
 			      sum.z.z - sum.x.z * plane.x.z}};
 	mat3x<T, 3>	evecs;
 	vec<T, 3>	evals;
-	eigen33(A, evecs, evals);
+	device::eigen33(A, evecs, evals);
 
 	T		eval_min;
 	if (evals.x < evals.y)

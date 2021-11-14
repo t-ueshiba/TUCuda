@@ -271,8 +271,8 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
 			       stride(ie), size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
-				   _c.begin()->begin(),
-				   device::init_coeffs<T>(n, _e)),
+				   device::init_coeffs<T>(n, _e),
+				   _c.begin()->begin()),
 			       stride(_c.begin()), _c.ncol()));
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．

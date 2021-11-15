@@ -590,13 +590,13 @@ namespace device
   {
       using element_type = typename std::iterator_traits<IN>::value_type;
       
-      const int	u = blockIdx.x*blockDim.x + threadIdx.x;
-      const int	v = blockIdx.y*blockDim.y + threadIdx.y;
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
-      advance_stride(in,  v*stride_i);
-      advance_stride(out, v*stride_o);
+      advance_stride(in,  y*stride_i);
+      advance_stride(out, y*stride_o);
 
-      out[u] = op(u, v, in[u]);
+      out[x] = op(x, y, in[x]);
   }
 }	// namespace device
 

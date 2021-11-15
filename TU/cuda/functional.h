@@ -613,6 +613,21 @@ struct plane_estimator
     }
 };
 
+template <class T>
+struct colored_normal
+{
+    using result_type	= vec<uint8_t, 3>;
+
+    __host__ __device__ result_type
+    operator ()(const mat4x<T, 3>& sum) const
+    {
+	const auto	normal = plane_estimator<T>()(sum).y;
+
+	return {uint8_t(128 + 127*normal.x),
+		uint8_t(128 + 127*normal.y),
+		uint8_t(128 + 127*normal.z)};
+    }
+};
 
 }	// namespace cuda
 }	// namespace TU

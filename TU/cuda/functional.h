@@ -543,7 +543,7 @@ struct plane_moment_generator
 {
     using result_type = mat4x<T, 3>;
 
-    __device__ result_type
+    __host__ __device__ result_type
     operator ()(const vec<T, 3>& point) const
     {
 	return {point, point.x * point,
@@ -557,7 +557,7 @@ struct plane_estimator
 {
     using result_type = mat3x<T, 3>;
 
-    __device__ result_type
+    __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& sum) const
     {
 	const auto	sc = T(1)/sum.w.x;

@@ -34,7 +34,7 @@ namespace device
 }	// namespace device
 #endif
 
-template <class T> vec<T, 3>
+template <class T> void
 tridiagonal33(const mat3x<T, 3>& A,
 	      mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 3>& e)
 {
@@ -46,8 +46,8 @@ tridiagonal33(const mat3x<T, 3>& A,
     thrust::device_vector<vec_t>	d_d(1);
     thrust::device_vector<vec_t>	e_d(1);
 
-    device::test_tridiagonal33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]),
-					 get(&d_d[0]), get(&e_d[0]));
+    device::test_tridiagonal33<<<1, 1>>>(A_d.data().get(), Qt_d.data().get(),
+					 d_d.data().get(), e_d.data().get());
 
     thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
     d = d_d[0];
@@ -64,7 +64,8 @@ qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
     thrust::device_vector<mat_t>	Qt_d(1);
     thrust::device_vector<vec_t>	w_d(1);
 
-    device::test_qr33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]), get(&w_d[0]));
+    device::test_qr33<<<1, 1>>>(A_d.data().get(), Qt_d.data().get(),
+				w_d.data().get());
 
     thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
     vec_t	w;
@@ -83,7 +84,8 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
     thrust::device_vector<mat_t>	Qt_d(1);
     thrust::device_vector<vec_t>	w_d(1);
 
-    device::test_eigen33<<<1, 1>>>(get(&A_d[0]), get(&Qt_d[0]), get(&w_d[0]));
+    device::test_eigen33<<<1, 1>>>(A_d.data().get(), Qt_d.data().get(),
+				   w_d.data().get());
 
     thrust::copy(Qt_d.begin(), Qt_d.end(), &Qt);
     vec_t	w;

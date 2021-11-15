@@ -165,13 +165,13 @@ warp(const Array2<T>& a, OUT out, MAP map)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 map, 0, 0, stride_o);
   // 右上
     const auto	x0 = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 map, x0, 0, stride_o);
   // 左下
     const auto	y0 = blocks.y*threads.y;
@@ -179,12 +179,12 @@ warp(const Array2<T>& a, OUT out, MAP map)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 map, 0, y0, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), get(begin(*out)),
+    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 map, x0, y0, stride_o);
 }
 #endif

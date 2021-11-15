@@ -539,7 +539,7 @@ namespace device
 #endif
 
 template <class T>
-struct plane_moment_generator
+struct plane_moment
 {
     using result_type = mat4x<T, 3>;
 
@@ -566,7 +566,7 @@ struct plane_estimator
 
 	mat3x<T, 3>	A = {sum.y - sum.x.x * plane.x,
 			     {T(0),
-			      sum.z.x - sum.x.y * plane.x.z,
+			      sum.z.x - sum.x.y * plane.x.y,
 			      sum.z.y - sum.x.y * plane.x.z},
 			     {T(0),
 			      T(0),

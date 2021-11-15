@@ -330,7 +330,7 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     if (ncols < _winSizeH)
 	return;
 
-    ncols = outSizeH(ncols);
+    nrows = outSizeV(nrows);
     _buf.resize(ncols, nrows);
 
     const auto	strideI = stride(row);
@@ -342,15 +342,19 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
   // 左上
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-    	cbegin(*row), begin(_buf[0]), _winSizeV, strideI, strideB);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(*row),
+							begin(_buf[0]),
+							_winSizeV,
+							strideI, strideB);
   // 右上
-    const auto	x = blocks.x*threads.x;
+    auto	x = blocks.x*threads.x;
     threads.x = ncols - x;
     blocks.x  = 1;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(*row) + x, begin(_buf[x]),
-	_winSizeV, strideI, strideB);
+    if (x < ncols)
+	device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(*row) + x,
+							    begin(_buf[x]),
+							    _winSizeV,
+							    strideI, strideB);
   // 左下
     auto	y = blocks.y*threads.y;
     std::advance(row, y);
@@ -358,16 +362,19 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     blocks.x  = ncols/threads.x;
     threads.y = nrows - y;
     blocks.y  = 1;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]) + y,
-	_winSizeV, strideI, strideB);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(*row),
+							begin(_buf[0]) + y,
+							_winSizeV,
+							strideI, strideB);
   // 右下
     threads.x = ncols - x;
     blocks.x  = 1;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(*row) + x, begin(_buf[x]) + y,
-	_winSizeV, strideI, strideB);
-
+    if (x < ncols)
+	device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(*row) + x,
+							    begin(_buf[x]) + y,
+							    _winSizeV,
+							    strideI, strideB);
+    
   // ---- 横方向積算 ----
     size_t	dx = 0;
     if (shift)
@@ -378,21 +385,24 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
 
     cudaDeviceSynchronize();
     profiler_t::start(2);
-    nrows = outSizeH(nrows);
+    ncols = outSizeH(ncols);
   // 左上
     threads.x = BlockDim;
     blocks.x  = nrows/threads.x;
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]), begin(*rowO) + dx,
-	_winSizeH, strideB, strideO);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(_buf[0]),
+							begin(*rowO) + dx,
+							_winSizeH,
+							strideB, strideO);
   // 左下
+    x	      = blocks.y*threads.y;
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]), begin(*rowO) + x + dx,
-	_winSizeH, strideB, strideO);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(_buf[x]),
+							begin(*rowO) + x + dx,
+							_winSizeH,
+							strideB, strideO);
   // 右上
     y	      = blocks.x*threads.x;
     std::advance(rowO, y);
@@ -400,15 +410,17 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     blocks.x  = 1;
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]) + y, begin(*rowO) + dx,
-	_winSizeH, strideB, strideO);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(_buf[0]) + y,
+							begin(*rowO) + dx,
+							_winSizeH,
+							strideB, strideO);
   // 右下
     threads.y = ncols - x;
     blocks.y  = 1;
-    device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]) + y, begin(*rowO) + x + dx,
-	_winSizeH, strideB, strideO);
+    device::box_filter<BoxFilter2><<<blocks, threads>>>(cbegin(_buf[x]) + y,
+    							begin(*rowO) + x + dx,
+    							_winSizeH,
+    							strideB, strideO);
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
 }

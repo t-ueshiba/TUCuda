@@ -641,7 +641,7 @@ transform2(IN in, IN ie, OUT out, OP op)
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in)  + x, begin(*out) + x,
+    device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
 					    op, stride_i, stride_o);
 }
 #endif

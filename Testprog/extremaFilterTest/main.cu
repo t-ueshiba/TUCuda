@@ -7,6 +7,7 @@
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
+#include "TU/cuda/ExtremaFilter.h"
 #include <thrust/functional.h>
 
 //#define OP_H	cuda::maximal3x3
@@ -18,15 +19,23 @@
 *  Global fucntions							*
 ************************************************************************/
 int
-main(int argc, char *argv[])
+main(int argc, char* argv[])
 {
     using namespace	std;
     using namespace	TU;
 
-  //typedef u_char	in_t;
-    typedef float	in_t;
-  //typedef u_char	out_t;
-    typedef float	out_t;
+    using in_t	= float;
+    using out_t	= float;
+    
+    size_t		winSize = 3;
+    extern char*	optarg;
+    for (int c; (c = getopt(argc, argv, "w:")) != -1; )
+	switch (c)
+	{
+	  case 'w':
+	    winSize = atoi(optarg);
+	    break;
+	}
     
     try
     {
@@ -35,11 +44,12 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::Array2<in_t>	in_d(in);
-	cuda::Array2<out_t>	out_d(in_d.nrow(), in_d.ncol());
+	cuda::ExtremaFilter2<in_t>	extrema(winSize, winSize);
+	cuda::Array2<in_t>		in_d(in);
+	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
 
-	cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
-				    out_d.begin(), OP_D<in_t>());
+	extrema.convolve(in_d.cbegin(), in_d.cend(),
+			 out_d.begin(), OP_D<in_t>());
 	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -47,8 +57,8 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)
 	{
 	    cuProfiler.start(0);
-	    cuda::suppressNonExtrema3x3(in_d.cbegin(), in_d.cend(),
-					out_d.begin(), OP_D<in_t>());
+	    extrema.convolve(in_d.cbegin(), in_d.cend(),
+			     out_d.begin(), OP_D<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
@@ -57,16 +67,18 @@ main(int argc, char *argv[])
 	out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
-	Profiler<>	profiler(1);
-	Image<out_t>	outGold;
-	for (u_int n = 0; n < 10; ++n)
-	{
-	    outGold = in;
-	    profiler.start(0);
-	    op3x3(outGold.begin(), outGold.end(), OP_H<in_t>());
-	    profiler.nextFrame();
-	}
-	profiler.print(cerr);
+	Image<out_t>	outGold(in.nrow(), in.ncol());
+	for (size_t v = 0; v < in.height() - winSize + 1; ++v)
+	    for (size_t u = 0; u < in.width() - winSize + 1; ++u)
+	    {
+		in_t	minval = 100000;
+		
+		for (size_t vv = v ; vv < v + winSize; ++vv)
+		    for (size_t uu = u ; uu < u + winSize; ++uu)
+			if (in[vv][uu] < minval)
+			    minval = in[vv][uu];
+		outGold[v][u] = minval;
+	    }
 	outGold.save(cout);
 
       // 結果を比較する．

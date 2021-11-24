@@ -352,8 +352,8 @@ namespace device
 {
   template <class IN, class OUT, class OP> __global__ static void
   extrema3x3(IN in, OUT out, OP op,
-		    typename std::iterator_traits<IN>::value_type nulval,
-		    int stride_i, int stride_o)
+	     typename std::iterator_traits<IN>::value_type nulval,
+	     int stride_i, int stride_o)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 

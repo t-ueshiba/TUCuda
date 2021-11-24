@@ -63,10 +63,10 @@ namespace device
   /**********************************************************************
   *  __global__ functions						*
   **********************************************************************/
-  template <class FILTER, class IN, class OUT, class OP,
+  template <class FILTER, class IN, class OUT, class COMPARE,
 	    class STRIDE_I, class STRIDE_O>
   __global__ void
-  extrema_filter(IN in, OUT out, OP op, int winSize,
+  extrema_filter(IN in, OUT out, COMPARE compare, int winSize,
 		 STRIDE_I strideI, STRIDE_O strideO)
   {
       using value_type  =	typename FILTER::value_type;
@@ -77,10 +77,11 @@ namespace device
 
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
-
+      const auto	winSize1 = winSize - 1;
+      
       advance_stride(in, y0*strideI);
       in += x0;
-      loadTileV(in, strideI, in_s, winSize - 1);
+      loadTileV(in, strideI, in_s, winSize1);
       __syncthreads();
 
       if (threadIdx.y == 0)
@@ -88,9 +89,10 @@ namespace device
 	  deque<int, FILTER::WinSizeMax> q;
 	  q.push_back(0);
 
-	  for (int y = 0; ++y != blockDim.y + winSize - 1; )
+	  for (int y = 0; ++y != blockDim.y + winSize1; )
 	  {
-	      while (!op(in_s[q.back()][threadIdx.x], in_s[y][threadIdx.x]))
+	      while (compare(in_s[y][threadIdx.x],
+			     in_s[q.back()][threadIdx.x]))
 	      {
 		  q.pop_back();
 		  if (q.empty())
@@ -101,9 +103,77 @@ namespace device
 	      if (y == q.front() + winSize)
 		  q.pop_front();
 	      
-	      if (y >= winSize - 1)
-		  out_s[y - winSize + 1][threadIdx.x]
+	      if (y >= winSize1)
+		  out_s[y - winSize1][threadIdx.x]
 		      = in_s[q.front()][threadIdx.x];
+	  }
+      }
+      __syncthreads();
+
+    // 結果を転置して格納
+      if (blockDim.x == blockDim.y)
+      {
+	  advance_stride(out, (x0 + threadIdx.y)*strideO);
+	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+      }
+      else
+      {
+	  advance_stride(out, (x0 + threadIdx.x)*strideO);
+	  out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
+      }
+  }
+
+  template <class FILTER, class IN, class OUT, class POS, class COMPARE,
+	    class STRIDE_I, class STRIDE_O, class STRIDE_P>
+  __global__ void
+  extrema_filter(IN in, OUT out, POS pos, COMPARE compare, int int2::* coord,
+		 int winSize,
+		 STRIDE_I strideI, STRIDE_O strideO, STRIDE_P strideP)
+  {
+      using value_type  =	typename FILTER::value_type;
+
+      __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+				    [FILTER::BlockDim + 1];
+      __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+
+      const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
+      const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
+      const auto	winSize1 = winSize - 1;
+      
+      advance_stride(in, y0*strideI);
+      in += x0;
+      loadTileV(in, strideI, in_s, winSize1);
+      __syncthreads();
+
+      advance_stride(pos, y0*strideP);
+      pos += x0;
+      
+      if (threadIdx.y == 0)
+      {
+	  deque<int, FILTER::WinSizeMax> q;
+	  q.push_back(0);
+
+	  for (int y = 0; ++y != blockDim.y + winSize1; )
+	  {
+	      while (compare(in_s[y][threadIdx.x],
+			     in_s[q.back()][threadIdx.x]))
+	      {
+		  q.pop_back();
+		  if (q.empty())
+		      break;
+	      }
+	      q.push_back(y);
+
+	      if (y == q.front() + winSize)
+		  q.pop_front();
+	      
+	      if (y >= winSize1)
+	      {
+		  out_s[y - winSize1][threadIdx.x]
+		      = in_s[q.front()][threadIdx.x];
+		  pos[threadIdx.x].*coord = y0 + q.front();
+		  advance_stride(pos, strideP);
+	      }
 	  }
 
       }
@@ -178,9 +248,9 @@ class ExtremaFilter2 : public Profiler<CLOCK>
     size_t		offsetV()		const	{ return _winSizeV/2; }
     size_t		offsetH()		const	{ return _winSizeH/2; }
 
-    template <class ROW, class ROW_O, class OP>
+    template <class ROW, class ROW_O, class COMPARE>
     void		convolve(ROW row, ROW rowe, ROW_O rowO,
-				 OP op, bool shift=false)	const	;
+				 COMPARE op, bool shift=false)	const	;
 
   private:
     size_t		_winSizeV;
@@ -190,9 +260,9 @@ class ExtremaFilter2 : public Profiler<CLOCK>
 
 #if defined(__NVCC__)
 template <class T, class CLOCK, size_t WMAX>
-template <class ROW, class ROW_O, class OP> void
+template <class ROW, class ROW_O, class COMPARE> void
 ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
-					 OP op, bool shift) const
+					 COMPARE compare, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -222,7 +292,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     dim3	threads(BlockDim, BlockDim);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]), op, _winSizeV, strideI, strideB);
+	cbegin(*row), begin(_buf[0]), compare, _winSizeV, strideI, strideB);
 
   // 右上
     auto	x = blocks.x*threads.x;
@@ -230,7 +300,8 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     blocks.x  = 1;
     if (x < ncols)
 	device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	    cbegin(*row) + x, begin(_buf[x]), op, _winSizeV, strideI, strideB);
+	    cbegin(*row) + x, begin(_buf[x]), compare, _winSizeV,
+	    strideI, strideB);
 
   // 左下
     auto	y = blocks.y*threads.y;
@@ -240,14 +311,15 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     threads.y = nrows - y;
     blocks.y  = 1;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]) + y, op, _winSizeV, strideI, strideB);
+	cbegin(*row), begin(_buf[0]) + y, compare, _winSizeV,
+	strideI, strideB);
 
   // 右下
     threads.x = ncols - x;
     blocks.x  = 1;
     if (x < ncols)
 	device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	    cbegin(*row) + x, begin(_buf[x]) + y, op, _winSizeV,
+	    cbegin(*row) + x, begin(_buf[x]) + y, compare, _winSizeV,
 	    strideI, strideB);
     
   // ---- 横方向積算 ----
@@ -268,14 +340,15 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]), begin(*rowO) + dx, op, _winSizeH, strideB, strideO);
+	cbegin(_buf[0]), begin(*rowO) + dx, compare, _winSizeH,
+	strideB, strideO);
 
   // 左下
     x	      = blocks.y*threads.y;
     threads.y = ncols - x;
     blocks.y  = 1;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]), begin(*rowO) + x + dx, op, _winSizeH,
+	cbegin(_buf[x]), begin(*rowO) + x + dx, compare, _winSizeH,
 	strideB, strideO);
 
   // 右上
@@ -286,22 +359,22 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     threads.y = BlockDim;
     blocks.y  = ncols/threads.y;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]) + y, begin(*rowO) + dx, op, _winSizeH,
+	cbegin(_buf[0]) + y, begin(*rowO) + dx, compare, _winSizeH,
 	strideB, strideO);
 
   // 右下
     threads.y = ncols - x;
     blocks.y  = 1;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]) + y, begin(*rowO) + x + dx, op, _winSizeH,
+	cbegin(_buf[x]) + y, begin(*rowO) + x + dx, compare, _winSizeH,
 	strideB, strideO);
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
 }
 
-template <class T, class ROW, class ROW_O, class OP> void
-extrema_filter(ROW row, ROW rowe, ROW_O rowO, OP op, size_t winSize)
+template <class T, class ROW, class ROW_O, class COMPARE> void
+extrema_filter(ROW row, ROW rowe, ROW_O rowO, COMPARE compare, size_t winSize)
 {
     using	std::cbegin;
     using	std::cend;
@@ -326,7 +399,7 @@ extrema_filter(ROW row, ROW rowe, ROW_O rowO, OP op, size_t winSize)
     dim3	threads(nrows, ncols);
     dim3	blocks(1, 1);
     device::extrema_filter<ExtremaFilter2<T> ><<<blocks, threads>>>(
-	cbegin(*row), begin(*rowO), op, winSize, strideI, strideO);
+	cbegin(*row), begin(*rowO), compare, winSize, strideI, strideO);
 }
 
 #endif	// __NVCC__

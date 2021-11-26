@@ -22,7 +22,7 @@ namespace cuda
 template <class T>
 struct diffH3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -35,7 +35,7 @@ struct diffH3x3
 template <class T>
 struct diffV3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -48,7 +48,7 @@ struct diffV3x3
 template <class T>
 struct diffHH3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -61,7 +61,7 @@ struct diffHH3x3
 template <class T>
 struct diffVV3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -74,7 +74,7 @@ struct diffVV3x3
 template <class T>
 struct diffHV3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -87,7 +87,7 @@ struct diffHV3x3
 template <class T>
 struct sobelH3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -100,7 +100,7 @@ struct sobelH3x3
 template <class T>
 struct sobelV3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -113,13 +113,12 @@ struct sobelV3x3
 template <class T>
 struct sobelAbs3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
     {
-	return std::abs(sobelH3x3<T>()(p, c, n))
-	     + std::abs(sobelV3x3<T>()(p, c, n));
+	return abs(sobelH3x3<T>()(p, c, n)) + abs(sobelV3x3<T>()(p, c, n));
     }
 };
 
@@ -127,7 +126,7 @@ struct sobelAbs3x3
 template <class T>
 struct laplacian3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -140,7 +139,7 @@ struct laplacian3x3
 template <class T>
 struct det3x3
 {
-    typedef T	result_type;
+    using result_type = T;
 
     template <class ITER> __host__ __device__ T
     operator ()(ITER p, ITER c, ITER n) const
@@ -156,7 +155,7 @@ template <class T>
 class maximal3x3
 {
   public:
-    typedef T	result_type;
+    using result_type = T;
 
     __host__ __device__
     maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
@@ -179,7 +178,7 @@ template <class T>
 class minimal3x3
 {
   public:
-    typedef T	result_type;
+    using result_type = T;
 
     __host__ __device__
     minimal3x3(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}

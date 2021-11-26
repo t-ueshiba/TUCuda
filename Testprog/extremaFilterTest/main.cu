@@ -47,9 +47,10 @@ main(int argc, char* argv[])
 	cuda::ExtremaFilter2<in_t>	extrema(winSize, winSize);
 	cuda::Array2<in_t>		in_d(in);
 	cuda::Array2<out_t>		out_d(in_d.nrow(), in_d.ncol());
+	cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
 
 	extrema.convolve(in_d.cbegin(), in_d.cend(),
-			 out_d.begin(), OP_D<in_t>());
+			 out_d.begin(), pos_d.begin(), OP_D<in_t>());
 	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -58,13 +59,14 @@ main(int argc, char* argv[])
 	{
 	    cuProfiler.start(0);
 	    extrema.convolve(in_d.cbegin(), in_d.cend(),
-			     out_d.begin(), OP_D<in_t>());
+			     out_d.begin(), pos_d.begin(), OP_D<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
-
+	
 	Image<out_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
+	std::cerr << "OK" << std::endl;
 
       // CPUによって計算する．
 	Image<out_t>	outGold(in.nrow(), in.ncol());

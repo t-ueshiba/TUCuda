@@ -23,7 +23,7 @@ doJob(const Image<T>& in, size_t winSize)
     cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
 
     extrema.convolve(in_d.cbegin(), in_d.cend(),
-		     out_d.begin(), pos_d.begin(), thrust::less<T>());
+		     out_d.begin(), thrust::less<T>());
     cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cuProfiler(1);
@@ -32,7 +32,7 @@ doJob(const Image<T>& in, size_t winSize)
     {
 	cuProfiler.start(0);
 	extrema.convolve(in_d.cbegin(), in_d.cend(),
-			 out_d.begin(), pos_d.begin(), thrust::less<T>());
+			 out_d.begin(), thrust::less<T>());
 	cuProfiler.nextFrame();
     }
     cuProfiler.print(std::cerr);
@@ -74,20 +74,20 @@ doJob2(const Image<T>& in)
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
     cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.convolve(in_d.cbegin(), in_d.cend(),
-		     out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
+    extrema.extrema(in_d.cbegin(), in_d.cend(),
+		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), false);
 
     Array2<short2>	pos(pos_d);
-    Image<T>		out(in.nrow(), in.ncol());
+    Image<T>		out(in.width(), in.height());
     for (size_t v = 0; v < out.nrow(); ++v)
     {
       //std::cerr << "v=" << v << ':';
-	for (size_t u = 0; u < out.ncol(); ++u)
-	{
-	    const auto	p = pos[v][u];
-	  //std::cerr << p;
-	    out[p.y][p.x] = in[p.y][p.x];
-	}
+    	for (size_t u = 0; u < out.ncol(); ++u)
+    	{
+    	    const auto	p = pos[v][u];
+    	  //std::cerr << p;
+    	    out[v][u] = in[p.y][p.x];
+    	}
       //std::cerr << std::endl;
     }
     out.save(std::cout);				// 結果画像をセーブ

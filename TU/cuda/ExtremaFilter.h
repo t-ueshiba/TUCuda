@@ -127,7 +127,8 @@ namespace device
 	    class COMPARE, class STRIDE_I, class STRIDE_O>
   __global__ void
   extrema_filterV(IN in, OUT out, POS pos, COMPARE compare, int winSize,
-		  STRIDE_I strideI, STRIDE_O strideO, ptrdiff_t strideP)
+		  STRIDE_I strideI, STRIDE_O strideO, ptrdiff_t strideP,
+		  int xx, int yy)
   {
       using value_type  =	typename FILTER::value_type;
 
@@ -139,12 +140,10 @@ namespace device
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
       const auto	winSize1 = winSize - 1;
-      
+
       advance_stride(in, y0*strideI);
       in += x0;
       loadTileV(in, strideI, in_s, winSize1);
-      advance_stride(pos, y0*strideP);
-      pos += x0;
 
       __syncthreads();
 
@@ -172,7 +171,7 @@ namespace device
 		  out_s[y - winSize1][threadIdx.x]
 		      = in_s[q.front()][threadIdx.x];
 		  pos_s[y - winSize1][threadIdx.x]
-		      = {short(x0 + threadIdx.x), short(y0 + q.front())};
+		      = make_short2(x0 + xx + threadIdx.x, y0 + yy + q.front());
 	      }
 	  }
       }
@@ -181,10 +180,10 @@ namespace device
     // 結果を転置して格納
       if (blockDim.x == blockDim.y)
       {
-	  advance_stride(out, (x0 + threadIdx.y)*strideO);
-	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
-	  advance_stride(pos, (x0 + threadIdx.y)*strideP);
-	  pos[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
+      	  advance_stride(out, (x0 + threadIdx.y)*strideO);
+      	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+      	  advance_stride(pos, (x0 + threadIdx.y)*strideP);
+      	  pos[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
       }
       else
       {
@@ -208,7 +207,8 @@ namespace device
       __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
 				    [FILTER::BlockDim + 1];
       __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
-      __shared__ short2		pos_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+      __shared__ short2		pos_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+				     [FILTER::BlockDim + 1];
 
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
@@ -252,11 +252,6 @@ namespace device
 		      = in_s[q.front()][threadIdx.x];
 		  pos_s[y - winSize1][threadIdx.x]
 		      = pos_s[q.front()][threadIdx.x];
-		  if (threadIdx.x == 0 || threadIdx.x == 1)
-		      printf("pos_s[%d][%d]=[%d %d]\n",
-			     q.front(), threadIdx.x,
-			     pos_s[q.front()][threadIdx.x].x,
-			     pos_s[q.front()][threadIdx.x].y);
 	      }
 	  }
       }
@@ -265,10 +260,10 @@ namespace device
     // 結果を転置して格納
       if (blockDim.x == blockDim.y)
       {
-      	  advance_stride(out, (x0 + threadIdx.y)*strideO);
-      	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
-      	  advance_stride(pos_out, (x0 + threadIdx.y)*stridePO);
-      	  pos_out[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
+	  advance_stride(out, (x0 + threadIdx.y)*strideO);
+	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+	  advance_stride(pos_out, (x0 + threadIdx.y)*stridePO);
+	  pos_out[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
       }
       else
       {
@@ -295,7 +290,7 @@ class ExtremaFilter2 : public Profiler<CLOCK>
     using value_type	= T;
 
     constexpr static size_t	WinSizeMax = WMAX;
-    constexpr static size_t	BlockDim   = 16;
+    constexpr static size_t	BlockDim   = 3;
 
   public:
 			ExtremaFilter2(size_t winSizeV, size_t winSizeH)
@@ -484,9 +479,12 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     if (ncols < _winSizeH)
 	return;
 
+    std::cerr << "IN:  " << nrows << 'x' << ncols << std::endl;
     nrows = outSizeV(nrows);
     _buf.resize(ncols, nrows);
     _buf_pos.resize(ncols, nrows);
+    std::cerr << "BUF: " << ncols << 'x' << nrows << std::endl;
+    
 
     const auto	strideI  = stride(row);
     const auto	strideO  = stride(rowO);
@@ -502,7 +500,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(*row), begin(_buf[0]), begin(_buf_pos[0]),
-	compare, _winSizeV, strideI, strideB, strideBP);
+	compare, _winSizeV, strideI, strideB, strideBP, 0, 0);
 
   // 右上
     auto	x = blocks.x*threads.x;
@@ -511,7 +509,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     if (x < ncols)
 	device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
 	    cbegin(*row) + x, begin(_buf[x]), begin(_buf_pos[x]),
-	    compare, _winSizeV, strideI, strideB, strideBP);
+	    compare, _winSizeV, strideI, strideB, strideBP, x, 0);
 
   // 左下
     auto	y = blocks.y*threads.y;
@@ -522,7 +520,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     blocks.y  = 1;
     device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(*row), begin(_buf[0]) + y, begin(_buf_pos[0]) + y,
-	compare, _winSizeV, strideI, strideB, strideBP);
+	compare, _winSizeV, strideI, strideB, strideBP, 0, y);
 
   // 右下
     threads.x = ncols - x;
@@ -530,7 +528,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     if (x < ncols)
 	device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
 	    cbegin(*row) + x, begin(_buf[x]) + y, begin(_buf_pos[x]) + y,
-	    compare, _winSizeV, strideI, strideB, strideBP);
+	    compare, _winSizeV, strideI, strideB, strideBP, x, y);
 
     TU::Array2<short2>	buf_pos(_buf_pos);
     for (size_t u = 0; u < buf_pos.ncol(); ++u)
@@ -540,7 +538,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 	std::cerr << std::endl;
     }
     std::cerr << std::endl;
-    
+
   // ---- 横方向積算 ----
     size_t	dx = 0;
     if (shift)
@@ -585,6 +583,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 	cbegin(_buf_pos[0]) + y, begin(*rowP) + dx,
 	compare, _winSizeH, strideB, strideO, strideBP, strideP);
 
+
   // 右下
     threads.y = ncols - x;
     blocks.y  = 1;
@@ -595,6 +594,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
+    std::cerr << "OK9" << std::endl;
 }
 #endif	// __NVCC__
 }	// namespace cuda

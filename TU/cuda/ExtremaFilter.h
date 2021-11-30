@@ -222,9 +222,6 @@ namespace device
       pos_in += x0;
       loadTileV(pos_in, stridePI, pos_s, winSize1);
 
-      advance_stride(pos_out, y0*stridePO);
-      pos_out += x0;
-
       __syncthreads();
 
       if (threadIdx.y == 0)
@@ -290,7 +287,7 @@ class ExtremaFilter2 : public Profiler<CLOCK>
     using value_type	= T;
 
     constexpr static size_t	WinSizeMax = WMAX;
-    constexpr static size_t	BlockDim   = 3;
+    constexpr static size_t	BlockDim   = 16;
 
   public:
 			ExtremaFilter2(size_t winSizeV, size_t winSizeH)
@@ -479,12 +476,9 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     if (ncols < _winSizeH)
 	return;
 
-    std::cerr << "IN:  " << nrows << 'x' << ncols << std::endl;
     nrows = outSizeV(nrows);
     _buf.resize(ncols, nrows);
     _buf_pos.resize(ncols, nrows);
-    std::cerr << "BUF: " << ncols << 'x' << nrows << std::endl;
-    
 
     const auto	strideI  = stride(row);
     const auto	strideO  = stride(rowO);
@@ -530,15 +524,6 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 	    cbegin(*row) + x, begin(_buf[x]) + y, begin(_buf_pos[x]) + y,
 	    compare, _winSizeV, strideI, strideB, strideBP, x, y);
 
-    TU::Array2<short2>	buf_pos(_buf_pos);
-    for (size_t u = 0; u < buf_pos.ncol(); ++u)
-    {
-	for (size_t v = 0; v < buf_pos.nrow(); ++v)
-	    std::cerr << buf_pos[v][u];
-	std::cerr << std::endl;
-    }
-    std::cerr << std::endl;
-
   // ---- 横方向積算 ----
     size_t	dx = 0;
     if (shift)
@@ -574,6 +559,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
   // 右上
     y	      = blocks.x*threads.x;
     std::advance(rowO, y);
+    std::advance(rowP, y);
     threads.x = nrows - y;
     blocks.x  = 1;
     threads.y = BlockDim;
@@ -582,7 +568,6 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 	cbegin(_buf[0]) + y, begin(*rowO) + dx,
 	cbegin(_buf_pos[0]) + y, begin(*rowP) + dx,
 	compare, _winSizeH, strideB, strideO, strideBP, strideP);
-
 
   // 右下
     threads.y = ncols - x;
@@ -594,7 +579,6 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
-    std::cerr << "OK9" << std::endl;
 }
 #endif	// __NVCC__
 }	// namespace cuda

@@ -75,27 +75,88 @@ doJob2(const Image<T>& in)
     cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
 
     extrema.extrema(in_d.cbegin(), in_d.cend(),
-		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), false);
+		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
 
     Array2<short2>	pos(pos_d);
     Image<T>		out(in.width(), in.height());
-    for (size_t v = 0; v < out.nrow(); ++v)
-    {
-      //std::cerr << "v=" << v << ':';
-    	for (size_t u = 0; u < out.ncol(); ++u)
+    out = 0;
+    for (size_t v = 1; v < out.nrow() - 1; ++v)
+    	for (size_t u = 1; u < out.ncol() - 1; ++u)
     	{
     	    const auto	p = pos[v][u];
-    	  //std::cerr << p;
-    	    out[v][u] = in[p.y][p.x];
+    	    out[p.y][p.x] = in[p.y][p.x];
     	}
-      //std::cerr << std::endl;
-    }
     out.save(std::cout);				// 結果画像をセーブ
 
     cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(),
 		cuda::maximal3x3<T>());
-    out = out_d;
-    out.save(std::cout);
+    Image<T>	out2(out_d);
+    out2.save(std::cout);
+
+  // 結果を比較する．
+    std::cerr << std::setprecision(5);
+    const int	V = 160;
+    for (size_t u = 2; u < out.width() - 2; ++u)
+	    if (out[V][u] != 0)
+	    {
+		std::cerr << '(' << u << ',' << V << "): " << out[V][u]
+			  << std::endl;
+		std::cerr << slice<5, 5>(in,  V-2, u-2);
+		std::cerr << slice<5, 5>(pos, V-2, u-2);
+		std::cerr << slice<5, 5>(out, V-2, u-2);
+	    }
+
+    // for (size_t v = 1; v < out.height() - 1; ++v)
+    // 	for (size_t u = 1; u < out.width() - 1; ++u)
+    // 	    if (v == V && out[v][u] != out2[v][u])
+    // 	    {
+    // 		std::cerr << '(' << u << ',' << v << "): "
+    // 			  << out[v][u] << " != " << out2[v][u] << std::endl;
+    // 		std::cerr << slice<3, 3>(in, v-1, u-1);
+    // 	    }
+
+    // const int	V = 160;
+    // for (u_int u = 1; u < out.width() - 1; ++u)
+    // 	if (out[V][u] != out2[V][u])
+    // 	{
+    // 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
+    // 		      << ')' << std::endl;
+    // 	    std::cerr << slice<3, 3>(in, V-1, u-1);
+    // 	}
+}
+    
+template <class T> void
+doJob3(const Image<T>& in, size_t winSize)
+{
+    const cuda::ExtremaFilter2<T>	extrema(winSize, winSize);
+    const cuda::Array2<T>		in_d(in);
+    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
+
+    extrema.extrema(in_d.cbegin(), in_d.cend(),
+		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
+
+    Image<T>		out(out_d);
+    out.save(std::cout);				// 結果画像をセーブ
+
+    Array2<short2>	pos(pos_d);
+    Image<T>		out2(in.width(), in.height());
+    for (size_t v = 0; v < out2.nrow(); ++v)
+    {
+    	for (size_t u = 0; u < out2.ncol(); ++u)
+    	{
+    	    const auto	p = pos[v][u];
+    	    out2[v][u] = in[p.y][p.x];
+    	}
+    }
+    out2.save(std::cout);
+
+  // 結果を比較する．
+    const int	V = 160;
+    for (u_int u = 1; u < out.width() - 1; ++u)
+	if (out[V][u] != out2[V][u])
+	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
+		      << ')' << std::endl;
 }
     
 }	// namespace TU
@@ -126,6 +187,7 @@ main(int argc, char* argv[])
 	
       //TU::doJob(in, winSize);
 	TU::doJob2(in);
+      //TU::doJob3(in, winSize);
     }
     catch (std::exception& err)
     {

@@ -586,17 +586,16 @@ namespace device
 {
   template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
-  transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o)
+  transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o,
+	     int x0, int y0)
   {
-      using element_type = typename std::iterator_traits<IN>::value_type;
-      
       const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
       advance_stride(in,  y*stride_i);
       advance_stride(out, y*stride_o);
 
-      out[x] = op(x, y, in[x]);
+      out[x] = op(x0 + x, y0 + y, in[x]);
   }
 }	// namespace device
 
@@ -622,27 +621,28 @@ transform2(IN in, IN ie, OUT out, OP op)
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o);
+					    op, stride_i, stride_o, 0, 0);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-					    op, stride_i, stride_o);
+					    op, stride_i, stride_o, x, 0);
   // 左下
-    std::advance(in, blocks.y*threads.y);
-    std::advance(out, blocks.y*threads.y);
+    const auto	y = blocks.y*threads.y;
+    std::advance(in, y);
+    std::advance(out, y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
     device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o);
+					    op, stride_i, stride_o, 0, y);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
     device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-					    op, stride_i, stride_o);
+					    op, stride_i, stride_o, x, y);
 }
 #endif
 }	// namespace cuda

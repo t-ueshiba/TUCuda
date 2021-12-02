@@ -11,7 +11,7 @@ template <class S, class T, class U> void
 cudaJob(const Array2<S>& in, const Array2<S>& guide,
 	Array2<T>& out, size_t winSize, U epsilon)
 {
-    cuda::GuidedFilter2<U, cuda::clock>
+    cuda::GuidedFilter2<U, cuda::BlockTraits<>, 23, cuda::clock>
 				cudaFilter(winSize, winSize, epsilon);
     cuda::Array2<U>		in_d(in);
     cuda::Array2<U>		guide_d(guide);

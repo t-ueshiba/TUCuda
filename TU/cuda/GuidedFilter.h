@@ -90,15 +90,20 @@ class trans_guides
 }	// namespace device
 
 /************************************************************************
-*  class GuidedFilter2<T, CLOCK, WMAX>					*
+*  class GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! 2次元guided filterを表すクラス
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T=float, class CLOCK=void, size_t WMAX=23>
-class GuidedFilter2 : public Profiler<CLOCK>
+template <class T=float,
+	  class BLOCK_TRAITS=BlockTraits<>, size_t WMAX=23, class CLOCK=void>
+class GuidedFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   public:
     using element_type	= T;
+
+    using			BLOCK_TRAITS::BlockDimX;
+    using			BLOCK_TRAITS::BlockDimY;
+    constexpr static size_t	WinSizeMax = WMAX;
 
   private:
     using params_t	= vec<T, 4>;
@@ -163,10 +168,10 @@ class GuidedFilter2 : public Profiler<CLOCK>
     size_t	offsetV()		const	{return winSizeV() - 1;}
 
   private:
-    BoxFilter2<params_t, void, WMAX>	_paramsFilter;
-    BoxFilter2<coeffs_t, void, WMAX>	_coeffsFilter;
-    T					_e;
-    mutable Array2<coeffs_t>		_c;
+    BoxFilter2<params_t, BLOCK_TRAITS, WMAX>	_paramsFilter;
+    BoxFilter2<coeffs_t, BLOCK_TRAITS, WMAX>	_coeffsFilter;
+    T						_e;
+    mutable Array2<coeffs_t>			_c;
 };
 
 //! 2次元入力データと2次元ガイドデータにguided filterを適用する
@@ -177,10 +182,11 @@ class GuidedFilter2 : public Profiler<CLOCK>
   \param ge	2次元ガイドデータの末尾の次の行を示す反復子
   \param out	guided filterを適用したデータの出力先の先頭行を示す反復子
 */
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
 template <class IN, class GUIDE, class OUT> void
-GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
-					OUT out, bool shift) const
+GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
+						      GUIDE gb, GUIDE ge,
+						      OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -241,9 +247,10 @@ GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
   \param ie	2次元入力データの末尾の次の行を示す反復子
   \param out	guided filterを適用したデータの出力先の先頭行を示す反復子
 */
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
 template <class IN, class OUT> void
-GuidedFilter2<T, CLOCK, WMAX>::convolve(IN ib, IN ie, OUT out, bool shift) const
+GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
+						      OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;

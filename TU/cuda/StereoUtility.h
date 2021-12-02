@@ -20,10 +20,10 @@ namespace device
 ************************************************************************/
 template <class COL, class COL_C, class COL_D> __global__ void
 select_disparity(COL colC, int width, COL_D colD,
-	    int disparitySearchWidth, int disparityMax,
-	    int disparityInconsistency,
-	    int strideX, int strideYX, int strideD,
-	    COL_C cminR, int strideCminR, int* dminR, int strideDminR)
+		 int disparitySearchWidth, int disparityMax,
+		 int disparityInconsistency,
+		 int strideX, int strideYX, int strideD,
+		 COL_C cminR, int strideCminR, int* dminR, int strideDminR)
 {
     using value_type	= typename std::iterator_traits<COL>::value_type;
 
@@ -77,16 +77,17 @@ select_disparity(COL colC, int width, COL_D colD,
 #endif
 
 /************************************************************************
-*  class DisparitySelector<T>						*
+*  class DisparitySelector<T, BLOCK_TRAITS>				*
 ************************************************************************/
-template <class T>
-class DisparitySelector
+template <class T, class BLOCK_TRAITS=BlockTraits<> >
+class DisparitySelector : public BLOCK_TRAITS
 {
   public:
     using value_type	= T;
 
-    constexpr static size_t	BlockDimX = 32;
-    constexpr static size_t	BlockDimY = 16;
+    using			BLOCK_TRAITS::BlockDimX;
+    using			BLOCK_TRAITS::BlockDimY;
+    constexpr static size_t	BlockDim = BlockDimY;
 
   public:
     DisparitySelector(int disparityMax, int disparityInconsistency)
@@ -103,8 +104,8 @@ class DisparitySelector
     Array2<int>	_dminR;			//!< 右画像から見た最小コストを与える視差
 };
 
-template <class T> template <class ROW_D> void
-DisparitySelector<T>::select(const Array3<T>& costs, ROW_D rowD)
+template <class T, class BLOCK_TRAITS> template <class ROW_D> void
+DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 {
     const auto	disparitySearchWidth = size<0>(costs);
     const auto	height		     = size<1>(costs);

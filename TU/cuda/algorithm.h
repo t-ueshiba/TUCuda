@@ -15,6 +15,18 @@ namespace TU
 {
 namespace cuda
 {
+/************************************************************************
+*  struct BlockTraits							*
+************************************************************************/
+template <size_t BLOCK_DIM_X=32, size_t BLOCK_DIM_Y=16>
+struct BlockTraits
+{
+  //! 1ブロックあたりのスレッド数(x方向)    
+    constexpr static size_t	BlockDimX = BLOCK_DIM_X;
+  //! 1ブロックあたりのスレッド数(y方向)    
+    constexpr static size_t	BlockDimY = BLOCK_DIM_Y;
+};
+    
 #if defined(__NVCC__)
 //! デバイス関数を納める名前空間
 namespace device
@@ -140,14 +152,6 @@ namespace device
 #endif
 
 /************************************************************************
-*  global constatnt variables						*
-************************************************************************/
-constexpr static size_t	BlockDimX = 32;	//!< 1ブロックあたりのスレッド数(x方向)
-constexpr static size_t	BlockDimY = 16;	//!< 1ブロックあたりのスレッド数(y方向)
-constexpr static size_t	BlockDim  = 32;	//!< 1ブロックあたりのスレッド数(全方向)
-constexpr static size_t	BlockDim1 = BlockDimX * BlockDimX;
-
-/************************************************************************
 *  copyToConstantMemory(ITER begin, ITER end, T* dst)			*
 ************************************************************************/
 //! CUDAの定数メモリ領域にデータをコピーする．
@@ -166,7 +170,7 @@ copyToConstantMemory(ITER begin, ITER end, T* dst)
 }
 
 /************************************************************************
-*  subsample(IN in, IN ie, OUT out)					*
+*  subsample<BLOCK_TRAITS>(IN in, IN ie, OUT out)			*
 ************************************************************************/
 //! CUDAによって2次元配列を水平／垂直方向それぞれ1/2に間引く．
 /*!
@@ -174,7 +178,7 @@ copyToConstantMemory(ITER begin, ITER end, T* dst)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> void
+template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)					;
 
 #if defined(__NVCC__)
@@ -193,7 +197,7 @@ namespace device
   }
 }	// namespace device
 
-template <class IN, class OUT> void
+template <class BLOCK_TRAITS, class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
     using	std::cbegin;
@@ -212,7 +216,7 @@ subsample(IN in, IN ie, OUT out)
     const auto	stride_o = stride(out);
 
   // 左上
-    dim3	threads(BlockDimX, BlockDimY);
+    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					   stride_i, stride_o);
@@ -225,7 +229,7 @@ subsample(IN in, IN ie, OUT out)
   // 左下
     std::advance(in, 2*blocks.y*threads.y);
     std::advance(out,  blocks.y*threads.y);
-    threads.x = BlockDimX;
+    threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
@@ -240,7 +244,7 @@ subsample(IN in, IN ie, OUT out)
 #endif
 
 /************************************************************************
-*  op3x3(IN in, IN ie, OUT out, OP op)					*
+*  op3x3<BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)			*
 ************************************************************************/
 //! CUDAによって2次元配列に対して3x3近傍演算を行う．
 /*!
@@ -249,13 +253,14 @@ subsample(IN in, IN ie, OUT out)
   \param out	出力2次元配列の最初の行を指す反復子
   \param op	3x3近傍演算子
 */
-template <class IN, class OUT, class OP> void
-op3x3(IN in, IN ie, OUT out, OP op)					;
+template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT, class OP>
+void	op3x3(IN in, IN ie, OUT out, OP op)				;
 
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
+  template <class BLOCK_TRAITS,
+	    class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
   op3x3(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o)
   {
@@ -272,17 +277,19 @@ namespace device
       advance_stride(out, (y0 + ty + 1)*stride_o);
 
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
-      __shared__ value_type	in_s[BlockDimY+2][BlockDimX+2];
+      __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY+2]
+				    [BLOCK_TRAITS::BlockDimX+2];
       loadTile(in + x0, stride_i, in_s, 2, 2);
       __syncthreads();
 
     // 共有メモリに保存した原画像データから現在画素に対するフィルタ出力を計算
-      out[x0 + tx + 1]
-	  = op(in_s[ty] + tx, in_s[ty + 1] + tx, in_s[ty + 2] + tx);
+      out[x0 + tx + 1] = op(in_s[ty]	 + tx,
+			    in_s[ty + 1] + tx,
+			    in_s[ty + 2] + tx);
   }
 }	// namespace device
 
-template <class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 op3x3(IN in, IN ie, OUT out, OP op)
 {
     using	std::cbegin;
@@ -301,35 +308,37 @@ op3x3(IN in, IN ie, OUT out, OP op)
     const auto	stride_o = stride(out);
 
   // 左上
-    dim3	threads(BlockDimX, BlockDimY);
+    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::op3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
-				       op, stride_i, stride_o);
+    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in), begin(*out),
+						     op, stride_i, stride_o);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-				       op, stride_i, stride_o);
+    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
+						     begin(*out) + x,
+						     op, stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
-    threads.x = BlockDimX;
+    threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::op3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
-				       op, stride_i, stride_o);
+    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in), begin(*out),
+						     op, stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::op3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-				       op, stride_i, stride_o);
+    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
+						     begin(*out) + x,
+						     op, stride_i, stride_o);
 }
 #endif
 
 /************************************************************************
-*  suppressNonExtrema(							*
+*  suppressNonExtrema<BLOCK_TRAITS>(					*
 *      IN in, IN ie, OUT out, OP op,					*
 *      typename iterator_traits<IN>::value_type::value_type nulval)	*
 ************************************************************************/
@@ -342,7 +351,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
 		極小値を検出するときは thrust::less<T> を与える
   \param nulval	非極値をとる画素に割り当てる値
 */
-template <class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT, class OP> void
 suppressNonExtrema3x3(
     IN in, IN ie, OUT out, OP op,
     typename std::iterator_traits<IN>::value_type::value_type nulval=0)	;
@@ -350,7 +359,8 @@ suppressNonExtrema3x3(
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT, class OP> __global__ static void
+  template <class BLOCK_TRAITS, class IN, class OUT, class OP>
+  __global__ static void
   extrema3x3(IN in, OUT out, OP op,
 	     typename std::iterator_traits<IN>::value_type nulval,
 	     int stride_i, int stride_o)
@@ -367,7 +377,8 @@ namespace device
       const int	y   = 1 + 2*threadIdx.y;
 
   // 原画像の (2*blockDim.x)x(2*blockDim.y) 矩形領域を共有メモリにコピー
-      __shared__ value_type	in_s[2*BlockDimY + 2][2*BlockDimX + 3];
+      __shared__ value_type	in_s[2*BLOCK_TRAITS::BlockDimY + 2]
+				    [2*BLOCK_TRAITS::BlockDimX + 3];
       in_s[y    ][x    ] = in[xy	       ];
       in_s[y    ][x + 1] = in[xy	    + 1];
       in_s[y + 1][x    ] = in[xy + stride_i    ];
@@ -446,7 +457,7 @@ namespace device
   }
 }	// namespace device
 
-template <class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 suppressNonExtrema3x3(
     IN in, IN ie, OUT out, OP op,
     typename std::iterator_traits<IN>::value_type::value_type nulval)
@@ -469,35 +480,43 @@ suppressNonExtrema3x3(
   // 左上
     ++in;
     ++out;
-    dim3	threads(BlockDimX, BlockDimY);
+    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::extrema3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, nulval, stride_i, stride_o);
+    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in),
+							  begin(*out),
+							  op, nulval,
+							  stride_i, stride_o);
   // 右上
     const int	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-					    op, nulval, stride_i, stride_o);
+    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
+							  begin(*out) + x,
+							  op, nulval,
+							  stride_i, stride_o);
   // 左下
     std::advance(in,  blocks.y*(2*threads.y));
     std::advance(out, blocks.y*(2*threads.y));
-    threads.x = BlockDimX;
+    threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::extrema3x3<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, nulval, stride_i, stride_o);
+    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in),
+							  begin(*out),
+							  op, nulval,
+							  stride_i, stride_o);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::extrema3x3<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
-					    op, nulval, stride_i, stride_o);
+    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
+							  begin(*out) + x,
+							  op, nulval,
+							  stride_i, stride_o);
 }
 #endif
 
 /************************************************************************
-*  transpose(IN in, IN ie, OUT out)					*
+*  transpose<BLOCK_DIM>(IN in, IN ie, OUT out)				*
 ************************************************************************/
 //! CUDAによって2次元配列の転置処理を行う．
 /*!
@@ -505,13 +524,14 @@ suppressNonExtrema3x3(
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class IN, class OUT> void
+template <size_t BLOCK_DIM=32, class IN, class OUT> void
 transpose(IN in, IN ie, OUT out)					;
 
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  template <size_t BLOCK_DIM,
+	    class IN, class OUT, class STRIDE_I, class STRIDE_O>
   __global__ static void
   transpose(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
   {
@@ -519,7 +539,7 @@ namespace device
 
       const auto		bx = blockIdx.x*blockDim.x;
       const auto		by = blockIdx.y*blockDim.y;
-      __shared__ value_type	tile[BlockDim][BlockDim + 1];
+      __shared__ value_type	tile[BLOCK_DIM][BLOCK_DIM + 1];
 
       advance_stride(in, (by + threadIdx.y)*stride_i);
       tile[threadIdx.y][threadIdx.x] = in[bx + threadIdx.x];
@@ -532,7 +552,7 @@ namespace device
 
 namespace detail
 {
-  template <class IN, class OUT> static void
+  template <size_t BLOCK_DIM, class IN, class OUT> static void
   transpose(IN in, IN ie, OUT out, size_t i, size_t j)
   {
       using	std::cbegin;
@@ -549,12 +569,13 @@ namespace detail
 
       const auto	stride_i = stride(in);
       const auto	stride_o = stride(out);
-      const auto	blockDim = std::min({BlockDim, r, c});
+      const auto	blockDim = std::min({BLOCK_DIM, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<<<blocks, threads>>>(cbegin(*in) + j,
-						   begin(*out) + i,
-						   stride_i, stride_o); // 左上
+      cuda::device::transpose<BLOCK_DIM><<<blocks, threads>>>(cbegin(*in) + j,
+							      begin(*out) + i,
+							      stride_i,
+							      stride_o); // 左上
 
       r = blocks.y*threads.y;
       c = blocks.x*threads.x;
@@ -563,22 +584,22 @@ namespace detail
       std::advance(in_n, r);
       auto	out_n = out;
       std::advance(out_n, c);
-      transpose(in,   in_n, out_n, i,     j + c);		// 右上
-      transpose(in_n, ie,   out,   i + r, j);			// 下
+      transpose<BLOCK_DIM>(in,   in_n, out_n, i,     j + c);	// 右上
+      transpose<BLOCK_DIM>(in_n, ie,   out,   i + r, j);	// 下
   }
 }	// namesapce detail
 
-template <class IN, class OUT> inline void
+template <size_t BLOCK_DIM, class IN, class OUT> inline void
 transpose(IN in, IN ie, OUT out)
 {
-    detail::transpose(in, ie, out, 0, 0);
+    detail::transpose<BLOCK_DIM>(in, ie, out, 0, 0);
 }
 #endif
 
 /************************************************************************
-*  transform2(IN in, IN ie, OUT out, OP op)				*
+*  transform2<BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)		*
 ************************************************************************/
-template <class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)				;
 
 #if defined(__NVCC__)
@@ -599,7 +620,7 @@ namespace device
   }
 }	// namespace device
 
-template <class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)
 {
     using	std::cbegin;
@@ -618,7 +639,7 @@ transform2(IN in, IN ie, OUT out, OP op)
     const auto	stride_o = stride(out);
 
   // 左上
-    dim3	threads(BlockDimX, BlockDimY);
+    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, stride_i, stride_o, 0, 0);
@@ -632,7 +653,7 @@ transform2(IN in, IN ie, OUT out, OP op)
     const auto	y = blocks.y*threads.y;
     std::advance(in, y);
     std::advance(out, y);
-    threads.x = BlockDimX;
+    threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;

@@ -18,15 +18,15 @@ namespace cuda
 *  class FIRFilter2<T>							*
 ************************************************************************/
 //! CUDAによるseparableな2次元フィルタを表すクラス
-template <class T=float>
-class FIRFilter2
+template <class T=float, class BLOCK_TRAITS=BlockTraits<> >
+class FIRFilter2 : public BLOCK_TRAITS
 {
   public:
     using value_type	= T;
 
+    using			BLOCK_TRAITS::BlockDimX;
+    using			BLOCK_TRAITS::BlockDimY;
     constexpr static size_t	LobeSizeMax = 17;
-    constexpr static size_t	BlockDimX   = 32;
-    constexpr static size_t	BlockDimY   = 16;
 
   public:
   //! CUDAによる2次元フィルタを生成する．
@@ -234,7 +234,7 @@ fir_filterV(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
 }	// namespace device
 
 /************************************************************************
-*  class FIRFilter2<T>							*
+*  class FIRFilter2<T, BLOCK_DIM_X, BLOCK_DIM_Y>			*
 ************************************************************************/
 //! 2次元フィルタのローブを設定する．
 /*!
@@ -244,12 +244,13 @@ fir_filterV(IN in, OUT out, STRIDE_I strideI, STRIDE_O strideO)
   \param lobeV	縦方向ローブ
   \return	この2次元フィルタ
 */
-template <class T> FIRFilter2<T>&
-FIRFilter2<T>::initialize(const TU::Array<float>& lobeH,
-			  const TU::Array<float>& lobeV)
+template <class T, class BLOCK_TRAITS>
+FIRFilter2<T, BLOCK_TRAITS>&
+FIRFilter2<T, BLOCK_TRAITS>::initialize(const TU::Array<float>& lobeH,
+					const TU::Array<float>& lobeV)
 {
     if (lobeH.size() > LobeSizeMax || lobeV.size() > LobeSizeMax)
-	throw std::runtime_error("FIRFilter2<T>::initialize: too large lobe size!");
+	throw std::runtime_error("FIRFilter2<T, BLOCK_TRAITS>::initialize: too large lobe size!");
 
     _lobeSizeH = lobeH.size();
     _lobeSizeV = lobeV.size();
@@ -261,8 +262,9 @@ FIRFilter2<T>::initialize(const TU::Array<float>& lobeH,
     return *this;
 }
 
-template <class T> template <size_t L, class IN, class OUT> void
-FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
+template <class T, class BLOCK_TRAITS>
+template <size_t L, class IN, class OUT> void
+FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
 {
     using	std::cbegin;
     using	std::cend;
@@ -278,14 +280,16 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in), begin(*out), strideI, strideO);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
+							    begin(*out),
+							    strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in) + x, begin(*out) + x, strideI, strideO);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
+							    begin(*out) + x,
+							    strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -293,17 +297,20 @@ FIRFilter2<T>::convolveH(IN in, IN ie, OUT out)
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in), begin(*out), strideI, strideO);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
+							    begin(*out),
+							    strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in) + x, begin(*out) + x, strideI, strideO);
+    device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
+							    begin(*out) + x,
+							    strideI, strideO);
 }
 
-template <class T> template <size_t L, class IN, class OUT> void
-FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
+template <class T, class BLOCK_TRAITS>
+template <size_t L, class IN, class OUT> void
+FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -324,14 +331,16 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in), begin(*out) + dx, strideI, strideO);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
+							    begin(*out) + dx,
+							    strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in) + x, begin(*out) + x + dx, strideI, strideO);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
+							    begin(*out) + x + dx,
+							    strideI, strideO);
   // 左下
     std::advance(in,  blocks.y*threads.y);
     std::advance(out, blocks.y*threads.y);
@@ -339,13 +348,15 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;
-    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in), begin(*out) + dx, strideI, strideO);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
+							    begin(*out) + dx,
+							    strideI, strideO);
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	cbegin(*in) + x, begin(*out) + x + dx, strideI, strideO);
+    device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
+							    begin(*out) + x + dx,
+							    strideI, strideO);
 }
 #endif	// __NVCC__
 
@@ -355,8 +366,8 @@ FIRFilter2<T>::convolveV(IN in, IN ie, OUT out, bool shift) const
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> void
-FIRFilter2<T>::convolve(IN in, IN ie, OUT out, bool shift) const
+template <class T, class BLOCK_TRAITS> template <class IN, class OUT> void
+FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;

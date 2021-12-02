@@ -43,23 +43,23 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/iterator.h \
 		../../TU/cuda/tuple.h \
 		../../TU/cuda/vec.h \
-		/home/ueshiba/src/TUTools++/TU/Array++.h \
-		/home/ueshiba/src/TUTools++/TU/BoxFilter.h \
-		/home/ueshiba/src/TUTools++/TU/Camera++.h \
-		/home/ueshiba/src/TUTools++/TU/Filter2.h \
-		/home/ueshiba/src/TUTools++/TU/Geometry++.h \
-		/home/ueshiba/src/TUTools++/TU/GuidedFilter.h \
-		/home/ueshiba/src/TUTools++/TU/Image++.h \
-		/home/ueshiba/src/TUTools++/TU/Manip.h \
-		/home/ueshiba/src/TUTools++/TU/Minimize.h \
-		/home/ueshiba/src/TUTools++/TU/Profiler.h \
-		/home/ueshiba/src/TUTools++/TU/Vector++.h \
-		/home/ueshiba/src/TUTools++/TU/algorithm.h \
-		/home/ueshiba/src/TUTools++/TU/iterator.h \
-		/home/ueshiba/src/TUTools++/TU/pair.h \
-		/home/ueshiba/src/TUTools++/TU/range.h \
-		/home/ueshiba/src/TUTools++/TU/tuple.h \
-		/home/ueshiba/src/TUTools++/TU/type_traits.h
+		/home/artuser/src/TUTools++/TU/Array++.h \
+		/home/artuser/src/TUTools++/TU/BoxFilter.h \
+		/home/artuser/src/TUTools++/TU/Camera++.h \
+		/home/artuser/src/TUTools++/TU/Filter2.h \
+		/home/artuser/src/TUTools++/TU/Geometry++.h \
+		/home/artuser/src/TUTools++/TU/GuidedFilter.h \
+		/home/artuser/src/TUTools++/TU/Image++.h \
+		/home/artuser/src/TUTools++/TU/Manip.h \
+		/home/artuser/src/TUTools++/TU/Minimize.h \
+		/home/artuser/src/TUTools++/TU/Profiler.h \
+		/home/artuser/src/TUTools++/TU/Vector++.h \
+		/home/artuser/src/TUTools++/TU/algorithm.h \
+		/home/artuser/src/TUTools++/TU/iterator.h \
+		/home/artuser/src/TUTools++/TU/pair.h \
+		/home/artuser/src/TUTools++/TU/range.h \
+		/home/artuser/src/TUTools++/TU/tuple.h \
+		/home/artuser/src/TUTools++/TU/type_traits.h
 HDRS		=
 SRCS		= cpuJob.cc \
 		cudaJob.cu \
@@ -74,43 +74,43 @@ OBJS		= cpuJob.o \
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-cpuJob.o: /home/ueshiba/src/TUTools++/TU/GuidedFilter.h \
-	/home/ueshiba/src/TUTools++/TU/BoxFilter.h \
-	/home/ueshiba/src/TUTools++/TU/Filter2.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/type_traits.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/range.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h \
-	/home/ueshiba/src/TUTools++/TU/Profiler.h
-cudaJob.o: /home/ueshiba/src/TUTools++/TU/Profiler.h \
+cpuJob.o: /home/artuser/src/TUTools++/TU/GuidedFilter.h \
+	/home/artuser/src/TUTools++/TU/BoxFilter.h \
+	/home/artuser/src/TUTools++/TU/Filter2.h \
+	/home/artuser/src/TUTools++/TU/iterator.h \
+	/home/artuser/src/TUTools++/TU/tuple.h \
+	/home/artuser/src/TUTools++/TU/type_traits.h \
+	/home/artuser/src/TUTools++/TU/Array++.h \
+	/home/artuser/src/TUTools++/TU/range.h \
+	/home/artuser/src/TUTools++/TU/algorithm.h \
+	/home/artuser/src/TUTools++/TU/Profiler.h
+cudaJob.o: /home/artuser/src/TUTools++/TU/Profiler.h \
 	../../TU/cuda/chrono.h ../../TU/cuda/GuidedFilter.h \
-	../../TU/cuda/tuple.h /home/ueshiba/src/TUTools++/TU/type_traits.h \
-	../../TU/cuda/vec.h /home/ueshiba/src/TUTools++/TU/Image++.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h \
-	/home/ueshiba/src/TUTools++/TU/Manip.h \
-	/home/ueshiba/src/TUTools++/TU/Camera++.h \
-	/home/ueshiba/src/TUTools++/TU/Geometry++.h \
-	/home/ueshiba/src/TUTools++/TU/Minimize.h \
-	/home/ueshiba/src/TUTools++/TU/Vector++.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/range.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h ../../TU/cuda/BoxFilter.h \
+	../../TU/cuda/tuple.h /home/artuser/src/TUTools++/TU/type_traits.h \
+	../../TU/cuda/vec.h /home/artuser/src/TUTools++/TU/Image++.h \
+	/home/artuser/src/TUTools++/TU/pair.h \
+	/home/artuser/src/TUTools++/TU/Manip.h \
+	/home/artuser/src/TUTools++/TU/Camera++.h \
+	/home/artuser/src/TUTools++/TU/Geometry++.h \
+	/home/artuser/src/TUTools++/TU/Minimize.h \
+	/home/artuser/src/TUTools++/TU/Vector++.h \
+	/home/artuser/src/TUTools++/TU/Array++.h \
+	/home/artuser/src/TUTools++/TU/range.h \
+	/home/artuser/src/TUTools++/TU/iterator.h \
+	/home/artuser/src/TUTools++/TU/tuple.h \
+	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/BoxFilter.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
 	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h
-main.o: /home/ueshiba/src/TUTools++/TU/Image++.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h \
-	/home/ueshiba/src/TUTools++/TU/type_traits.h \
-	/home/ueshiba/src/TUTools++/TU/Manip.h \
-	/home/ueshiba/src/TUTools++/TU/Camera++.h \
-	/home/ueshiba/src/TUTools++/TU/Geometry++.h \
-	/home/ueshiba/src/TUTools++/TU/Minimize.h \
-	/home/ueshiba/src/TUTools++/TU/Vector++.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/range.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h
+main.o: /home/artuser/src/TUTools++/TU/Image++.h \
+	/home/artuser/src/TUTools++/TU/pair.h \
+	/home/artuser/src/TUTools++/TU/type_traits.h \
+	/home/artuser/src/TUTools++/TU/Manip.h \
+	/home/artuser/src/TUTools++/TU/Camera++.h \
+	/home/artuser/src/TUTools++/TU/Geometry++.h \
+	/home/artuser/src/TUTools++/TU/Minimize.h \
+	/home/artuser/src/TUTools++/TU/Vector++.h \
+	/home/artuser/src/TUTools++/TU/Array++.h \
+	/home/artuser/src/TUTools++/TU/range.h \
+	/home/artuser/src/TUTools++/TU/iterator.h \
+	/home/artuser/src/TUTools++/TU/tuple.h \
+	/home/artuser/src/TUTools++/TU/algorithm.h

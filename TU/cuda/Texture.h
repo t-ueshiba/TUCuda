@@ -134,7 +134,7 @@ Texture<T>::~Texture()
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T, class OUT, class MAP> void
+template <class BOX_TRAITS=BlockTraits<>, class T, class OUT, class MAP> void
 warp(const Array2<T>& a, OUT out, MAP map)				;
 
 #if defined(__NVCC__)
@@ -154,7 +154,7 @@ namespace device
   }
 }	// namespace device
 
-template <class T, class OUT, class MAP> inline void
+template <class BLOCK_TRAITS, class T, class OUT, class MAP> inline void
 warp(const Array2<T>& a, OUT out, MAP map)
 {
     const auto		nrow     = a.nrow();
@@ -163,7 +163,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
     const Texture<T>	tex(a);
 
   // 左上
-    dim3	threads(BlockDimX, BlockDimY);
+    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 map, 0, 0, stride_o);
@@ -175,7 +175,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
 					 map, x0, 0, stride_o);
   // 左下
     const auto	y0 = blocks.y*threads.y;
-    threads.x = BlockDimX;
+    threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
     blocks.y  = 1;

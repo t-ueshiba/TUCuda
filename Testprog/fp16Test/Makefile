@@ -37,11 +37,12 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/fp16.h \
-		/home/ueshiba/src/TUTools++/TU/Array++.h \
-		/home/ueshiba/src/TUTools++/TU/algorithm.h \
-		/home/ueshiba/src/TUTools++/TU/iterator.h \
-		/home/ueshiba/src/TUTools++/TU/range.h \
-		/home/ueshiba/src/TUTools++/TU/tuple.h
+		/home/artuser/src/TUTools++/TU/Array++.h \
+		/home/artuser/src/TUTools++/TU/algorithm.h \
+		/home/artuser/src/TUTools++/TU/iterator.h \
+		/home/artuser/src/TUTools++/TU/range.h \
+		/home/artuser/src/TUTools++/TU/tuple.h \
+		/home/artuser/src/TUTools++/TU/type_traits.h
 HDRS		=
 SRCS		= main.cu
 OBJS		= main.o
@@ -53,8 +54,9 @@ OBJS		= main.o
 include $(PROJECT)/lib/common.mk
 ###
 main.o: ../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/range.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h ../../TU/cuda/fp16.h
+	/home/artuser/src/TUTools++/TU/Array++.h \
+	/home/artuser/src/TUTools++/TU/range.h \
+	/home/artuser/src/TUTools++/TU/iterator.h \
+	/home/artuser/src/TUTools++/TU/tuple.h \
+	/home/artuser/src/TUTools++/TU/type_traits.h \
+	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/fp16.h

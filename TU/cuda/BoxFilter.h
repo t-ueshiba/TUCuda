@@ -144,7 +144,7 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 
     __shared__ value_type	in_s[FILTER::WinSizeMax]
 				    [FILTER::BlockDim][FILTER::BlockDim + 1];
-    __shared__ value_type	out_s[BlockDimY][BlockDimX + 1];
+    __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
     const auto	d0 = __mul24(blockIdx.x, blockDim.x);	// 視差
     const auto	x0 = __mul24(blockIdx.y, blockDim.y);	// 列
@@ -188,11 +188,12 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 #endif	// __NVCC__
 
 /************************************************************************
-*  class BoxFilter2<T, CLOCK, WMAX>					*
+*  class BoxFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T, class CLOCK=void, size_t WMAX=23>
-class BoxFilter2 : public Profiler<CLOCK>
+template <class T,
+	  class BLOCK_TRAITS=BlockTraits<>, size_t WMAX=23, class CLOCK=void>
+class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   private:
     using profiler_t	= Profiler<CLOCK>;
@@ -200,10 +201,10 @@ class BoxFilter2 : public Profiler<CLOCK>
   public:
     using value_type	= T;
 
+    using			BLOCK_TRAITS::BlockDimX;
+    using			BLOCK_TRAITS::BlockDimY;
+    constexpr static size_t	BlockDim   = BlockDimY;
     constexpr static size_t	WinSizeMax = WMAX;
-    constexpr static size_t	BlockDim   = 16;
-    constexpr static size_t	BlockDimX  = 32;
-    constexpr static size_t	BlockDimY  = 16;
 
   public:
   //! CUDAによる2次元boxフィルタを生成する．
@@ -311,10 +312,10 @@ class BoxFilter2 : public Profiler<CLOCK>
 };
 
 #if defined(__NVCC__)
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BOX_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O> void
-BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
-				     ROW_O rowO, bool shift) const
+BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
+						 ROW_O rowO, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -425,10 +426,11 @@ BoxFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe,
     profiler_t::nextFrame();
 }
 
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BOX_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O, class OP> void
-BoxFilter2<T, CLOCK, WMAX>::convolve(ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
-				     OP op, size_t disparitySearchWidth) const
+BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW rowL, ROW rowLe, ROW rowR,
+						 ROW_O rowO, OP op,
+						 size_t disparitySearchWidth) const
 {
     using	std::cbegin;
     using	std::cend;

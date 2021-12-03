@@ -4,7 +4,6 @@
 */
 #pragma once
 
-#include "TU/Profiler.h"
 #include "TU/cuda/Array++.h"
 #include "TU/cuda/algorithm.h"
 
@@ -279,11 +278,8 @@ namespace device
 //! CUDAによる2次元extremaフィルタを表すクラス
 template <class T, class BLOCK_TRAITS=BlockTraits<16, 16>,
 	  size_t WMAX=23, class CLOCK=void>
-class ExtremaFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
+class ExtremaFilter2 : public BLOCK_TRAITS
 {
-  private:
-    using profiler_t	= Profiler<CLOCK>;
-
   public:
     using value_type	= T;
 
@@ -294,8 +290,7 @@ class ExtremaFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 
   public:
 			ExtremaFilter2(size_t winSizeV, size_t winSizeH)
-			    :profiler_t(3),
-			     _winSizeV(winSizeV), _winSizeH(winSizeH)
+			    :_winSizeV(winSizeV), _winSizeH(winSizeH)
 			{
 			    if (_winSizeV > WinSizeMax ||
 				_winSizeH > WinSizeMax)
@@ -341,7 +336,7 @@ class ExtremaFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
     size_t			_winSizeV;
     size_t			_winSizeH;
     mutable Array2<T>		_buf;
-    mutable Array2<short2>		_buf_pos;
+    mutable Array2<short2>	_buf_pos;
 };
 
 #if defined(__NVCC__)
@@ -356,8 +351,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     using	std::cend;
     using	std::begin;
     
-    profiler_t::start(0);
-
     size_t	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
@@ -374,8 +367,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     const auto	strideB = _buf.stride();
 
   // ---- 縦方向積算 ----
-    profiler_t::start(1);
-
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
@@ -417,9 +408,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 	rowO += offsetV();
 	dx    = offsetH();
     }
-
-    cudaDeviceSynchronize();
-    profiler_t::start(2);
     ncols = outSizeH(ncols);
 
   // 左上
@@ -456,9 +444,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(_buf[x]) + y, begin(*rowO) + x + dx, compare, _winSizeH,
 	strideB, strideO);
-
-    cudaDeviceSynchronize();
-    profiler_t::nextFrame();
 }
 
 template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
@@ -472,8 +457,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
     using	std::cend;
     using	std::begin;
     
-    profiler_t::start(0);
-
     size_t	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
@@ -493,8 +476,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
     const auto	strideBP = _buf_pos.stride();
 
   // ---- 縦方向積算 ----
-    profiler_t::start(1);
-
   // 左上
     dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
@@ -538,9 +519,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
 	rowP += offsetV();
 	dx    = offsetH();
     }
-
-    cudaDeviceSynchronize();
-    profiler_t::start(2);
     ncols = outSizeH(ncols);
 
   // 左上
@@ -582,9 +560,6 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
 	cbegin(_buf[x]) + y, begin(*rowO) + x + dx,
 	cbegin(_buf_pos[x]) + y, begin(*rowP) + x + dx,
 	compare, _winSizeH, strideB, strideO, strideBP, strideP);
-
-    cudaDeviceSynchronize();
-    profiler_t::nextFrame();
 }
 #endif	// __NVCC__
 }	// namespace cuda

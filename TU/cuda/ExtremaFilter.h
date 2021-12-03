@@ -71,9 +71,9 @@ namespace device
   {
       using value_type  =	typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-				    [FILTER::BlockDim + 1];
-      __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+				    [FILTER::BlockDimX + 1];
+      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
@@ -132,10 +132,10 @@ namespace device
   {
       using value_type  =	typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-				    [FILTER::BlockDim + 1];
-      __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
-      __shared__ short2		pos_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+				    [FILTER::BlockDimX + 1];
+      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
+      __shared__ short2		pos_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
@@ -204,11 +204,11 @@ namespace device
   {
       using value_type  =	typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-				    [FILTER::BlockDim + 1];
-      __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
-      __shared__ short2		pos_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-				     [FILTER::BlockDim + 1];
+      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+				    [FILTER::BlockDimX + 1];
+      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
+      __shared__ short2		pos_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+				     [FILTER::BlockDimX + 1];
 
       const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
       const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
@@ -274,11 +274,12 @@ namespace device
 #endif	// __NVCC__
     
 /************************************************************************
-*  class ExtremaFilter2<T, CLOCK, WMAX>					*
+*  class ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! CUDAによる2次元extremaフィルタを表すクラス
-template <class T, class CLOCK=void, size_t WMAX=23>
-class ExtremaFilter2 : public Profiler<CLOCK>
+template <class T, class BLOCK_TRAITS=BlockTraits<16, 16>,
+	  size_t WMAX=23, class CLOCK=void>
+class ExtremaFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   private:
     using profiler_t	= Profiler<CLOCK>;
@@ -286,8 +287,10 @@ class ExtremaFilter2 : public Profiler<CLOCK>
   public:
     using value_type	= T;
 
+    using			BLOCK_TRAITS::BlockDimX;
+    using			BLOCK_TRAITS::BlockDimY;
+  //constexpr static size_t	BlockDim   = BlockDimY;
     constexpr static size_t	WinSizeMax = WMAX;
-    constexpr static size_t	BlockDim   = 16;
 
   public:
 			ExtremaFilter2(size_t winSizeV, size_t winSizeH)
@@ -342,10 +345,12 @@ class ExtremaFilter2 : public Profiler<CLOCK>
 };
 
 #if defined(__NVCC__)
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O, class COMPARE> void
-ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
-					 COMPARE compare, bool shift) const
+ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
+						       ROW_O rowO,
+						       COMPARE compare,
+						       bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -353,11 +358,11 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     
     profiler_t::start(0);
 
-    auto	nrows = std::distance(row, rowe);
+    size_t	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    auto	ncols = std::distance(cbegin(*row), cend(*row));
+    size_t	ncols = std::distance(cbegin(*row), cend(*row));
     if (ncols < _winSizeH)
 	return;
 
@@ -372,7 +377,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     profiler_t::start(1);
 
   // 左上
-    dim3	threads(BlockDim, BlockDim);
+    dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(*row), begin(_buf[0]), compare, _winSizeV, strideI, strideB);
@@ -389,7 +394,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
   // 左下
     auto	y = blocks.y*threads.y;
     std::advance(row, y);
-    threads.x = BlockDim;
+    threads.x = BlockDimX;
     blocks.x  = ncols/threads.x;
     threads.y = nrows - y;
     blocks.y  = 1;
@@ -418,9 +423,9 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     ncols = outSizeH(ncols);
 
   // 左上
-    threads.x = BlockDim;
+    threads.x = BlockDimX;
     blocks.x  = nrows/threads.x;
-    threads.y = BlockDim;
+    threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(_buf[0]), begin(*rowO) + dx, compare, _winSizeH,
@@ -439,7 +444,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     std::advance(rowO, y);
     threads.x = nrows - y;
     blocks.x  = 1;
-    threads.y = BlockDim;
+    threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(_buf[0]) + y, begin(*rowO) + dx, compare, _winSizeH,
@@ -456,11 +461,12 @@ ExtremaFilter2<T, CLOCK, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     profiler_t::nextFrame();
 }
 
-template <class T, class CLOCK, size_t WMAX>
+template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O, class ROW_P, class COMPARE> void
-ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
-					ROW_O rowO, ROW_P rowP,
-					COMPARE compare, bool shift) const
+ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
+						      ROW_O rowO, ROW_P rowP,
+						      COMPARE compare,
+						      bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -468,11 +474,11 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     
     profiler_t::start(0);
 
-    auto	nrows = std::distance(row, rowe);
+    size_t	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    auto	ncols = std::distance(cbegin(*row), cend(*row));
+    size_t	ncols = std::distance(cbegin(*row), cend(*row));
     if (ncols < _winSizeH)
 	return;
 
@@ -490,7 +496,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     profiler_t::start(1);
 
   // 左上
-    dim3	threads(BlockDim, BlockDim);
+    dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(ncols/threads.x, nrows/threads.y);
     device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(*row), begin(_buf[0]), begin(_buf_pos[0]),
@@ -508,7 +514,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
   // 左下
     auto	y = blocks.y*threads.y;
     std::advance(row, y);
-    threads.x = BlockDim;
+    threads.x = BlockDimX;
     blocks.x  = ncols/threads.x;
     threads.y = nrows - y;
     blocks.y  = 1;
@@ -538,9 +544,9 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     ncols = outSizeH(ncols);
 
   // 左上
-    threads.x = BlockDim;
+    threads.x = BlockDimX;
     blocks.x  = nrows/threads.x;
-    threads.y = BlockDim;
+    threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
     device::extrema_filterH<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(_buf[0]), begin(*rowO) + dx,
@@ -562,7 +568,7 @@ ExtremaFilter2<T, CLOCK, WMAX>::extrema(ROW row, ROW rowe,
     std::advance(rowP, y);
     threads.x = nrows - y;
     blocks.x  = 1;
-    threads.y = BlockDim;
+    threads.y = BlockDimY;
     blocks.y  = ncols/threads.y;
     device::extrema_filterH<ExtremaFilter2><<<blocks, threads>>>(
 	cbegin(_buf[0]) + y, begin(*rowO) + dx,

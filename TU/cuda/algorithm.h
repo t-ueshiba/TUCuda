@@ -73,6 +73,28 @@ namespace device
       } while ((tx += blockDim.x) < dx);
   }
 
+  //! スレッドブロックの横方向に指定された長さを付加した領域を転置してコピーする
+  /*!
+    コピー先の矩形領域のサイズは (blockDim.x + dx) * blockDim.y となる．
+    \param src		コピー元の矩形領域の左上隅を指す反復子
+    \param stride	コピー元の行を1つ進めるためのインクリメント数
+    \param dst		コピー先の2次元配列
+    \param dx		ブロック幅に付加される長さ
+  */
+  template <class S, class STRIDE, class T, size_t W>
+  __device__ static inline void
+  loadTileHt(S src, STRIDE stride, T dst[][W], int dx)
+  {
+      advance_stride(src, threadIdx.y * stride);
+
+      auto	tx = threadIdx.x;
+      dx += blockDim.x;
+      do
+      {
+	  dst[tx][threadIdx.y] = src[tx];
+      } while ((tx += blockDim.x) < dx);
+  }
+
   //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指す反復子

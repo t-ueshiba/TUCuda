@@ -41,7 +41,7 @@ doJob(const Image<T>& in, size_t winSize)
     out.save(std::cout);				// 結果画像をセーブ
 
   // CPUによって計算する．
-    Image<T>	outGold(in.nrow(), in.ncol());
+    Image<T>	outGold(in.width(), in.height());
     for (size_t v = 0; v < in.height() - winSize + 1; ++v)
 	for (size_t u = 0; u < in.width() - winSize + 1; ++u)
 	{
@@ -185,8 +185,8 @@ main(int argc, char* argv[])
 	in.restore(std::cin);
 	in.save(std::cout);
 	
-      //TU::doJob(in, winSize);
-	TU::doJob2(in);
+	TU::doJob(in, winSize);
+      //TU::doJob2(in);
       //TU::doJob3(in, winSize);
     }
     catch (std::exception& err)

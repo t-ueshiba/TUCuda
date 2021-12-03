@@ -323,11 +323,11 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     
     profiler_t::start(0);
 
-    auto	nrows = std::distance(row, rowe);
+    size_t	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    auto	ncols = std::distance(cbegin(*row), cend(*row));
+    size_t	ncols = std::distance(cbegin(*row), cend(*row));
     if (ncols < _winSizeH)
 	return;
 
@@ -438,11 +438,11 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW rowL, ROW rowLe, ROW rowR,
     
     profiler_t::start(0);
 
-    auto	nrows = std::distance(rowL, rowLe);
+    size_t	nrows = std::distance(rowL, rowLe);
     if (nrows < _winSizeV)
 	return;
 
-    auto	ncols = std::distance(cbegin(*rowL), cend(*rowL));
+    size_t	ncols = std::distance(cbegin(*rowL), cend(*rowL));
     if (ncols < _winSizeH)
 	return;
 

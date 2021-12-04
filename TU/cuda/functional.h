@@ -535,7 +535,6 @@ namespace device
       return true;
   }
 }	// namespace device
-#endif
 
 template <class T>
 struct plane_moment
@@ -554,7 +553,7 @@ struct plane_moment
 template <class T>
 struct plane_estimator
 {
-    using result_type = mat3x<T, 3>;
+    using result_type = mat3x<T, 3>;	// x: center, y: normal, z.x: MSE
 
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& sum) const
@@ -627,6 +626,6 @@ struct colored_normal
 		uint8_t(128 + 127*normal.z)};
     }
 };
-
+#endif
 }	// namespace cuda
 }	// namespace TU

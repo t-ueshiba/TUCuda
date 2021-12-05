@@ -273,11 +273,10 @@ namespace device
 #endif	// __NVCC__
     
 /************************************************************************
-*  class ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>			*
+*  class ExtremaFilter2<T, BLOCK_TRAITS, WMAX>				*
 ************************************************************************/
 //! CUDAによる2次元extremaフィルタを表すクラス
-template <class T, class BLOCK_TRAITS=BlockTraits<16, 16>,
-	  size_t WMAX=23, class CLOCK=void>
+template <class T, class BLOCK_TRAITS=BlockTraits<16, 16>, size_t WMAX=23>
 class ExtremaFilter2 : public BLOCK_TRAITS
 {
   public:
@@ -340,12 +339,11 @@ class ExtremaFilter2 : public BLOCK_TRAITS
 };
 
 #if defined(__NVCC__)
-template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
+template <class T, class BLOCK_TRAITS, size_t WMAX>
 template <class ROW, class ROW_O, class COMPARE> void
-ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
-						       ROW_O rowO,
-						       COMPARE compare,
-						       bool shift) const
+ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
+						COMPARE compare,
+						bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -446,12 +444,12 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 	strideB, strideO);
 }
 
-template <class T, class BLOCK_TRAITS, size_t WMAX, class CLOCK>
+template <class T, class BLOCK_TRAITS, size_t WMAX>
 template <class ROW, class ROW_O, class ROW_P, class COMPARE> void
-ExtremaFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::extrema(ROW row, ROW rowe,
-						      ROW_O rowO, ROW_P rowP,
-						      COMPARE compare,
-						      bool shift) const
+ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::extrema(ROW row, ROW rowe,
+					       ROW_O rowO, ROW_P rowP,
+					       COMPARE compare,
+					       bool shift) const
 {
     using	std::cbegin;
     using	std::cend;

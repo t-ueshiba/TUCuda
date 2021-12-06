@@ -28,6 +28,15 @@ struct BlockTraits
 };
     
 #if defined(__NVCC__)
+/************************************************************************
+*  global functions							*
+************************************************************************/
+inline std::ostream&
+operator <<(std::ostream& out, const dim3& d)
+{
+    return out << '[' << d.x << ' ' << d.y << ' ' << d.z << ']';
+}
+    
 //! デバイス関数を納める名前空間
 namespace device
 {

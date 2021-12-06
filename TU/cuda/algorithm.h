@@ -641,13 +641,13 @@ namespace device
   transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o,
 	     int x0, int y0)
   {
-      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+      const int	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
       advance_stride(in,  y*stride_i);
       advance_stride(out, y*stride_o);
 
-      out[x] = op(x0 + x, y0 + y, in[x]);
+      out[x] = op(x, y, in[x]);
   }
 }	// namespace device
 
@@ -678,12 +678,10 @@ transform2(IN in, IN ie, OUT out, OP op)
     const auto	x = blocks.x*threads.x;
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
+    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, stride_i, stride_o, x, 0);
   // 左下
     const auto	y = blocks.y*threads.y;
-    std::advance(in, y);
-    std::advance(out, y);
     threads.x = BLOCK_TRAITS::BlockDimX;
     blocks.x  = ncol/threads.x;
     threads.y = nrow%threads.y;
@@ -693,7 +691,7 @@ transform2(IN in, IN ie, OUT out, OP op)
   // 右下
     threads.x = ncol%threads.x;
     blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in) + x, begin(*out) + x,
+    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
 					    op, stride_i, stride_o, x, y);
 }
 #endif

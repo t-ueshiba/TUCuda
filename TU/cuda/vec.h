@@ -17,8 +17,12 @@ namespace cuda
 namespace device
 {
   template <class T>
-  static constexpr T	epsilon = std::numeric_limits<T>::epsilon();
-
+  constexpr static T	minval  = std::numeric_limits<T>::min();
+  template <class T>
+  constexpr static T	maxval  = std::numeric_limits<T>::max();
+  template <class T>
+  constexpr static T	epsilon = std::numeric_limits<T>::epsilon();
+    
   __device__ inline float  fma(float x,
 			       float y, float z)	{ return fmaf(x, y, z);}
   __device__ inline float  min(float x, float y)	{ return fminf(x, y); }

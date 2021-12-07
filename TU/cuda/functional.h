@@ -238,8 +238,8 @@ struct undistort
     __host__ __device__ vec<T, 2>
     operator ()(T u, T v) const
     {
-	static constexpr T	MAX_ERR  = 0.001*0.001;
-	static constexpr int	MAX_ITER = 5;
+	constexpr static T	MAX_ERR  = 0.001*0.001;
+	constexpr static int	MAX_ITER = 5;
 
 	const vec<T, 2>	uv{u, v};
 	auto		xy  = (uv - _uv0)/_flen;
@@ -539,6 +539,12 @@ namespace device
 template <class T>
 struct plane_moment
 {
+  /*
+   * [[  x,   y,   z],
+   *  [x*x, x*y, x*z],
+   *  [y*y, y*z, z*z],
+   *  [  w,   0,   0]]		# w = (z > 0 ? 1 : 0)
+   */
     using result_type = mat4x<T, 3>;
 
     __host__ __device__ result_type
@@ -553,11 +559,25 @@ struct plane_moment
 template <class T>
 struct plane_estimator
 {
-    using result_type = mat3x<T, 3>;	// x: center, y: normal, z.x: MSE
+  /*
+   * [[cx, cy, cz],		# center of sampled points
+   *  [nx, ny, nz],		# plane normal
+   *  [mse, curvature, 0]]	# mean-square error and curvature
+   */
+    using result_type = mat3x<T, 3>;
 
+    __host__ __device__ static result_type
+    invalid_plane()
+    {
+	return _invalid_plane;
+    }
+    
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& sum) const
     {
+	if (sum.w.x < T(4))
+	    return _invalid_plane;
+
 	const auto	sc = T(1)/sum.w.x;
 	result_type	plane;
 	plane.x = sum.x * sc;
@@ -597,18 +617,18 @@ struct plane_estimator
 		plane.y  = evecs.z;
 	    }
 
-      // enforce dot(normal,center)<0 so normal points towards camera
+      // enforce dot(normal, center) < 0 so normal points towards camera
 	if (dot(plane.x, plane.y) > T(0))
 	    plane.y *= T(-1);
-
-	if (sum.w.x < T(3))
-	    set_zero(plane);
-	else
-	    plane.z = {eval_min * sc,
-		       eval_min/(evals.x + evals.y + evals.z), T(0)};
+	
+	plane.z = {eval_min*sc, eval_min/(evals.x + evals.y + evals.z), T(0)};
 
 	return plane;
     }
+
+    constexpr static result_type _invalid_plane{{0, 0, 0},
+						{0, 0, 0},
+						{device::maxval<T>, 0, 0}};
 };
 
 template <class T>

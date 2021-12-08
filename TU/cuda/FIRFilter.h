@@ -285,23 +285,24 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
 							    strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x;
     blocks.x  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
 							    begin(*out) + x,
 							    strideI, strideO);
   // 左下
-    std::advance(in,  blocks.y*threads.y);
-    std::advance(out, blocks.y*threads.y);
+    const auto	y = blocks.y*threads.y;
+    std::advance(in,  y);
+    std::advance(out, y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
-    threads.y = nrow%threads.y;
+    threads.y = nrow - y;
     blocks.y  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
 							    begin(*out),
 							    strideI, strideO);
   // 右下
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x;
     blocks.x  = 1;
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
 							    begin(*out) + x,
@@ -336,23 +337,24 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
 							    strideI, strideO);
   // 右上
     const auto	x = blocks.x*threads.x;
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x;
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
 							    begin(*out) + x + dx,
 							    strideI, strideO);
   // 左下
-    std::advance(in,  blocks.y*threads.y);
-    std::advance(out, blocks.y*threads.y);
+    const auto	y = blocks.y*threads.y;
+    std::advance(in,  y);
+    std::advance(out, y);
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
-    threads.y = nrow%threads.y;
+    threads.y = nrow - y;
     blocks.y  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in),
 							    begin(*out) + dx,
 							    strideI, strideO);
   // 右下
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x;
     blocks.x  = 1;
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(cbegin(*in) + x,
 							    begin(*out) + x + dx,

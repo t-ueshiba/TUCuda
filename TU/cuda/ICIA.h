@@ -264,7 +264,7 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
 					 op, 0, 0, stride_o);
   // 右上
     const auto	x0 = blocks.x*threads.x;
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x0;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, x0, 0, stride_o);
@@ -272,12 +272,12 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
     const auto	y0 = blocks.y*threads.y;
     threads.x = BlockDimX;
     blocks.x  = ncol/threads.x;
-    threads.y = nrow%threads.y;
+    threads.y = nrow - y0;
     blocks.y  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, 0, y0, stride_o);
   // 右下
-    threads.x = ncol%threads.x;
+    threads.x = ncol - x0;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, x0, y0, stride_o);

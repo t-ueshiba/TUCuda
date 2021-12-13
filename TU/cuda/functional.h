@@ -631,19 +631,29 @@ struct plane_estimator
 						{device::maxval<T>, 0, 0}};
 };
 
-template <class T>
+template <class T=vec<uint8_t, 3> >
 struct colored_normal
 {
-    using result_type	= vec<uint8_t, 3>;
+    using result_type	= T;
 
     __host__ __device__ result_type
-    operator ()(const mat4x<T, 3>& sum) const
+    operator ()(const vec<float, 3>& normal) const
     {
-	const auto	normal = plane_estimator<T>()(sum).y;
-
 	return {uint8_t(128 + 127*normal.x),
 		uint8_t(128 + 127*normal.y),
 		uint8_t(128 + 127*normal.z)};
+    }
+
+    template <class T_> __host__ __device__ result_type
+    operator ()(const mat3x<T_, 3>& plane) const
+    {
+	return (*this)(plane.y);
+    }
+
+    template <class T_> __host__ __device__ result_type
+    operator ()(const mat4x<T_, 3>& sum) const
+    {
+	return (*this)(plane_estimator<T_>()(sum));
     }
 };
 #endif

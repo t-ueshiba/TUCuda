@@ -263,7 +263,7 @@ namespace detail
 {
   template <class FUNC, class TUPLE, size_t... IDX>
   __host__ __device__ inline decltype(auto)
-  apply(FUNC&& f, TUPLE&& t, std::index_sequence<IDX...>)
+  cu_apply(FUNC&& f, TUPLE&& t, std::index_sequence<IDX...>)
   {
       return f(thrust::get<IDX>(std::forward<TUPLE>(t))...);
   }
@@ -272,9 +272,9 @@ namespace detail
 template <class FUNC, class TUPLE,
 	  std::enable_if_t<cuda::is_cons<TUPLE>::value>* = nullptr>
 __host__ __device__ inline decltype(auto)
-apply(FUNC&& f, TUPLE&& t)
+cu_apply(FUNC&& f, TUPLE&& t)
 {
-    return detail::apply(
+    return detail::cu_apply(
 		std::forward<FUNC>(f), std::forward<TUPLE>(t),
 		std::make_index_sequence<
 			thrust::tuple_size<std::decay_t<TUPLE> >::value>());
@@ -282,7 +282,7 @@ apply(FUNC&& f, TUPLE&& t)
 template <class FUNC, class T,
 	  std::enable_if_t<!cuda::is_cons<T>::value>* = nullptr>
 __host__ __device__ inline decltype(auto)
-apply(FUNC&& f, T&& t)
+cu_apply(FUNC&& f, T&& t)
 {
     return f(std::forward<T>(t));
 }

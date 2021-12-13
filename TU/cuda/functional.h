@@ -573,22 +573,22 @@ struct plane_estimator
     }
     
     __host__ __device__ result_type
-    operator ()(const mat4x<T, 3>& sum) const
+    operator ()(const mat4x<T, 3>& moment) const
     {
-	if (sum.w.x < T(4))
+	if (moment.w.x < T(4))	// Four or more points required.
 	    return _invalid_plane;
 
-	const auto	sc = T(1)/sum.w.x;
+	const auto	sc = T(1)/moment.w.x;
 	result_type	plane;
-	plane.x = sum.x * sc;
+	plane.x = moment.x * sc;
 
-	mat3x<T, 3>	A = {sum.y - sum.x.x * plane.x,
+	mat3x<T, 3>	A = {moment.y - moment.x.x * plane.x,
 			     {T(0),
-			      sum.z.x - sum.x.y * plane.x.y,
-			      sum.z.y - sum.x.y * plane.x.z},
+			      moment.z.x - moment.x.y * plane.x.y,
+			      moment.z.y - moment.x.y * plane.x.z},
 			     {T(0),
 			      T(0),
-			      sum.z.z - sum.x.z * plane.x.z}};
+			      moment.z.z - moment.x.z * plane.x.z}};
 	mat3x<T, 3>	evecs;
 	vec<T, 3>	evals;
 	device::eigen33(A, evecs, evals);
@@ -651,9 +651,9 @@ struct colored_normal
     }
 
     template <class T_> __host__ __device__ result_type
-    operator ()(const mat4x<T_, 3>& sum) const
+    operator ()(const mat4x<T_, 3>& moment) const
     {
-	return (*this)(plane_estimator<T_>()(sum));
+	return (*this)(plane_estimator<T_>()(moment));
     }
 };
 #endif

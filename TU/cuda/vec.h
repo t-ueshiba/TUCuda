@@ -842,6 +842,21 @@ ext(const VEC0& a, const VEC1& b)
     return {a.x * b, a.y * b, a.z * b, a.w * b};
 }
 
+namespace device
+{
+/************************************************************************
+*  atomic operations							*
+************************************************************************/
+template <class VM, class OP> __device__ inline
+std::enable_if_t<cuda::size<VM>() == 2>
+atomicOp(VM* dst, const VM& src, OP op)
+{
+    op(&dst.x, src.x);
+    op(&dst.y, src.y);
+}
+    
+}	// namespace device
+
 /************************************************************************
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/

@@ -1,6 +1,3 @@
-/*
- *  $Id$
- */
 /*!
   \file		algorithm.h
   \brief	各種アルゴリズムの定義と実装
@@ -639,6 +636,35 @@ transform2(IN in, IN ie, OUT out, OP op)				;
 #if defined(__NVCC__)
 namespace device
 {
+  namespace detail
+  {
+      template <class OP, class T>
+      static auto	check_unary(OP op, T arg)
+			    -> decltype(op(arg), std::true_type());
+      template <class OP, class T>
+      static auto	check_unary(OP op, T arg)
+			    -> decltype(op(0, 0, arg), std::false_type());
+      template <class OP, class T>
+      using is_unary	= decltype(check_unary(std::declval<OP>(),
+					       std::declval<T>()));
+
+      template <class OP, class T,
+		std::enable_if_t<is_unary<OP, T>::value>* = nullptr>
+      __device__ decltype(auto)
+      apply(OP&& op, int x, int y, T&& arg)
+      {
+	  return op(std::forward<T>(arg));
+      }
+
+      template <class OP, class T,
+		std::enable_if_t<!is_unary<OP, T>::value>* = nullptr>
+      __device__ decltype(auto)
+      apply(OP&& op, int x, int y, T&& arg)
+      {
+	  return op(x, y, std::forward<T>(arg));
+      }
+  }
+    
   template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
   transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o,
@@ -650,7 +676,7 @@ namespace device
       advance_stride(in,  y*stride_i);
       advance_stride(out, y*stride_o);
 
-      out[x] = op(x, y, in[x]);
+      out[x] = detail::apply(op, x, y, in[x]);
   }
 }	// namespace device
 

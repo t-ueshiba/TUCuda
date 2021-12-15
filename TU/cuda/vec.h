@@ -306,8 +306,12 @@ namespace detail
   constexpr std::integral_constant<size_t, C>	ncol(mat3x<T, C>)	;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, C>	ncol(mat4x<T, C>)	;
-  template <class MAT>
-  constexpr typename MAT::element_type		element_t(MAT)		;
+  template <class T, size_t C>
+  constexpr typename mat2x<T, C>::element_type	element_t(mat2x<T, C>)	;
+  template <class T, size_t C>
+  constexpr typename mat3x<T, C>::element_type	element_t(mat3x<T, C>)	;
+  template <class T, size_t C>
+  constexpr typename mat4x<T, C>::element_type	element_t(mat4x<T, C>)	;
   template <class T, size_t C>
   constexpr typename mat2x<T, C>::value_type	value_t(mat2x<T, C>)	;
   template <class T, size_t C>

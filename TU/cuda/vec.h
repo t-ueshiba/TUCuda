@@ -847,12 +847,38 @@ namespace device
 /************************************************************************
 *  atomic operations							*
 ************************************************************************/
+template <class T, class OP> __device__ inline
+std::enable_if_t<cuda::size<T>() == 1>
+atomicOp(T* dst, T src, OP op)
+{
+    op(dst, src);
+}
+    
 template <class VM, class OP> __device__ inline
 std::enable_if_t<cuda::size<VM>() == 2>
 atomicOp(VM* dst, const VM& src, OP op)
 {
-    op(&dst.x, src.x);
-    op(&dst.y, src.y);
+    atomicOp(&dst->x, src.x, op);
+    atomicOp(&dst->y, src.y, op);
+}
+    
+template <class VM, class OP> __device__ inline
+std::enable_if_t<cuda::size<VM>() == 3>
+atomicOp(VM* dst, const VM& src, OP op)
+{
+    atomicOp(&dst->x, src.x, op);
+    atomicOp(&dst->y, src.y, op);
+    atomicOp(&dst->z, src.z, op);
+}
+    
+template <class VM, class OP> __device__ inline
+std::enable_if_t<cuda::size<VM>() == 4>
+atomicOp(VM* dst, const VM& src, OP op)
+{
+    atomicOp(&dst->x, src.x, op);
+    atomicOp(&dst->y, src.y, op);
+    atomicOp(&dst->z, src.z, op);
+    atomicOp(&dst->w, src.w, op);
 }
     
 }	// namespace device

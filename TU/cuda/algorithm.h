@@ -24,10 +24,16 @@ struct BlockTraits
     constexpr static size_t	BlockDimY = BLOCK_DIM_Y;
 };
     
-#if defined(__NVCC__)
 /************************************************************************
 *  global functions							*
 ************************************************************************/
+static inline size_t
+gridDim(size_t dim, size_t blockDim)
+{
+    return (dim + blockDim - 1)/blockDim;
+}
+    
+#if defined(__NVCC__)
 inline std::ostream&
 operator <<(std::ostream& out, const dim3& d)
 {
@@ -214,14 +220,18 @@ namespace device
 {
   template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
   __global__ static void
-  subsample(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
+  subsample(IN in, OUT out,
+	    STRIDE_I stride_i, STRIDE_O stride_o, int ncol, int nrow)
   {
       const int	x = blockIdx.x*blockDim.x + threadIdx.x;
       const int	y = blockIdx.y*blockDim.y + threadIdx.y;
 
-      advance_stride(in, 2*y*stride_i);
-      advance_stride(out,  y*stride_o);
-      out[x] = in[2*x];
+      if (x < ncol && y < nrow)
+      {
+	  advance_stride(in, 2*y*stride_i);
+	  advance_stride(out,  y*stride_o);
+	  out[x] = in[2*x];
+      }
   }
 }	// namespace device
 
@@ -240,35 +250,11 @@ subsample(IN in, IN ie, OUT out)
     if (ncol < 1)
 	return;
 
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
-
-  // 左上
-    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
     device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					   stride_i, stride_o);
-  // 右上
-    const auto	x = blocks.x*threads.x;
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(cbegin(*in) + 2*x, begin(*out) + x,
-					   stride_i, stride_o);
-  // 左下
-    const auto	y = blocks.y*threads.y;
-    std::advance(in, 2*y);
-    std::advance(out,  y);
-    threads.x = BLOCK_TRAITS::BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y;
-    blocks.y  = 1;
-    device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					   stride_i, stride_o);
-  // 右下
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::subsample<<<blocks, threads>>>(cbegin(*in) + 2*x, begin(*out) + x,
-					   stride_i, stride_o);
+					   stride(in), stride(out),
+					   ncol, nrow);
 }
 #endif
 
@@ -291,30 +277,32 @@ namespace device
   template <class BLOCK_TRAITS,
 	    class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
-  op3x3(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o)
+  op3x3(IN in, OUT out, OP op,
+	STRIDE_I stride_i, STRIDE_O stride_o, int ncol, int nrow)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-      const auto	bx  = blockDim.x;
-      const auto	by  = blockDim.y;
-      const auto	x0 = __mul24(blockIdx.x, bx);
-      const auto	y0 = __mul24(blockIdx.y, by);
+      const auto	x0 = __mul24(blockIdx.x, blockDim.x);
+      const auto	y0 = __mul24(blockIdx.y, blockDim.y);
       const auto	tx  = threadIdx.x;
       const auto	ty  = threadIdx.y;
 
-      advance_stride(in, y0 * stride_i);
-      advance_stride(out, (y0 + ty + 1)*stride_o);
+      if (x0 + tx < ncol && y0 + ty < nrow)
+      {
+	  advance_stride(in, y0 * stride_i);
+	  advance_stride(out, (y0 + ty + 1)*stride_o);
 
-    // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
-      __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY+2]
+	// 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
+	  __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY+2]
 				    [BLOCK_TRAITS::BlockDimX+2];
-      loadTile(in + x0, stride_i, in_s, 2, 2);
-      __syncthreads();
+	  loadTile(in + x0, stride_i, in_s, 2, 2);
+	  __syncthreads();
 
-    // 共有メモリに保存した原画像データから現在画素に対するフィルタ出力を計算
-      out[x0 + tx + 1] = op(in_s[ty]	 + tx,
-			    in_s[ty + 1] + tx,
-			    in_s[ty + 2] + tx);
+	// 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
+	  out[x0 + tx + 1] = op(in_s[ty]     + tx,
+				in_s[ty + 1] + tx,
+				in_s[ty + 2] + tx);
+      }
   }
 }	// namespace device
 
@@ -333,37 +321,12 @@ op3x3(IN in, IN ie, OUT out, OP op)
     if (ncol < 1)
 	return;
 
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
-
-  // 左上
-    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
     device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in), begin(*out),
-						     op, stride_i, stride_o);
-  // 右上
-    const auto	x = blocks.x*threads.x;
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
-						     begin(*out) + x,
-						     op, stride_i, stride_o);
-  // 左下
-    const auto	y = blocks.y*threads.y;
-    std::advance(in,  y);
-    std::advance(out, y);
-    threads.x = BLOCK_TRAITS::BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y;
-    blocks.y  = 1;
-    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in), begin(*out),
-						     op, stride_i, stride_o);
-  // 右下
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
-						     begin(*out) + x,
-						     op, stride_i, stride_o);
+						     op,
+						     stride(in), stride(out),
+						     ncol, nrow);
 }
 #endif
 
@@ -668,15 +631,18 @@ namespace device
   template <class IN, class OUT, class OP, class STRIDE_I, class STRIDE_O>
   __global__ static void
   transform2(IN in, OUT out, OP op, STRIDE_I stride_i, STRIDE_O stride_o,
-	     int x0, int y0)
+	     int ncol, int nrow)
   {
-      const int	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-      const int	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
-      advance_stride(in,  y*stride_i);
-      advance_stride(out, y*stride_o);
+      if (x < ncol && y < nrow)
+      {
+	  advance_stride(in,  y*stride_i);
+	  advance_stride(out, y*stride_o);
 
-      out[x] = detail::apply(op, x, y, in[x]);
+	  out[x] = detail::apply(op, x, y, in[x]);
+      }
   }
 }	// namespace device
 
@@ -695,33 +661,11 @@ transform2(IN in, IN ie, OUT out, OP op)
     if (ncol < 1)
 	return;
 
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
-
-  // 左上
-    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o, 0, 0);
-  // 右上
-    const auto	x = blocks.x*threads.x;
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o, x, 0);
-  // 左下
-    const auto	y = blocks.y*threads.y;
-    threads.x = BLOCK_TRAITS::BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y;
-    blocks.y  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o, 0, y);
-  // 右下
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					    op, stride_i, stride_o, x, y);
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
+    device::transform2<<<blocks, threads>>>(cbegin(*in), begin(*out), op,
+					    stride(in), stride(out),
+					    ncol, nrow);
 }
 #endif
 }	// namespace cuda

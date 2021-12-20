@@ -547,6 +547,12 @@ struct plane_moment
    */
     using result_type = mat4x<T, 3>;
 
+    __host__ __device__ static result_type
+    zero()
+    {
+	return _zero;
+    }
+    
     __host__ __device__ result_type
     operator ()(const vec<T, 3>& point) const
     {
@@ -554,6 +560,10 @@ struct plane_moment
 		{point.y * point.y, point.y * point.z, point.z * point.z},
 		{point.z > T(0) ? T(1) : T(0), T(0), T(0)}};
     }
+
+  private:
+    constexpr static result_type _zero{{0, 0, 0}, {0, 0, 0}, 
+				       {0, 0, 0}, {0, 0, 0}};
 };
 
 template <class T>
@@ -626,6 +636,7 @@ struct plane_estimator
 	return plane;
     }
 
+  private:
     constexpr static result_type _invalid_plane{{0, 0, 0},
 						{0, 0, 0},
 						{device::maxval<T>, 0, 0}};

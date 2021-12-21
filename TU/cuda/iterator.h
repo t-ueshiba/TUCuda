@@ -1,6 +1,3 @@
-/*
- *  $Id$
- */
 /*!
   \file		iterator.h
   \brief	半精度浮動小数点に燗する各種アルゴリズムの定義と実装
@@ -285,6 +282,181 @@ advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
     using base_t = std::decay_t<decltype(iter.base())>;
 
     advance_stride(const_cast<base_t&>(iter.base()), stride);
+}
+
+/************************************************************************
+*  class range<ITER>							*
+************************************************************************/
+template <class ITER>
+class range
+{
+  public:
+    using value_type	 = iterator_value<ITER>;
+    using const_iterator = const_iterator_t<ITER>;
+    
+  public:
+    __host__ __device__
+		range(ITER begin, size_t size)
+		    :_begin(begin), _size(size)			{}
+
+		range()						= delete;
+		range(const range&)				= default;
+    __host__ __device__
+    range&	operator =(const range& r)
+		{
+		    assert(r.size() == size());
+		    copy<0>(r._begin, _size, _begin);
+		    return *this;
+		}
+		range(range&&)					= default;
+    range&	operator =(range&&)				= default;
+    
+    template <class ITER_,
+	      std::enable_if_t<std::is_convertible<ITER_, ITER>::value>*
+	      = nullptr>
+    __host__ __device__
+		range(const range<ITER_>& r)
+		    :_begin(r.begin()), _size(r.size())
+		{
+		}
+
+    template <class E_>
+    __host__ __device__ std::enable_if_t<rank<E_>() != 0, range&>
+		operator =(const E_& expr)
+		{
+		    using	TU::begin;
+		    
+		    assert(TU::size(expr) == _size);
+		    copy<TU::size0<E_>()>(begin(expr), _size, _begin);
+		    return *this;
+		}
+		
+		range(std::initializer_list<value_type> args)
+		    :_begin(const_cast<value_type*>(args.begin())),
+		     _size(args.size())
+    		{
+		}
+
+    __host__ __device__
+    size_t	size()	  const	{ return _size; }
+    __host__ __device__
+    auto	begin()		{ return _begin; }
+    __host__ __device__
+    auto	end()		{ return _begin + _size; }
+    __host__ __device__
+    auto	begin()	  const	{ return const_iterator(_begin); }
+    __host__ __device__
+    auto	end()	  const	{ return const_iterator(_begin + _size); }
+    __host__ __device__
+    auto	cbegin()  const	{ return begin(); }
+    __host__ __device__
+    auto	cend()	  const	{ return end(); }
+    __host__ __device__
+    decltype(auto)
+		operator [](size_t i) const
+		{
+		    assert(i < size());
+		    return *(_begin + i);
+		}
+
+  private:
+    const ITER		_begin;
+    const size_t	_size;
+};
+
+template <class ITER>
+class range_iterator
+    : public thrust::iterator_adaptor<range_iterator<ITER>,
+				      ITER,
+				      range<ITER>,
+				      thrust::use_default,
+				      thrust::use_default,
+				      range<ITER> >
+{
+  private:
+    using super	= thrust::iterator_adaptor<range_iterator,
+					   ITER,
+					   range<ITER>,
+					   thrust::use_default,
+					   thrust::use_default,
+					   range<ITER> >;
+    
+  public:
+    using		typename super::reference;
+    using		typename super::difference_type;
+    using stride_t    =	iterator_stride<ITER>;
+    friend class	thrust::iterator_core_access;
+	  
+  public:
+    __host__ __device__
+		range_iterator(ITER iter, stride_t stride, size_t size)
+		    :super(iter), _stride(stride), _size(size)		{}
+
+    __host__ __device__
+    size_t	size() const
+		{
+		    return _size;
+		}
+    __host__ __device__
+    stride_t	stride() const
+		{
+		    return _stride;
+		}
+	
+  private:
+    __host__ __device__
+    reference	dereference() const
+		{
+		    return {super::base(), size()};
+		}
+    __host__ __device__
+    void	increment()
+		{
+		    advance_stride(super::base_reference(), stride());
+		}
+    __host__ __device__
+    void	decrement()
+		{
+		    advance_stride(super::base_reference(), -stride());
+		}
+    __host__ __device__
+    void	advance(difference_type n)
+		{
+		    advance_stride(super::base_reference(), n*stride());
+		}
+    __host__ __device__
+    difference_type
+		distance_to(const range_iterator& iter) const
+		{
+		    return (iter.base() - super::base()) / leftmost(stride());
+		}
+    static auto	leftmost(ptrdiff_t stride) -> ptrdiff_t
+		{
+		    return stride;
+		}
+    template <class STRIDE_>
+    static auto	leftmost(const STRIDE_& stride)
+		{
+		    using	std::get;
+		    
+		    return leftmost(get<0>(stride));
+		}
+
+  private:
+    stride_t	_stride;
+    size_t	_size;
+};
+	
+template <class ITER> inline range_iterator<ITER>
+make_range_iterator(ITER iter, iterator_stride<ITER> stride, size_t size)
+{
+    return {iter, stride, size};
+}
+    
+template <class T> inline range_iterator<T*>
+make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, size_t size)
+{
+    return {p.get(), stride, size};
 }
 
 }	// namespace cuda

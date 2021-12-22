@@ -213,7 +213,7 @@ namespace device
 {
   template <class IN, class OUT>
   __global__ static void
-  subsample(range<IN> in, range<OUT> out)
+  subsample(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
   {
       const int	x = blockIdx.x*blockDim.x + threadIdx.x;
       const int	y = blockIdx.y*blockDim.y + threadIdx.y;
@@ -259,9 +259,9 @@ namespace device
 {
   template <class BLOCK_TRAITS, class IN, class OUT, class OP>
   __global__ static void
-  op3x3(range<IN> in, range<OUT> out, OP op)
+  op3x3(range<range_iterator<IN> > in, range<range_iterator<OUT> > out, OP op)
   {
-      using	element_type = element_t<range<IN> >;
+      using	element_type = std::iterator_traits<IN>::value_type;
 
       const int	x0 = __mul24(blockIdx.x, blockDim.x);
       const int	y0 = __mul24(blockIdx.y, blockDim.y);
@@ -270,7 +270,12 @@ namespace device
       const int	x  = x0 + tx;
       const int	y  = y0 + ty;
 
-      if (y + 2 < in.size() && x + 2 < in.begin().size())
+      const auto	r = slice(in,
+				  y0, min(blockDim.y + 2, in.size() - y0),
+				  x0, min(blockDim.x + 2,
+					  in.begin().size() - x0));
+      
+      if (y < in.size() && x < in.begin().size())
       {
 	// 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
 	  __shared__ element_type	in_s[BLOCK_TRAITS::BlockDimY + 2]
@@ -279,9 +284,10 @@ namespace device
 	  __syncthreads();
 
 	// 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
-	  out[y + 1][x + 1] = op(in_s[ty]     + tx,
-				 in_s[ty + 1] + tx,
-				 in_s[ty + 2] + tx);
+	  if (y + 2 < in.size() && x + 2 < in.begin().size())
+	      out[y + 1][x + 1] = op(in_s[ty]     + tx,
+				     in_s[ty + 1] + tx,
+				     in_s[ty + 2] + tx);
       }
   }
 }	// namespace device
@@ -603,7 +609,8 @@ namespace device
   }
     
   template <class IN, class OUT, class OP> __global__ static void
-  transform2(range<IN> in, range<OUT> out, OP op)
+  transform2(range<range_iterator<IN> > in,
+	     range<range_iterator<OUT> > out, OP op)
   {
       const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;

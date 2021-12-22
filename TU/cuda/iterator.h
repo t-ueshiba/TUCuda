@@ -14,7 +14,7 @@ namespace TU
 namespace cuda
 {
 /************************************************************************
-*  map_iterator<FUNC, ITER>						*
+*  TU::cuda::map_iterator<FUNC, ITER>					*
 ************************************************************************/
 template <class FUNC, class ITER>
 class map_iterator
@@ -80,7 +80,7 @@ make_map_iterator(FUNC func,
 }
 
 /************************************************************************
-*  class assignment_iterator<FUNC, ITER>				*
+*  class TU::cuda::assignment_iterator<FUNC, ITER>			*
 ************************************************************************/
 #if defined(__NVCC__)
 namespace detail
@@ -255,7 +255,7 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
 }
 
 /************************************************************************
-*  advance_stride(ITER&, STRIDE)					*
+*  TU::cuda::advance_stride(ITER&, STRIDE)				*
 ************************************************************************/
 template <class ITER> __host__ __device__ inline auto
 advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
@@ -285,7 +285,7 @@ advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
 }
 
 /************************************************************************
-*  class range<ITER>							*
+*  class TU::cuda::range<ITER>						*
 ************************************************************************/
 template <class ITER>
 class range
@@ -296,7 +296,7 @@ class range
     
   public:
     __host__ __device__
-		range(ITER begin, size_t size)
+		range(ITER begin, int size)
 		    :_begin(begin), _size(size)			{}
 
 		range()						= delete;
@@ -304,41 +304,15 @@ class range
     __host__ __device__
     range&	operator =(const range& r)
 		{
-		    assert(r.size() == size());
+		  //assert(r.size() == size());
 		    copy<0>(r._begin, _size, _begin);
 		    return *this;
 		}
 		range(range&&)					= default;
     range&	operator =(range&&)				= default;
     
-    template <class ITER_,
-	      std::enable_if_t<std::is_convertible<ITER_, ITER>::value>*
-	      = nullptr>
     __host__ __device__
-		range(const range<ITER_>& r)
-		    :_begin(r.begin()), _size(r.size())
-		{
-		}
-
-    template <class E_>
-    __host__ __device__ std::enable_if_t<rank<E_>() != 0, range&>
-		operator =(const E_& expr)
-		{
-		    using	TU::begin;
-		    
-		    assert(TU::size(expr) == _size);
-		    copy<TU::size0<E_>()>(begin(expr), _size, _begin);
-		    return *this;
-		}
-		
-		range(std::initializer_list<value_type> args)
-		    :_begin(const_cast<value_type*>(args.begin())),
-		     _size(args.size())
-    		{
-		}
-
-    __host__ __device__
-    size_t	size()	  const	{ return _size; }
+    int		size()	  const	{ return _size; }
     __host__ __device__
     auto	begin()		{ return _begin; }
     __host__ __device__
@@ -353,17 +327,20 @@ class range
     auto	cend()	  const	{ return end(); }
     __host__ __device__
     decltype(auto)
-		operator [](size_t i) const
+		operator [](int i) const
 		{
-		    assert(i < size());
+		  //assert(i < size());
 		    return *(_begin + i);
 		}
 
   private:
-    const ITER		_begin;
-    const size_t	_size;
+    const ITER	_begin;
+    const int	_size;
 };
 
+/************************************************************************
+*  class TU::cuda::range_iterator<ITER>					*
+************************************************************************/
 template <class ITER>
 class range_iterator
     : public thrust::iterator_adaptor<range_iterator<ITER>,
@@ -382,18 +359,18 @@ class range_iterator
 					   range<ITER> >;
     
   public:
-    using		typename super::reference;
-    using		typename super::difference_type;
-    using stride_t    =	iterator_stride<ITER>;
-    friend class	thrust::iterator_core_access;
+    using	typename super::reference;
+    using	typename super::difference_type;
+    using	stride_t = iterator_stride<ITER>;
+    friend	class thrust::iterator_core_access;
 	  
   public:
     __host__ __device__
-		range_iterator(ITER iter, stride_t stride, size_t size)
+		range_iterator(ITER iter, stride_t stride, int size)
 		    :super(iter), _stride(stride), _size(size)		{}
 
     __host__ __device__
-    size_t	size() const
+    int	size() const
 		{
 		    return _size;
 		}
@@ -430,11 +407,13 @@ class range_iterator
 		{
 		    return (iter.base() - super::base()) / leftmost(stride());
 		}
+    __host__ __device__
     static auto	leftmost(ptrdiff_t stride) -> ptrdiff_t
 		{
 		    return stride;
 		}
     template <class STRIDE_>
+    __host__ __device__
     static auto	leftmost(const STRIDE_& stride)
 		{
 		    using	std::get;
@@ -444,19 +423,37 @@ class range_iterator
 
   private:
     stride_t	_stride;
-    size_t	_size;
+    int		_size;
 };
 	
 template <class ITER> inline range_iterator<ITER>
-make_range_iterator(ITER iter, iterator_stride<ITER> stride, size_t size)
+make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size)
 {
     return {iter, stride, size};
 }
     
 template <class T> inline range_iterator<T*>
-make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, size_t size)
+make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, int size)
 {
     return {p.get(), stride, size};
+}
+
+template <class ITER> inline auto
+make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
+{
+    return make_range_iterator(iter->begin(), iter.stride(), iter.size());
+}
+
+template <class ITER> inline range<ITER>
+make_range(ITER iter, int size)
+{
+    return {iter, size};
+}
+
+template <class ITER> inline auto
+make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
+{
+    return make_range(make_range_iterator(iter), size);
 }
 
 }	// namespace cuda

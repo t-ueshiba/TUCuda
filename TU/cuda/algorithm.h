@@ -85,6 +85,21 @@ namespace device
       } while ((tx += blockDim.x) < dx);
   }
 
+  template <class ITER, class T, size_t W>
+  __device__ static inline void
+  loadTileH(range_iterator<ITER> src, T dst[][W], int dx)
+  {
+      src += threadIdx.y;
+
+      auto		tx = threadIdx.x;
+      const auto	q  = dst[threadIdx.y];
+      dx += blockDim.x;
+      do
+      {
+	  q[tx] = src[tx];
+      } while ((tx += blockDim.x) < dx);
+  }
+
   //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指す反復子
@@ -196,20 +211,15 @@ subsample(IN in, IN ie, OUT out)					;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  template <class IN, class OUT>
   __global__ static void
-  subsample(IN in, OUT out,
-	    STRIDE_I stride_i, STRIDE_O stride_o, int ncol, int nrow)
+  subsample(range<IN> in, range<OUT> out)
   {
       const int	x = blockIdx.x*blockDim.x + threadIdx.x;
       const int	y = blockIdx.y*blockDim.y + threadIdx.y;
 
-      if (x < ncol && y < nrow)
-      {
-	  advance_stride(in, 2*y*stride_i);
-	  advance_stride(out,  y*stride_o);
-	  out[x] = in[2*x];
-      }
+      if (2*x < in.begin().size() && 2*y < in.size())
+	  out[y][x] = in[2*y][2*x];
   }
 }	// namespace device
 
@@ -220,19 +230,18 @@ subsample(IN in, IN ie, OUT out)
     using	std::cend;
     using	std::begin;
 
-    const auto	nrow = std::distance(in, ie)/2;
-    if (nrow < 1)
+    const auto	nrow = std::distance(in, ie);
+    if (nrow < 2)
 	return;
 
-    const auto	ncol = std::distance(cbegin(*in), cend(*in))/2;
-    if (ncol < 1)
+    const auto	ncol = TU::size(*in);
+    if (ncol < 2)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
-    device::subsample<<<blocks, threads>>>(cbegin(*in), begin(*out),
-					   stride(in), stride(out),
-					   ncol, nrow);
+    const dim3	blocks(gridDim(ncol/2, threads.x), gridDim(nrow/2, threads.y));
+    device::subsample<<<blocks, threads>>>(cuda::make_range(in, nrow),
+					   cuda::make_range(out, nrow/2));
 }
 #endif
 

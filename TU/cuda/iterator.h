@@ -440,19 +440,13 @@ make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, int size)
 {
     return {p.get(), stride, size};
 }
-
+    
 template <class ITER, class... SS> __host__ __device__ inline auto
 make_range_iterator(ITER iter,
 		    iterator_stride<ITER> stride, int size, SS... ss)
 {
     return make_range_iterator(make_range_iterator(iter, ss...),
 			       stride, size);
-}
-
-template <class ITER> __host__ __device__ inline auto
-make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
-{
-    return make_range_iterator(iter->begin(), iter.stride(), iter.size());
 }
 
 /************************************************************************
@@ -462,6 +456,14 @@ template <class ITER> __host__ __device__ inline range<ITER>
 make_range(ITER iter, int size)
 {
     return {iter, size};
+}
+
+template <class ITER> __host__ inline auto
+make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
+{
+    return make_range(make_range_iterator(iter->begin(),
+					  iter.stride(), iter.size()),
+		      size);
 }
 
 template <class ITER, class... SS> __host__ __device__ inline auto
@@ -484,16 +486,16 @@ namespace detail
   template <class ITER, class... IS> __host__ __device__ inline auto
   make_slice_iterator(ITER iter, int idx, int size, IS... is)
   {
-      return make_range_iterator(make_slice_iterator(
-				     begin(*iter) + idx, is...),
-				 stride(iter), size);
+      return make_range_iterator(make_slice_iterator((*iter).begin() + idx,
+						     is...),
+				 iter.stride(), size);
   }
 }	// namespace detail
     
-template <class RANGE, class... IS> __host__ __device__ inline auto
-slice(RANGE&& r, int idx, int size, IS... is)
+template <class ITER, class... IS> __host__ __device__ inline auto
+slice(const range<ITER>& r, int idx, int size, IS... is)
 {
-    return make_range(detail::make_slice_iterator(begin(r) + idx, is...),
+    return make_range(detail::make_slice_iterator(r.begin() + idx, is...),
 		      size);
 }
 

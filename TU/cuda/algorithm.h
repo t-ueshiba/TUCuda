@@ -187,6 +187,18 @@ namespace device
 	      dst[ty][tx] = row[tx];
       }
   }
+
+  template <class IN, class T, size_t W>
+  __device__ static inline void
+  loadTileT(const range<range_iterator<IN> >& src, T dst[][W])
+  {
+      for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)
+      {
+	  const auto	row = src[ty];
+	  for (int tx  = threadIdx.x; tx < row.size(); tx += blockDim.y)
+	      dst[tx][ty] = row[tx];
+      }
+  }
 }	// namespace device
 #endif
 
@@ -277,21 +289,20 @@ namespace device
 
       const int	x0 = __mul24(blockIdx.x, blockDim.x);
       const int	y0 = __mul24(blockIdx.y, blockDim.y);
-      const int	tx = threadIdx.x;
-      const int ty = threadIdx.y;
-      const int	x  = x0 + tx;
-      const int	y  = y0 + ty;
 
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
       __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + 2]
-				    [BLOCK_TRAITS::BlockDimX + 2];
-      loadTile(slice(in,
-		     y0, ::min(int(blockDim.y + 2), in.size() - y0),
-		     x0, ::min(int(blockDim.x + 2), in.begin().size() - x0)),
+				    [BLOCK_TRAITS::BlockDimX + 2 + 1];
+      loadTile(slice(in, y0, ::min(blockDim.y + 2, in.size() - y0),
+			 x0, ::min(blockDim.x + 2, in.begin().size() - x0)),
 	       in_s);
       __syncthreads();
 
     // 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
+      const int	tx = threadIdx.x;
+      const int ty = threadIdx.y;
+      const int	x  = x0 + tx;
+      const int	y  = y0 + ty;
       if (y + 2 < in.size() && x + 2 < in.begin().size())
 	  out[y + 1][x + 1] = op(in_s[ty]     + tx,
 				 in_s[ty + 1] + tx,

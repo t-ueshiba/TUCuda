@@ -28,23 +28,28 @@ namespace device
   \param strideI	入力2次元配列の行を1つ進めるためにインクリメントするべき要素数
   \param strideO	出力2次元配列の行を1つ進めるためにインクリメントするべき要素数
 */
-template <class FILTER, class IN, class OUT, class STRIDE_I, class STRIDE_O>
+template <class FILTER, class IN, class OUT>
 __global__ void
-box_filter(IN in, OUT out, int winSize, STRIDE_I strideI, STRIDE_O strideO)
+box_filter(range<range_iterator<IN> in,
+	   range<range_iterator<OUT> out, int winSize)
 {
     using value_type  =	typename FILTER::value_type;
 
-    __shared__ value_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-				    [FILTER::BlockDim + 1];
+    const int	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
+    const int	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
+
+    __shared__ value_type	in_s[FILTER::BlockDim]
+				    [FILTER::BlockDim + FILTER::WinSizeMax - 1];
+    loadTileT(slice(in, y0, ::min(blockDim.y, in.size() - y0),
+			x0, ::min(blockDim.x + winSize - 1,
+				  in.begin().size() - x0)),
+	      in_s);
+    __syncthreads();
+
     __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
-    const auto	x0 = __mul24(blockIdx.x, blockDim.x);	// ブロック左上隅
-    const auto	y0 = __mul24(blockIdx.y, blockDim.y);	// ブロック左上隅
-
-    advance_stride(in, y0*strideI);
-    in += x0;
-    loadTileV(in, strideI, in_s, winSize - 1);
-    __syncthreads();
+    const int	x = x0 + threadIdx.x;
+    const int	y = y0 + threadIex.y;
 
     if (threadIdx.y == 0)
     {

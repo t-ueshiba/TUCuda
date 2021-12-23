@@ -493,9 +493,9 @@ namespace detail
 }	// namespace detail
     
 template <class ITER, class... IS> __host__ __device__ inline auto
-slice(const range<ITER>& r, int idx, int size, IS... is)
+slice(ITER iter, int idx, int size, IS... is)
 {
-    return make_range(detail::make_slice_iterator(r.begin() + idx, is...),
+    return make_range(detail::make_slice_iterator(iter + idx, is...),
 		      size);
 }
 

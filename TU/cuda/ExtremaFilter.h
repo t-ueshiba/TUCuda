@@ -64,8 +64,8 @@ class deque
 ************************************************************************/
 template <class FILTER, class IN, class OUT, class COMPARE>
 __global__ void
-extrema_filter(range<range_iterator<IN> > in,
-	       range<range_iterator<OUT> > out, COMPARE compare, int winSize)
+extrema_filter(range<range_iterator<IN> >  in,
+	       range<range_iterator<OUT> > out, int winSize, COMPARE compare)
 {
     using value_type	= typename FILTER::value_type;
 
@@ -291,7 +291,7 @@ class ExtremaFilter2 : public BLOCK_TRAITS
 
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
-  //constexpr static size_t	BlockDim   = BlockDimY;
+    constexpr static size_t	BlockDim   = BlockDimY;
     constexpr static size_t	WinSizeMax = WMAX;
 
   public:
@@ -352,103 +352,31 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
 						COMPARE compare,
 						bool shift) const
 {
-    using	std::cbegin;
-    using	std::cend;
-    using	std::begin;
-    
-    size_t	nrows = std::distance(row, rowe);
+    const int	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    size_t	ncols = std::distance(cbegin(*row), cend(*row));
+    const int	ncols = TU::size(*row);
     if (ncols < _winSizeH)
 	return;
 
-    nrows = outSizeV(nrows);
-    _buf.resize(ncols, nrows);
+    _buf.resize(ncols, outSizeV(nrows));
 
-    const auto	strideI = stride(row);
-    const auto	strideO = stride(rowO);
-    const auto	strideB = _buf.stride();
-
-  // ---- 縦方向積算 ----
-  // 左上
-    dim3	threads(BlockDimX, BlockDimY);
-    dim3	blocks(ncols/threads.x, nrows/threads.y);
+  // Accumulate vertically.
+    const dim3	threads(BlockDim, BlockDim);
+    dim3	blocks(gridDim(ncols, threads.x), gridDim(nrows, threads.y));
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]), compare, _winSizeV, strideI, strideB);
+	cuda::make_range(row, nrows),
+	cuda::make_range(_buf.begin(), _buf.nrow()), _winSizeV, compare);
 
-  // 右上
-    auto	x = blocks.x*threads.x;
-    threads.x = ncols - x;
-    blocks.x  = 1;
-    if (x < ncols)
-	device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	    cbegin(*row) + x, begin(_buf[x]), compare, _winSizeV,
-	    strideI, strideB);
-
-  // 左下
-    auto	y = blocks.y*threads.y;
-    std::advance(row, y);
-    threads.x = BlockDimX;
-    blocks.x  = ncols/threads.x;
-    threads.y = nrows - y;
-    blocks.y  = 1;
+  // Accumulate horizontally,
+    blocks.x = gridDim(_buf.ncol(), threads.x);
+    blocks.y = gridDim(_buf.nrow(), threads.y);
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(*row), begin(_buf[0]) + y, compare, _winSizeV,
-	strideI, strideB);
-
-  // 右下
-    threads.x = ncols - x;
-    blocks.x  = 1;
-    if (x < ncols)
-	device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	    cbegin(*row) + x, begin(_buf[x]) + y, compare, _winSizeV,
-	    strideI, strideB);
-
-  // ---- 横方向積算 ----
-    size_t	dx = 0;
-    if (shift)
-    {
-	rowO += offsetV();
-	dx    = offsetH();
-    }
-    ncols = outSizeH(ncols);
-
-  // 左上
-    threads.x = BlockDimX;
-    blocks.x  = nrows/threads.x;
-    threads.y = BlockDimY;
-    blocks.y  = ncols/threads.y;
-    device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]), begin(*rowO) + dx, compare, _winSizeH,
-	strideB, strideO);
-
-  // 左下
-    x	      = blocks.y*threads.y;
-    threads.y = ncols - x;
-    blocks.y  = 1;
-    device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]), begin(*rowO) + x + dx, compare, _winSizeH,
-	strideB, strideO);
-
-  // 右上
-    y	      = blocks.x*threads.x;
-    std::advance(rowO, y);
-    threads.x = nrows - y;
-    blocks.x  = 1;
-    threads.y = BlockDimY;
-    blocks.y  = ncols/threads.y;
-    device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[0]) + y, begin(*rowO) + dx, compare, _winSizeH,
-	strideB, strideO);
-
-  // 右下
-    threads.y = ncols - x;
-    blocks.y  = 1;
-    device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
-	cbegin(_buf[x]) + y, begin(*rowO) + x + dx, compare, _winSizeH,
-	strideB, strideO);
+	cuda::make_range(_buf.cbegin(), _buf.nrow()),
+	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
+			  (shift ? offsetH() : 0), outSizeH(ncols)),
+	_winSizeH, compare);
 }
 
 template <class T, class BLOCK_TRAITS, size_t WMAX>

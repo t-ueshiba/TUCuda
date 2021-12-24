@@ -275,8 +275,8 @@ namespace device
       __shared__ value_type	in_s[2*BLOCK_TRAITS::BlockDimY + 2]
 				    [2*BLOCK_TRAITS::BlockDimX + 3];
       loadTile(slice(in.cbegin(),
-		     y0, ::min(2*blockDim.y, in.size() - y0),
-		     x0, ::min(2*blockDim.x, in.begin().size() - x0)),
+		     y0, ::min(2*blockDim.y + 2, in.size() - y0),
+		     x0, ::min(2*blockDim.x + 2, in.begin().size() - x0)),
 	       in_s);
       __syncthreads();
 

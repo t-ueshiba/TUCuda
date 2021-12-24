@@ -22,11 +22,9 @@ namespace device
 /*!
   sliding windowを使用するが threadIdx.y が0のスレッドしか仕事をしないので
   ウィンドウ幅が大きいときのみ高効率．また，結果は転置して格納される．
-  \param in		入力2次元配列の左上隅を指す反復子
-  \param colO		出力2次元配列の左上隅を指す反復子
+  \param in		入力2次元配列
+  \param out		出力2次元配列
   \param winSize	boxフィルタのウィンドウの行幅(高さ)
-  \param strideI	入力2次元配列の行を1つ進めるためにインクリメントするべき要素数
-  \param strideO	出力2次元配列の行を1つ進めるためにインクリメントするべき要素数
 */
 template <class FILTER, class IN, class OUT>
 __global__ void
@@ -36,42 +34,47 @@ box_filter(range<range_iterator<IN> > in,
     using value_type  =	typename FILTER::value_type;
 
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
-    const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
     const int	xsiz = ::min(blockDim.x, in.begin().size() - x0);
-    const int	ysiz = ::min(blockDim.y + winSize - 1, in.size() - y0);
 
-    __shared__ value_type in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-			      [FILTER::BlockDim + 1];
-    loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
-    __syncthreads();
-
-    __shared__ value_type out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
-
-  // Assumes that blockDim.x == blockDim.y.
-    const int	ye = ysiz - winSize;
-    if (ye > 0)
+    if (threadIdx.x < xsiz)
     {
-	if (threadIdx.y == 0 && threadIdx.x < xsiz)
-	{
-	  // 各列を並列に縦方向積算
-	    out_s[0][threadIdx.x] = in_s[0][threadIdx.x];
-	    for (int y = 1; y != winSize; ++y)
-		out_s[0][threadIdx.x] += in_s[y][threadIdx.x];
+	const int y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
+	const int ysiz = ::min(blockDim.y + winSize - 1, in.size() - y0);
 
-	    for (int y = 1; y != ye; ++y)
-		out_s[y][threadIdx.x]
-		    = out_s[y-1][threadIdx.x]
-		    + in_s[y-1+winSize][threadIdx.x] - in_s[y-1][threadIdx.x];
-	}
+	__shared__ value_type in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+				  [FILTER::BlockDim + 1];
+	loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
 	__syncthreads();
 
-      // 結果を格納
-	if (xsiz == blockDim.x)
-	    out[x0 + threadIdx.y][y0 + threadIdx.x]
-		= out_s[threadIdx.x][threadIdx.y];
-	else
-	    out[x0 + threadIdx.x][y0 + threadIdx.y]
-		= out_s[threadIdx.y][threadIdx.x];
+	__shared__ value_type out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+
+      // Assumes that blockDim.x == blockDim.y.
+	const int	ye = ysiz - winSize + 1;
+	if (ye > 0)
+	{
+	    if (threadIdx.y == 0)
+	    {
+	      // 各列を並列に縦方向積算
+		out_s[0][threadIdx.x] = in_s[0][threadIdx.x];
+		for (int y = 1; y != winSize; ++y)
+		    out_s[0][threadIdx.x] += in_s[y][threadIdx.x];
+
+		for (int y = 1; y != ye; ++y)
+		    out_s[y][threadIdx.x]
+			= out_s[y-1][threadIdx.x]
+			+ in_s[y-1+winSize][threadIdx.x]
+			- in_s[y-1][threadIdx.x];
+	    }
+	    __syncthreads();
+
+	  // 結果を格納
+	    // if (xsiz == blockDim.x && ysiz == ye)
+	    // 	out[x0 + threadIdx.y][y0 + threadIdx.x]
+	    // 	    = out_s[threadIdx.x][threadIdx.y];
+	    // else
+		out[x0 + threadIdx.x][y0 + threadIdx.y]
+		    = out_s[threadIdx.y][threadIdx.x];
+	}
     }
 }
 
@@ -378,7 +381,7 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 
     _buf.resize(outSizeH(ncols), nrows);
 
-  // ---- 横方向積算 ----
+  // Accumulate vertically.
     profiler_t::start(1);
     const dim3	threads(BlockDim, BlockDim);
     dim3	blocks(gridDim(ncols, threads.x), gridDim(nrows, threads.y));
@@ -386,16 +389,15 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 	cuda::make_range(row, nrows),
 	cuda::make_range(_buf.begin(), _buf.nrow()), _winSizeV);
     
-  // ---- 縦方向積算 ----
+  // Accumulate horizontally.
     cudaDeviceSynchronize();
     profiler_t::start(2);
-    const int	x0 = (shift ? offsetH() : 0);
-    const int	y0 = (shift ? offsetV() : 0);
     blocks.x = gridDim(_buf.ncol(), threads.x);
     blocks.y = gridDim(_buf.nrow(), threads.y);
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 	cuda::make_range(_buf.cbegin(), _buf.nrow()),
-	cuda::slice(rowO, y0, outSizeV(nrows), x0, outSizeH(ncols)),
+	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
+			  (shift ? offsetH() : 0), outSizeH(ncols)),
 	_winSizeH);
 
     cudaDeviceSynchronize();

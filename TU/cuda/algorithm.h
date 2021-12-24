@@ -50,54 +50,12 @@ namespace device
   /*!
     \param src		コピー元のラインの左端を指す反復子
     \param dst		コピー先の1次元配列
-    \param dx		コピー元のライン幅に付加される長さ
   */
-  template <class S, class T> __device__ static inline void
-  loadLine(S src, T dst[], int dx)
+  template <class IN, class T> __device__ static inline void
+  loadLine(const range<IN>& src, T dst[])
   {
-      auto	tx = threadIdx.x;
-      dx += blockDim.x;
-      do
-      {
+      for (int tx = threadIdx.x; tx < src.size(); tx += blockDim.y)
 	  dst[tx] = src[tx];
-      } while ((tx += blockDim.x) < dx);
-  }
-
-  //! スレッドブロックの横方向に指定された長さを付加した領域をコピーする
-  /*!
-    \param src		コピー元の矩形領域の左上隅を指す反復子
-    \param stride	コピー元の行を1つ進めるためのインクリメント数
-    \param dst		コピー先の2次元配列
-    \param dx		ブロック幅に付加される長さ
-  */
-  template <class S, class STRIDE, class T, size_t W>
-  __device__ static inline void
-  loadTileH(S src, STRIDE stride, T dst[][W], int dx)
-  {
-      advance_stride(src, threadIdx.y * stride);
-
-      auto		tx = threadIdx.x;
-      const auto	q  = dst[threadIdx.y];
-      dx += blockDim.x;
-      do
-      {
-	  q[tx] = src[tx];
-      } while ((tx += blockDim.x) < dx);
-  }
-
-  template <class ITER, class T, size_t W>
-  __device__ static inline void
-  loadTileH(range_iterator<ITER> src, T dst[][W], int dx)
-  {
-      src += threadIdx.y;
-
-      auto		tx = threadIdx.x;
-      const auto	q  = dst[threadIdx.y];
-      dx += blockDim.x;
-      do
-      {
-	  q[tx] = src[tx];
-      } while ((tx += blockDim.x) < dx);
   }
 
   //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
@@ -123,31 +81,6 @@ namespace device
       } while ((ty += blockDim.y) < dy);
   }
 
-  //! スレッドブロックの縦方向に指定された長さを付加した領域を転置してコピーする
-  /*!
-    コピー先の矩形領域のサイズは blockDim.x * (blockDim.y + dy) となる．
-    \param src		コピー元の矩形領域の左上隅を指す反復子
-    \param stride	コピー元の行を1つ進めるためのインクリメント数
-    \param dst		コピー先の2次元配列
-    \param dy		ブロック高に付加される長さ
-  */
-  template <class S, class STRIDE, class T, size_t W>
-  __device__ static inline void
-  loadTileVt(S src, STRIDE stride, T dst[][W], int dy)
-  {
-      auto		ty = threadIdx.y;
-      advance_stride(src, ty * stride);
-      src += threadIdx.x;
-
-      const auto	q = dst[threadIdx.x];
-      dy += blockDim.y;
-      do
-      {
-	  q[ty] = *src;
-	  advance_stride(src, blockDim.y * stride);
-      } while ((ty += blockDim.y) < dy);
-  }
-
   //! スレッドブロックの横方向と縦方向にそれぞれ指定された長さを付加した領域をコピーする
   /*!
     \param src		コピー元の矩形領域の左上隅を指す反復子
@@ -156,28 +89,7 @@ namespace device
     \param dx		ブロック幅に付加される長さ
     \param dy		ブロック高に付加される長さ
   */
-  template <class S, class STRIDE, class T, size_t W>
-  __device__ static inline void
-  loadTile(S src, STRIDE stride, T dst[][W], int dx, int dy)
-  {
-      auto	ty = threadIdx.y;
-      advance_stride(src, ty * stride);
-
-      dx += blockDim.x;
-      dy += blockDim.y;
-      do
-      {
-	  auto	tx = threadIdx.x;
-	  do
-	  {
-	      dst[ty][tx] = src[tx];
-	  } while ((tx += blockDim.x) < dx);
-	  advance_stride(src, blockDim.y * stride);
-      } while ((ty += blockDim.y) < dy);
-  }
-
-  template <class IN, class T, size_t W>
-  __device__ static inline void
+  template <class IN, class T, size_t W> __device__ static inline void
   loadTile(const range<range_iterator<IN> >& src, T dst[][W])
   {
       for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)
@@ -188,8 +100,7 @@ namespace device
       }
   }
 
-  template <class IN, class T, size_t W>
-  __device__ static inline void
+  template <class IN, class T, size_t W> __device__ static inline void
   loadTileT(const range<range_iterator<IN> >& src, T dst[][W])
   {
       for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)
@@ -353,99 +264,64 @@ namespace device
 {
   template <class BLOCK_TRAITS, class IN, class OUT, class OP>
   __global__ static void
-  extrema3x3(IN in, OUT out, OP op,
-	     typename std::iterator_traits<IN>::value_type nulval,
-	     int stride_i, int stride_o)
+  extrema3x3(range<range_iterator<IN> > in, range<range_iterator<OUT> > out,
+	     OP op, typename std::iterator_traits<IN>::value_type nulval)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-    // in[] の index は負になり得るので，index 計算に
-    // 使われる xy 等の変数の型は符号付きでなければならない．
-      const int	bx2 = 2*blockDim.x;
-      const int	by2 = 2*blockDim.y;
-      int	xy  = 2*((blockIdx.y*blockDim.y + threadIdx.y)*stride_i +
-			 blockIdx.x*blockDim.x + threadIdx.x);
-      const int	x   = 1 + 2*threadIdx.x;
-      const int	y   = 1 + 2*threadIdx.y;
+      const int	x0 = 2*__mul24(blockIdx.x, blockDim.x);
+      const int	y0 = 2*__mul24(blockIdx.y, blockDim.y);
 
-  // 原画像の (2*blockDim.x)x(2*blockDim.y) 矩形領域を共有メモリにコピー
       __shared__ value_type	in_s[2*BLOCK_TRAITS::BlockDimY + 2]
 				    [2*BLOCK_TRAITS::BlockDimX + 3];
-      in_s[y    ][x    ] = in[xy	       ];
-      in_s[y    ][x + 1] = in[xy	    + 1];
-      in_s[y + 1][x    ] = in[xy + stride_i    ];
-      in_s[y + 1][x + 1] = in[xy + stride_i + 1];
-
-    // 2x2ブロックの外枠を共有メモリ領域にコピー
-      if (threadIdx.x == 0)	// ブロックの左端?
-      {
-	  const int	lft = xy - 1;
-	  const int	rgt = xy + bx2;
-
-	  in_s[y    ][0      ] = in[lft		  ];	// 左枠上
-	  in_s[y + 1][0      ] = in[lft + stride_i];	// 左枠下
-	  in_s[y    ][1 + bx2] = in[rgt		  ];	// 右枠上
-	  in_s[y + 1][1 + bx2] = in[rgt + stride_i];	// 右枠下半
-      }
-
-      if (threadIdx.y == 0)	// ブロックの上端?
-      {
-	  const int	top  = xy - stride_i;		// 現在位置の直上
-	  const int	bot  = xy + by2*stride_i;	// 現在位置の下端
-
-	  in_s[0      ][x    ] = in[top    ];		// 上枠左
-	  in_s[0      ][x + 1] = in[top + 1];		// 上枠右
-	  in_s[1 + by2][x    ] = in[bot    ];		// 下枠左
-	  in_s[1 + by2][x + 1] = in[bot + 1];		// 下枠右
-
-	  if (threadIdx.x == 0)	// ブロックの左上隅?
-	  {
-	      in_s[0      ][0      ] = in[top -   1];	// 左上隅
-	      in_s[0      ][1 + bx2] = in[top + bx2];	// 右上隅
-	      in_s[1 + by2][0      ] = in[bot -   1];	// 左下隅
-	      in_s[1 + by2][1 + bx2] = in[bot + bx2];	// 右下隅
-	  }
-      }
+      loadTile(slice(in.cbegin(),
+		     y0, ::min(2*blockDim.y, in.size() - y0),
+		     x0, ::min(2*blockDim.x, in.begin().size() - x0)),
+	       in_s);
       __syncthreads();
 
     // このスレッドの処理対象である2x2ウィンドウ中で最大/最小となる画素の座標を求める．
-    //const int	i01 = (op(in_s[y    ][x], in_s[y    ][x + 1]) ? 0 : 1);
-    //const int	i23 = (op(in_s[y + 1][x], in_s[y + 1][x + 1]) ? 2 : 3);
-      const int	i01 = op(in_s[y    ][x + 1], in_s[y    ][x]);
-      const int	i23 = op(in_s[y + 1][x + 1], in_s[y + 1][x]) + 2;
-      const int	iex = (op(in_s[y][x + i01], in_s[y + 1][x + (i23 & 0x1)]) ?
-		       i01 : i23);
-      const int	xx  = x + (iex & 0x1);			// 最大/最小点のx座標
-      const int	yy  = y + (iex >> 1);			// 最大/最小点のy座標
+      const int	x = 1 + 2*threadIdx.x;
+      const int	y = 1 + 2*threadIdx.y;
 
-    // 最大/最小となった画素が，残り5つの近傍点よりも大きい/小さいか調べる．
-    //const int	dx  = (iex & 0x1 ? 1 : -1);
-    //const int	dy  = (iex & 0x2 ? 1 : -1);
-      const int	dx  = ((iex & 0x1) << 1) - 1;
-      const int	dy  = (iex & 0x2) - 1;
-      auto	val = in_s[yy][xx];
-      val = (op(val, in_s[yy + dy][xx - dx]) &
-	     op(val, in_s[yy + dy][xx     ]) &
-	     op(val, in_s[yy + dy][xx + dx]) &
-	     op(val, in_s[yy     ][xx + dx]) &
-	     op(val, in_s[yy - dy][xx + dx]) ? val : nulval);
-      __syncthreads();
+      if (y0 + y + 1 < in.size() && x0 + x + 1 < in.begin().size())
+      {
+	//const int	i01 = (op(in_s[y    ][x], in_s[y    ][x + 1]) ? 0 : 1);
+	//const int	i23 = (op(in_s[y + 1][x], in_s[y + 1][x + 1]) ? 2 : 3);
+	  const int	i01 = op(in_s[y    ][x + 1], in_s[y    ][x]);
+	  const int	i23 = op(in_s[y + 1][x + 1], in_s[y + 1][x]) + 2;
+	  const int	iex = (op(in_s[y    ][x + i01],
+				  in_s[y + 1][x + (i23 & 0x1)]) ? i01 : i23);
+	  const int	xx  = x + (iex & 0x1);		// 最大/最小点のx座標
+	  const int	yy  = y + (iex >> 1);		// 最大/最小点のy座標
 
-    // この2x2画素ウィンドウに対応する共有メモリ領域に出力値を書き込む．
-      in_s[y    ][x    ] = nulval;		// 非極値
-      in_s[y    ][x + 1] = nulval;		// 非極値
-      in_s[y + 1][x    ] = nulval;		// 非極値
-      in_s[y + 1][x + 1] = nulval;		// 非極値
-      in_s[yy   ][xx   ] = val;			// 極値または非極値
-      __syncthreads();
+	// 最大/最小画素が，残り5つの近傍点よりも大きい/小さいか調べる．
+	//const int	dx  = (iex & 0x1 ? 1 : -1);
+	//const int	dy  = (iex & 0x2 ? 1 : -1);
+	  const int	dx  = ((iex & 0x1) << 1) - 1;
+	  const int	dy  = (iex & 0x2) - 1;
+	  auto		val = in_s[yy][xx];
+	  val = (op(val, in_s[yy + dy][xx - dx]) &
+		 op(val, in_s[yy + dy][xx     ]) &
+		 op(val, in_s[yy + dy][xx + dx]) &
+		 op(val, in_s[yy     ][xx + dx]) &
+		 op(val, in_s[yy - dy][xx + dx]) ? val : nulval);
+	  __syncthreads();
 
-    // (2*blockDim.x)x(2*blockDim.y) の矩形領域に共有メモリ領域をコピー．
-      xy  = 2*((blockIdx.y*blockDim.y + threadIdx.y)*stride_o +
-	       blockIdx.x*blockDim.x + threadIdx.x);
-      out[xy		   ] = in_s[y    ][x    ];
-      out[xy	        + 1] = in_s[y    ][x + 1];
-      out[xy + stride_o	   ] = in_s[y + 1][x    ];
-      out[xy + stride_o + 1] = in_s[y + 1][x + 1];
+	// この2x2画素ウィンドウに対応する共有メモリ領域に出力値を書き込む．
+	  in_s[y    ][x    ] = nulval;		// 非極値
+	  in_s[y    ][x + 1] = nulval;		// 非極値
+	  in_s[y + 1][x    ] = nulval;		// 非極値
+	  in_s[y + 1][x + 1] = nulval;		// 非極値
+	  in_s[yy   ][xx   ] = val;		// 極値または非極値
+	  __syncthreads();
+
+	// (2*blockDim.x)x(2*blockDim.y) の矩形領域に共有メモリ領域をコピー．
+	  out[y0 + y - 1][x0 + x - 1] = in_s[y    ][x    ];
+	  out[y0 + y - 1][x0 + x    ] = in_s[y    ][x + 1];
+	  out[y0 + y    ][x0 + x - 1] = in_s[y + 1][x    ];
+	  out[y0 + y    ][x0 + x    ] = in_s[y + 1][x + 1];
+      }
   }
 }	// namespace device
 
@@ -454,57 +330,19 @@ suppressNonExtrema3x3(
     IN in, IN ie, OUT out, OP op,
     typename std::iterator_traits<IN>::value_type::value_type nulval)
 {
-    using	std::cbegin;
-    using	std::cend;
-    using	std::begin;
-
-    const auto	nrow = (std::distance(in, ie) - 1)/2;
-    if (nrow < 1)
+    const int	nrow = std::distance(in, ie);
+    if (nrow < 3)
 	return;
 
-    const auto	ncol = (std::distance(cbegin(*in), cend(*in)) - 1)/2;
-    if (ncol < 1)
+    const int	ncol = TU::size(*in);
+    if (ncol < 3)
 	return;
 
-    const auto	stride_i = stride(in);
-    const auto	stride_o = stride(out);
-
-  // 左上
-    ++in;
-    ++out;
-    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in),
-							  begin(*out),
-							  op, nulval,
-							  stride_i, stride_o);
-  // 右上
-    const auto	x = blocks.x*threads.x;
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
-							  begin(*out) + x,
-							  op, nulval,
-							  stride_i, stride_o);
-  // 左下
-    const auto	y = blocks.y*threads.y;
-    std::advance(in,  2*y);
-    std::advance(out, 2*y);
-    threads.x = BLOCK_TRAITS::BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y;
-    blocks.y  = 1;
-    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in),
-							  begin(*out),
-							  op, nulval,
-							  stride_i, stride_o);
-  // 右下
-    threads.x = ncol - x;
-    blocks.x  = 1;
-    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(cbegin(*in) + x,
-							  begin(*out) + x,
-							  op, nulval,
-							  stride_i, stride_o);
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(gridDim((ncol - 1)/2, threads.x),
+		       gridDim((nrow - 1)/2, threads.y));
+    device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(
+	cuda::make_range(in,  nrow), cuda::make_range(out, nrow), op, nulval);
 }
 #endif
 
@@ -523,23 +361,21 @@ transpose(IN in, IN ie, OUT out)					;
 #if defined(__NVCC__)
 namespace device
 {
-  template <size_t BLOCK_DIM,
-	    class IN, class OUT, class STRIDE_I, class STRIDE_O>
+  template <size_t BLOCK_DIM, class IN, class OUT>
   __global__ static void
-  transpose(IN in, OUT out, STRIDE_I stride_i, STRIDE_O stride_o)
+  transpose(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-      const auto		bx = blockIdx.x*blockDim.x;
-      const auto		by = blockIdx.y*blockDim.y;
       __shared__ value_type	tile[BLOCK_DIM][BLOCK_DIM + 1];
 
-      advance_stride(in, (by + threadIdx.y)*stride_i);
-      tile[threadIdx.y][threadIdx.x] = in[bx + threadIdx.x];
+      const int	x0 = __mul24(blockIdx.x, blockDim.x);
+      const int	y0 = __mul24(blockIdx.y, blockDim.y);
+
+      tile[threadIdx.y][threadIdx.x] = in[y0 + threadIdx.y][x0 + threadIdx.x];
       __syncthreads();
 
-      advance_stride(out, (bx + threadIdx.y)*stride_o);
-      out[by + threadIdx.x] = tile[threadIdx.x][threadIdx.y];
+      out[x0 + threadIdx.y][y0 + threadIdx.x] = tile[threadIdx.x][threadIdx.y];
   }
 }	// namespace device
 
@@ -548,27 +384,19 @@ namespace detail
   template <size_t BLOCK_DIM, class IN, class OUT> static void
   transpose(IN in, IN ie, OUT out, size_t i, size_t j)
   {
-      using	std::cbegin;
-      using	std::cend;
-      using	std::begin;
-
       size_t	r = std::distance(in, ie);
       if (r < 1)
 	  return;
 
-      size_t	c = std::distance(cbegin(*in), cend(*in)) - j;
+      size_t	c = TU::size(*in) - j;
       if (c < 1)
 	  return;
 
-      const auto	stride_i = stride(in);
-      const auto	stride_o = stride(out);
       const auto	blockDim = std::min({BLOCK_DIM, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<BLOCK_DIM><<<blocks, threads>>>(cbegin(*in) + j,
-							      begin(*out) + i,
-							      stride_i,
-							      stride_o); // 左上
+      cuda::device::transpose<BLOCK_DIM><<<blocks, threads>>>(
+	  cuda::slice(in, 0, r, j, c), cuda::slice(out, 0, c, i, r));	// 左上
 
       r = blocks.y*threads.y;
       c = blocks.x*threads.x;

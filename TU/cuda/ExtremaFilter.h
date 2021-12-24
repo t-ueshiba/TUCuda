@@ -14,261 +14,268 @@ namespace cuda
 #if defined(__NVCC__)
 namespace device
 {
-  /**********************************************************************
-  *  class deque<T, MAX_SIZE>						*
-  **********************************************************************/
-  template <class T, int MAX_SIZE>
-  class deque
-  {
-    public:
-      __device__	deque()	:_front(0), _back(0)	{}
+/************************************************************************
+*  class deque<T, MAX_SIZE>						*
+************************************************************************/
+template <class T, int MAX_SIZE>
+class deque
+{
+  public:
+    __device__		deque()	:_front(0), _back(0)	{}
 
-      __device__ bool	empty()	const	{ return _front == _back; }
-      __device__ T	front() const	{ return _buf[_front]; }
-      __device__ T	back()	const
+    __device__ bool	empty()	const	{ return _front == _back; }
+    __device__ T	front() const	{ return _buf[_front]; }
+    __device__ T	back()	const
 			{
 			    return _buf[_back == 0 ? MAX_SIZE -1 : _back - 1];
 			}
-      __device__ void	push_front(T val)
+    __device__ void	push_front(T val)
 			{
 			    if (_front == 0)
 				_front = MAX_SIZE;
 			    _buf[--_front] = val;
 			}
-      __device__ void	push_back(T val)
+    __device__ void	push_back(T val)
 			{
 			    _buf[_back] = val;
 			    if (++_back == MAX_SIZE)
 				_back = 0;
 			}
-      __device__ void	pop_front()
+    __device__ void	pop_front()
 			{
 			    if (++_front == MAX_SIZE)
 				_front = 0;
 			}
-      __device__ void	pop_back()
+    __device__ void	pop_back()
 			{
 			    if (_back == 0)
 				_back = MAX_SIZE;
 			    --_back;
 			}
 	
-    private:
-      T		_buf[MAX_SIZE];
-      int	_front;
-      int	_back;
-  };
+  private:
+    T	_buf[MAX_SIZE];
+    int	_front;
+    int	_back;
+};
     
-  /**********************************************************************
-  *  __global__ functions						*
-  **********************************************************************/
-  template <class FILTER, class IN, class OUT, class COMPARE,
-	    class STRIDE_I, class STRIDE_O>
-  __global__ void
-  extrema_filter(IN in, OUT out, COMPARE compare, int winSize,
-		 STRIDE_I strideI, STRIDE_O strideO)
-  {
-      using value_type  =	typename FILTER::value_type;
+/************************************************************************
+*  __global__ functions							*
+************************************************************************/
+template <class FILTER, class IN, class OUT, class COMPARE>
+__global__ void
+extrema_filter(range<range_iterator<IN> > in,
+	       range<range_iterator<OUT> > out, COMPARE compare, int winSize)
+{
+    using value_type	= typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
-				    [FILTER::BlockDimX + 1];
-      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-
-      const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
-      const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
-      const auto	winSize1 = winSize - 1;
+    const int	winSize1 = winSize - 1;
+    const int	x0	 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
+    const int	y0	 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
+    const int	xsiz	 = ::min(blockDim.x, in.begin().size() - x0);
+    const int	ysiz	 = ::min(blockDim.y + winSize1, in.size() - y0);
       
-      advance_stride(in, y0*strideI);
-      in += x0;
-      loadTileV(in, strideI, in_s, winSize1);
-      __syncthreads();
+    __shared__ value_type in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+			      [FILTER::BlockDim + 1];
+    loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
+    __syncthreads();
 
-      if (threadIdx.y == 0)
-      {
-	  deque<int, FILTER::WinSizeMax> q;
-	  q.push_back(0);
+    __shared__ value_type out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
-	  for (int y = 0; ++y != blockDim.y + winSize1; )
-	  {
-	      while (compare(in_s[y][threadIdx.x],
-			     in_s[q.back()][threadIdx.x]))
-	      {
-		  q.pop_back();
-		  if (q.empty())
-		      break;
-	      }
-	      q.push_back(y);
+    const int	ye = ysiz - winSize1;
 
-	      if (y == q.front() + winSize)
-		  q.pop_front();
+    if (threadIdx.x < xsiz && ye > 0)
+    {
+	if (threadIdx.y == 0)
+	{
+	    deque<int, FILTER::WinSizeMax> q;
+	    q.push_back(0);
+
+	    for (int y = 0; ++y != blockDim.y + winSize1; )
+	    {
+		while (compare(in_s[y][threadIdx.x],
+			       in_s[q.back()][threadIdx.x]))
+		{
+		    q.pop_back();
+		    if (q.empty())
+			break;
+		}
+		q.push_back(y);
+
+		if (y == q.front() + winSize)
+		    q.pop_front();
 	      
-	      if (y >= winSize1)
-		  out_s[y - winSize1][threadIdx.x]
-		      = in_s[q.front()][threadIdx.x];
-	  }
-      }
-      __syncthreads();
+		if (y >= winSize1)
+		    out_s[y - winSize1][threadIdx.x]
+			= in_s[q.front()][threadIdx.x];
+	    }
+	}
+	__syncthreads();
 
-    // 結果を転置して格納
-      if (blockDim.x == blockDim.y)
-      {
-	  advance_stride(out, (x0 + threadIdx.y)*strideO);
-	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
-      }
-      else
-      {
-	  advance_stride(out, (x0 + threadIdx.x)*strideO);
-	  out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
-      }
-  }
+      // 結果を転置して格納
+	if (xsiz == blockDim.x)
+	{
+	    if (threadIdx.x < ye)
+		out[x0 + threadIdx.y][y0 + threadIdx.x]
+		    = out_s[threadIdx.x][threadIdx.y];
+	}
+	else
+	{
+	    if (threadIdx.y < ye)
+		out[x0 + threadIdx.x][y0 + threadIdx.y]
+		    = out_s[threadIdx.y][threadIdx.x];
+	}
+    }
+}
 
-  template <class FILTER, class IN, class OUT, class POS,
-	    class COMPARE, class STRIDE_I, class STRIDE_O>
-  __global__ void
-  extrema_filterV(IN in, OUT out, POS pos, COMPARE compare, int winSize,
-		  STRIDE_I strideI, STRIDE_O strideO, ptrdiff_t strideP,
-		  int xx, int yy)
-  {
-      using value_type  =	typename FILTER::value_type;
+template <class FILTER, class IN, class OUT, class POS,
+	  class COMPARE, class STRIDE_I, class STRIDE_O>
+__global__ void
+extrema_filterV(IN in, OUT out, POS pos, COMPARE compare, int winSize,
+		STRIDE_I strideI, STRIDE_O strideO, ptrdiff_t strideP,
+		int xx, int yy)
+{
+    using value_type  =	typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+    __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
 				    [FILTER::BlockDimX + 1];
-      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-      __shared__ short2		pos_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
+    __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
+    __shared__ short2		pos_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
-      const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
-      const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
-      const auto	winSize1 = winSize - 1;
+    const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
+    const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
+    const auto	winSize1 = winSize - 1;
 
-      advance_stride(in, y0*strideI);
-      in += x0;
-      loadTileV(in, strideI, in_s, winSize1);
+    advance_stride(in, y0*strideI);
+    in += x0;
+    loadTileV(in, strideI, in_s, winSize1);
 
-      __syncthreads();
+    __syncthreads();
 
-      if (threadIdx.y == 0)
-      {
-	  deque<short, FILTER::WinSizeMax> q;
-	  q.push_back(0);
+    if (threadIdx.y == 0)
+    {
+	deque<short, FILTER::WinSizeMax> q;
+	q.push_back(0);
 
-	  for (short y = 0; ++y != blockDim.y + winSize1; )
-	  {
-	      while (compare(in_s[y][threadIdx.x],
-			     in_s[q.back()][threadIdx.x]))
-	      {
-		  q.pop_back();
-		  if (q.empty())
-		      break;
-	      }
-	      q.push_back(y);
+	for (short y = 0; ++y != blockDim.y + winSize1; )
+	{
+	    while (compare(in_s[y][threadIdx.x],
+			   in_s[q.back()][threadIdx.x]))
+	    {
+		q.pop_back();
+		if (q.empty())
+		    break;
+	    }
+	    q.push_back(y);
 
-	      if (y == q.front() + winSize)
-		  q.pop_front();
+	    if (y == q.front() + winSize)
+		q.pop_front();
 	      
-	      if (y >= winSize1)
-	      {
-		  out_s[y - winSize1][threadIdx.x]
-		      = in_s[q.front()][threadIdx.x];
-		  pos_s[y - winSize1][threadIdx.x]
-		      = make_short2(x0 + xx + threadIdx.x, y0 + yy + q.front());
-	      }
-	  }
-      }
-      __syncthreads();
+	    if (y >= winSize1)
+	    {
+		out_s[y - winSize1][threadIdx.x]
+		    = in_s[q.front()][threadIdx.x];
+		pos_s[y - winSize1][threadIdx.x]
+		    = make_short2(x0 + xx + threadIdx.x, y0 + yy + q.front());
+	    }
+	}
+    }
+    __syncthreads();
 
-    // 結果を転置して格納
-      if (blockDim.x == blockDim.y)
-      {
-      	  advance_stride(out, (x0 + threadIdx.y)*strideO);
-      	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
-      	  advance_stride(pos, (x0 + threadIdx.y)*strideP);
-      	  pos[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
-      }
-      else
-      {
-	  advance_stride(out, (x0 + threadIdx.x)*strideO);
-	  out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
-	  advance_stride(pos, (x0 + threadIdx.x)*strideP);
-	  pos[y0 + threadIdx.y] = pos_s[threadIdx.y][threadIdx.x];
-      }
-  }
+  // 結果を転置して格納
+    if (blockDim.x == blockDim.y)
+    {
+	advance_stride(out, (x0 + threadIdx.y)*strideO);
+	out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+	advance_stride(pos, (x0 + threadIdx.y)*strideP);
+	pos[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
+    }
+    else
+    {
+	advance_stride(out, (x0 + threadIdx.x)*strideO);
+	out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
+	advance_stride(pos, (x0 + threadIdx.x)*strideP);
+	pos[y0 + threadIdx.y] = pos_s[threadIdx.y][threadIdx.x];
+    }
+}
 
-  template <class FILTER, class IN, class OUT, class POS_IN, class POS_OUT,
-	    class COMPARE, class STRIDE_I, class STRIDE_O>
-  __global__ void
-  extrema_filterH(IN in, OUT out, POS_IN pos_in, POS_OUT pos_out,
-		  COMPARE compare, int winSize,
-		  STRIDE_I strideI, STRIDE_O strideO,
-		  ptrdiff_t stridePI, ptrdiff_t stridePO)
-  {
-      using value_type  =	typename FILTER::value_type;
+template <class FILTER, class IN, class OUT, class POS_IN, class POS_OUT,
+	  class COMPARE, class STRIDE_I, class STRIDE_O>
+__global__ void
+extrema_filterH(IN in, OUT out, POS_IN pos_in, POS_OUT pos_out,
+		COMPARE compare, int winSize,
+		STRIDE_I strideI, STRIDE_O strideO,
+		ptrdiff_t stridePI, ptrdiff_t stridePO)
+{
+    using value_type  =	typename FILTER::value_type;
 
-      __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+    __shared__ value_type	in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
 				    [FILTER::BlockDimX + 1];
-      __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-      __shared__ short2		pos_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
+    __shared__ value_type	out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
+    __shared__ short2		pos_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
 				     [FILTER::BlockDimX + 1];
 
-      const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
-      const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
-      const short	winSize1 = winSize - 1;
+    const auto	x0 = __mul24(blockIdx.x, blockDim.x); // ブロック左上隅
+    const auto	y0 = __mul24(blockIdx.y, blockDim.y); // ブロック左上隅
+    const short	winSize1 = winSize - 1;
       
-      advance_stride(in, y0*strideI);
-      in += x0;
-      loadTileV(in, strideI, in_s, winSize1);
+    advance_stride(in, y0*strideI);
+    in += x0;
+    loadTileV(in, strideI, in_s, winSize1);
+    
+    advance_stride(pos_in, y0*stridePI);
+    pos_in += x0;
+    loadTileV(pos_in, stridePI, pos_s, winSize1);
 
-      advance_stride(pos_in, y0*stridePI);
-      pos_in += x0;
-      loadTileV(pos_in, stridePI, pos_s, winSize1);
+    __syncthreads();
 
-      __syncthreads();
+    if (threadIdx.y == 0)
+    {
+	deque<short, FILTER::WinSizeMax> q;
+	q.push_back(0);
 
-      if (threadIdx.y == 0)
-      {
-	  deque<short, FILTER::WinSizeMax> q;
-	  q.push_back(0);
+	for (short y = 0; ++y != blockDim.y + winSize1; )
+	{
+	    while (compare(in_s[y][threadIdx.x],
+			   in_s[q.back()][threadIdx.x]))
+	    {
+		q.pop_back();
+		if (q.empty())
+		    break;
+	    }
+	    q.push_back(y);
 
-	  for (short y = 0; ++y != blockDim.y + winSize1; )
-	  {
-	      while (compare(in_s[y][threadIdx.x],
-			     in_s[q.back()][threadIdx.x]))
-	      {
-		  q.pop_back();
-		  if (q.empty())
-		      break;
-	      }
-	      q.push_back(y);
-
-	      if (y == q.front() + winSize)
-		  q.pop_front();
+	    if (y == q.front() + winSize)
+		q.pop_front();
 	      
-	      if (y >= winSize1)
-	      {
-		  out_s[y - winSize1][threadIdx.x]
-		      = in_s[q.front()][threadIdx.x];
-		  pos_s[y - winSize1][threadIdx.x]
-		      = pos_s[q.front()][threadIdx.x];
-	      }
-	  }
-      }
-      __syncthreads();
+	    if (y >= winSize1)
+	    {
+		out_s[y - winSize1][threadIdx.x]
+		    = in_s[q.front()][threadIdx.x];
+		pos_s[y - winSize1][threadIdx.x]
+		    = pos_s[q.front()][threadIdx.x];
+	    }
+	}
+    }
+    __syncthreads();
 
-    // 結果を転置して格納
-      if (blockDim.x == blockDim.y)
-      {
-	  advance_stride(out, (x0 + threadIdx.y)*strideO);
-	  out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
-	  advance_stride(pos_out, (x0 + threadIdx.y)*stridePO);
-	  pos_out[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
-      }
-      else
-      {
-	  advance_stride(out, (x0 + threadIdx.x)*strideO);
-	  out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
-	  advance_stride(pos_out, (x0 + threadIdx.x)*stridePO);
-	  pos_out[y0 + threadIdx.y] = pos_s[threadIdx.y][threadIdx.x];
-      }
-  }
+  // 結果を転置して格納
+    if (blockDim.x == blockDim.y)
+    {
+	advance_stride(out, (x0 + threadIdx.y)*strideO);
+	out[y0 + threadIdx.x] = out_s[threadIdx.x][threadIdx.y];
+	advance_stride(pos_out, (x0 + threadIdx.y)*stridePO);
+	pos_out[y0 + threadIdx.x] = pos_s[threadIdx.x][threadIdx.y];
+    }
+    else
+    {
+	advance_stride(out, (x0 + threadIdx.x)*strideO);
+	out[y0 + threadIdx.y] = out_s[threadIdx.y][threadIdx.x];
+	advance_stride(pos_out, (x0 + threadIdx.x)*stridePO);
+	pos_out[y0 + threadIdx.y] = pos_s[threadIdx.y][threadIdx.x];
+    }
+}
+    
 }	// namespace device
 #endif	// __NVCC__
     

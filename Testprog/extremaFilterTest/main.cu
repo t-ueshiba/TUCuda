@@ -185,9 +185,9 @@ main(int argc, char* argv[])
 	in.restore(std::cin);
 	in.save(std::cout);
 	
-	TU::doJob(in, winSize);
+      //TU::doJob(in, winSize);
       //TU::doJob2(in);
-      //TU::doJob3(in, winSize);
+	TU::doJob3(in, winSize);
     }
     catch (std::exception& err)
     {

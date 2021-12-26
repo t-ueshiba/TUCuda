@@ -1,6 +1,5 @@
 add_subdirectory(boxFilterTest)
 add_subdirectory(cudaStereoTest)
-add_subdirectory(extremaTest)
 add_subdirectory(filterTest)
 add_subdirectory(fp16Test)
 add_subdirectory(gaussTest)

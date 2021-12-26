@@ -46,9 +46,9 @@ namespace device
   /**********************************************************************
   *  __device__ functions						*
   **********************************************************************/
-  //! スレッドブロック中のラインに指定された長さを付加した1次元領域をコピーする
+  //! スレッドブロック中の1次元領域をコピーする
   /*!
-    \param src		コピー元のラインの左端を指す反復子
+    \param src		コピー元の1次元領域
     \param dst		コピー先の1次元配列
   */
   template <class IN, class T> __device__ static inline void
@@ -58,36 +58,10 @@ namespace device
 	  dst[tx] = src[tx];
   }
 
-  //! スレッドブロックの縦方向に指定された長さを付加した領域をコピーする
+  //! スレッドブロック中の2次元領域をコピーする
   /*!
-    \param src		コピー元の矩形領域の左上隅を指す反復子
-    \param stride	コピー元の行を1つ進めるためのインクリメント数
+    \param src		コピー元の2次元領域
     \param dst		コピー先の2次元配列
-    \param dy		ブロック高に付加される長さ
-  */
-  template <class S, class STRIDE, class T, size_t W>
-  __device__ static inline void
-  loadTileV(S src, STRIDE stride, T dst[][W], int dy)
-  {
-      auto		ty = threadIdx.y;
-      advance_stride(src, ty * stride);
-      src += threadIdx.x;
-
-      dy += blockDim.y;
-      do
-      {
-	  dst[ty][threadIdx.x] = *src;
-	  advance_stride(src, blockDim.y * stride);
-      } while ((ty += blockDim.y) < dy);
-  }
-
-  //! スレッドブロックの横方向と縦方向にそれぞれ指定された長さを付加した領域をコピーする
-  /*!
-    \param src		コピー元の矩形領域の左上隅を指す反復子
-    \param stride	コピー元の行を1つ進めるためのインクリメント数
-    \param dst		コピー先の2次元配列
-    \param dx		ブロック幅に付加される長さ
-    \param dy		ブロック高に付加される長さ
   */
   template <class IN, class T, size_t W> __device__ static inline void
   loadTile(const range<range_iterator<IN> >& src, T dst[][W])
@@ -100,6 +74,11 @@ namespace device
       }
   }
 
+  //! スレッドブロック中の2次元領域を転置コピーする
+  /*!
+    \param src		コピー元の2次元領域
+    \param dst		コピー先の2次元配列
+  */
   template <class IN, class T, size_t W> __device__ static inline void
   loadTileT(const range<range_iterator<IN> >& src, T dst[][W])
   {
@@ -225,11 +204,11 @@ namespace device
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 op3x3(IN in, IN ie, OUT out, OP op)
 {
-    const auto	nrow = std::distance(in, ie);
+    const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
 
-    const auto	ncol = TU::size(*in);
+    const int	ncol = TU::size(*in);
     if (ncol < 1)
 	return;
 
@@ -262,6 +241,22 @@ suppressNonExtrema3x3(
 #if defined(__NVCC__)
 namespace device
 {
+  namespace detail
+  {
+    template <class T, size_t W, class OP> __device__ int
+    idx(int ty, int tx, const T in_s[][W], OP op, bool pr=false)
+    {
+	const int i01 = op(in_s[ty    ][tx + 1], in_s[ty    ][tx]);
+	const int i23 = op(in_s[ty + 1][tx + 1], in_s[ty + 1][tx]) + 2;
+	if (pr)
+	    printf("i01: %d, i23: %d\n%f %f\n%f %f\n", i01, i23,
+		   in_s[ty][tx], in_s[ty][tx+1],
+		   in_s[ty+1][tx], in_s[ty+1][tx+1]);
+	return (op(in_s[ty][tx + i01], in_s[ty + 1][tx + (i23 & 0x1)]) ?
+		i01 : i23);
+    }
+  }
+    
   template <class BLOCK_TRAITS, class IN, class OUT, class OP>
   __global__ static void
   extrema3x3(range<range_iterator<IN> > in, range<range_iterator<OUT> > out,
@@ -269,58 +264,61 @@ namespace device
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-      const int	x0 = 2*__mul24(blockIdx.x, blockDim.x);
-      const int	y0 = 2*__mul24(blockIdx.y, blockDim.y);
+      const int	x0 = __mul24(blockIdx.x, blockDim.x);
+      const int	y0 = __mul24(blockIdx.y, blockDim.y);
 
-      __shared__ value_type	in_s[2*BLOCK_TRAITS::BlockDimY + 2]
-				    [2*BLOCK_TRAITS::BlockDimX + 3];
+      __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + 2]
+				    [BLOCK_TRAITS::BlockDimX + 3];
       loadTile(slice(in.cbegin(),
-		     y0, ::min(2*blockDim.y + 2, in.size() - y0),
-		     x0, ::min(2*blockDim.x + 2, in.begin().size() - x0)),
+		     y0, ::min(blockDim.y + 2, in.size() - y0),
+		     x0, ::min(blockDim.x + 2, in.begin().size() - x0)),
 	       in_s);
       __syncthreads();
 
     // このスレッドの処理対象である2x2ウィンドウ中で最大/最小となる画素の座標を求める．
-      const int	x = 1 + 2*threadIdx.x;
-      const int	y = 1 + 2*threadIdx.y;
+      __shared__ int	idx_s[BLOCK_TRAITS::BlockDimY + 1]
+			     [BLOCK_TRAITS::BlockDimX + 1];
 
-      if (y0 + y + 1 < in.size() && x0 + x + 1 < in.begin().size())
+      const int	tx = threadIdx.x;
+      const int	ty = threadIdx.y;
+
+      if (y0 + ty < in.size() && x0 + tx < in.begin().size())
       {
-	//const int	i01 = (op(in_s[y    ][x], in_s[y    ][x + 1]) ? 0 : 1);
-	//const int	i23 = (op(in_s[y + 1][x], in_s[y + 1][x + 1]) ? 2 : 3);
-	  const int	i01 = op(in_s[y    ][x + 1], in_s[y    ][x]);
-	  const int	i23 = op(in_s[y + 1][x + 1], in_s[y + 1][x]) + 2;
-	  const int	iex = (op(in_s[y    ][x + i01],
-				  in_s[y + 1][x + (i23 & 0x1)]) ? i01 : i23);
-	  const int	xx  = x + (iex & 0x1);		// 最大/最小点のx座標
-	  const int	yy  = y + (iex >> 1);		// 最大/最小点のy座標
+	  bool	debug = y0 + ty == 160 && x0 + tx == 266;
+	  
+	  idx_s[ty][tx] = detail::idx(ty, tx, in_s, op, debug);
 
-	// 最大/最小画素が，残り5つの近傍点よりも大きい/小さいか調べる．
-	//const int	dx  = (iex & 0x1 ? 1 : -1);
-	//const int	dy  = (iex & 0x2 ? 1 : -1);
-	  const int	dx  = ((iex & 0x1) << 1) - 1;
-	  const int	dy  = (iex & 0x2) - 1;
-	  auto		val = in_s[yy][xx];
-	  val = (op(val, in_s[yy + dy][xx - dx]) &
-		 op(val, in_s[yy + dy][xx     ]) &
-		 op(val, in_s[yy + dy][xx + dx]) &
-		 op(val, in_s[yy     ][xx + dx]) &
-		 op(val, in_s[yy - dy][xx + dx]) ? val : nulval);
+	  if (tx == 0)
+	  {
+	      idx_s[ty][tx + blockDim.x] = detail::idx(ty, tx + blockDim.x,
+						       in_s, op);
+	      if (ty == 0)
+		  idx_s[ty + blockDim.y][tx + blockDim.x]
+		      = detail::idx(ty + blockDim.y, tx + blockDim.x,
+				    in_s, op);
+	  }
+	  if (ty == 0)
+	      idx_s[ty + blockDim.y][tx] = detail::idx(ty + blockDim.y, tx,
+						       in_s, op);
+	  
 	  __syncthreads();
 
-	// この2x2画素ウィンドウに対応する共有メモリ領域に出力値を書き込む．
-	  in_s[y    ][x    ] = nulval;		// 非極値
-	  in_s[y    ][x + 1] = nulval;		// 非極値
-	  in_s[y + 1][x    ] = nulval;		// 非極値
-	  in_s[y + 1][x + 1] = nulval;		// 非極値
-	  in_s[yy   ][xx   ] = val;		// 極値または非極値
-	  __syncthreads();
+	  if (debug)
+	  {
+	      printf("idx:\n%d %d\n%d %d\nin:\n%f %f %f\n%f %f %f\n%f %f %f\n",
+		     idx_s[ty  ][tx], idx_s[ty  ][tx+1],
+		     idx_s[ty+1][tx], idx_s[ty+1][tx+1],
+		     in_s[ty  ][tx], in_s[ty  ][tx+1], in_s[ty  ][tx+2],
+		     in_s[ty+1][tx], in_s[ty+1][tx+1], in_s[ty+1][tx+2],
+		     in_s[ty+2][tx], in_s[ty+2][tx+1], in_s[ty+2][tx+2]);
+	  }
+	  
 
-	// (2*blockDim.x)x(2*blockDim.y) の矩形領域に共有メモリ領域をコピー．
-	  out[y0 + y - 1][x0 + x - 1] = in_s[y    ][x    ];
-	  out[y0 + y - 1][x0 + x    ] = in_s[y    ][x + 1];
-	  out[y0 + y    ][x0 + x - 1] = in_s[y + 1][x    ];
-	  out[y0 + y    ][x0 + x    ] = in_s[y + 1][x + 1];
+	  out[y0 + ty + 1][x0 + tx + 1] = (idx_s[ty    ][tx    ] == 3 &&
+	  				   idx_s[ty    ][tx + 1] == 2 &&
+	  				   idx_s[ty + 1][tx    ] == 1 &&
+	  				   idx_s[ty + 1][tx + 1] == 0 ?
+	  				   in_s[ty + 1][tx + 1] : nulval);
       }
   }
 }	// namespace device
@@ -339,10 +337,9 @@ suppressNonExtrema3x3(
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim((ncol - 1)/2, threads.x),
-		       gridDim((nrow - 1)/2, threads.y));
+    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
     device::extrema3x3<BLOCK_TRAITS><<<blocks, threads>>>(
-	cuda::make_range(in,  nrow), cuda::make_range(out, nrow), op, nulval);
+	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op, nulval);
 }
 #endif
 

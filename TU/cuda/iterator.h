@@ -62,19 +62,19 @@ class map_iterator
 
 template <class FUNC, class ITER>
 __host__ __device__ inline map_iterator<FUNC, ITER>
-make_map_iterator(FUNC func, const ITER& iter)
+make_map_iterator(FUNC&& func, const ITER& iter)
 {
-    return {func, iter};
+    return {std::forward<FUNC>(func), iter};
 }
 
 template <class FUNC, class ITER0, class ITER1, class... ITERS>
 __host__ __device__
 inline map_iterator<
 	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
-make_map_iterator(FUNC func,
+make_map_iterator(FUNC&& func,
 		  const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
 {
-    return {func,
+    return {std::forward<FUNC>(func),
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
@@ -213,19 +213,19 @@ class assignment_iterator
 
 template <class FUNC, class ITER>
 __host__ __device__ inline assignment_iterator<FUNC, ITER>
-make_assignment_iterator(const FUNC& func, const ITER& iter)
+make_assignment_iterator(FUNC&& func, const ITER& iter)
 {
-    return {func, iter};
+    return {std::forward<FUNC>(func), iter};
 }
 
 template <class FUNC, class ITER0, class ITER1, class... ITERS>
 __host__ __device__
 inline assignment_iterator<
 	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
-make_assignment_iterator(const FUNC& func, const ITER0& iter0,
+make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 			 const ITER1& iter1, const ITERS&... iters)
 {
-    return {func,
+    return {std::forward<FUNC>(func),
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
@@ -233,27 +233,41 @@ make_assignment_iterator(const FUNC& func, const ITER0& iter0,
 /************************************************************************
 *  TU::cuda::stride(const ITER&)					*
 ************************************************************************/
+template <class HEAD, class TAIL> inline auto
+stride(const thrust::detail::cons<HEAD, TAIL>& iter_tuple)
+{
+    return cuda::tuple_transform([](const auto& iter){ return stride(iter); },
+				 iter_tuple);
+}
+
 template <class ITER_TUPLE> __host__ __device__ inline auto
 stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
 {
-    return tuple_transform([](const auto& iter){ return stride(iter); },
-			   iter.get_iterator_tuple());
+    return stride(iter.get_iterator_tuple());
 }
 
+template <class ITER> auto
+stride(const ITER& iter) -> decltype(stride(iter.base()))
+{
+    return stride(iter.base());
+}
+
+
+/*
 template <class FUNC, class ITER> __host__ __device__ inline auto
-stride(const map_iterator<FUNC, ITER>& iter)
+stride(const cuda::map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
 
 template <class FUNC, class ITER> __host__ __device__ inline auto
-stride(const assignment_iterator<FUNC, ITER>& iter)
+stride(const cuda::assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
-
+*/
 /************************************************************************
 *  TU::cuda::advance_stride(ITER&, STRIDE)				*
 ************************************************************************/

@@ -32,7 +32,7 @@ main(int argc, char *argv[])
     {
 	Image<in_t>	in;
 	in.restore(cin);				// 原画像を読み込む
-	in.save(cout);					// 原画像をセーブ
+      //in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
 	cuda::Array2<in_t>	in_d(in);
@@ -54,7 +54,7 @@ main(int argc, char *argv[])
 	cuProfiler.print(cerr);
 
 	Image<out_t>	out(out_d);
-	out.save(cout);					// 結果画像をセーブ
+      //out.save(cout);					// 結果画像をセーブ
 
       // CPUによって計算する．
 	Profiler<>	profiler(1);
@@ -67,7 +67,7 @@ main(int argc, char *argv[])
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);
-	outGold.save(cout);
+      //outGold.save(cout);
 
       // 結果を比較する．
 	const int	V = 160;
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
 	    {
 		cerr << ' ' << u << ":(" << out[V][u] << ',' << outGold[V][u]
 		     << ')' << endl;
-		cerr << slice<3, 3>(in, u-1, V-1);
+		cerr << slice<3, 3>(in, V-1, u-1);
 	    }
     }
     catch (exception& err)

@@ -1,5 +1,5 @@
 /*!
-  \file		ExtreamFilter.h
+  \file		ExtreamaFilter.h
   \brief	finite impulse responseフィルタの定義と実装
 */
 #pragma once
@@ -14,6 +14,72 @@ namespace cuda
 #if defined(__NVCC__)
 namespace device
 {
+/************************************************************************
+*  class extreme_value<COMP>						*
+************************************************************************/
+template <class COMP>
+class extreme_value
+{
+  public:
+    using value_type	= typename COMP::first_argument_type;
+    
+  public:
+    __host__	extreme_value(const COMP& comp) :_comp(comp)		{}
+    
+    __device__
+    bool	operator ()(const value_type& a, const value_type& b) const
+		{
+		    return _comp(a, b);
+		}
+    __device__
+    value_type	operator ()(int x, int y, const value_type& v) const
+		{
+		    return v;
+		}
+
+  private:
+    const COMP	_comp;
+};
+    
+/************************************************************************
+*  class extreme_value_position<COMP>					*
+************************************************************************/
+template <class COMP, class POS=int2>
+class extreme_value_position
+{
+  public:
+    using value_type	= typename COMP::first_argument_type;
+    using position_type	= POS;
+    using result_type	= thrust::tuple<value_type, position_type>;
+    
+  public:
+    __host__	extreme_value_position(const COMP& comp) :_comp(comp)	{}
+    
+    __device__
+    bool	operator ()(const value_type& a, const value_type& b) const
+		{
+		    return _comp(a, b);
+		}
+    __device__
+    bool	operator ()(const result_type& a, const result_type& b) const
+		{
+		    return _comp(thrust::get<0>(a), thrust::get<0>(b));
+		}
+    __device__
+    result_type	operator ()(int x, int y, const value_type& v) const
+		{
+		    return {v, position_type(x, y)};
+		}
+    __device__
+    result_type	operator ()(int x, int y, const result_type& v) const
+		{
+		    return v;
+		}
+
+  private:
+    const COMP	_comp;
+};
+    
 /************************************************************************
 *  class deque<T, MAX_SIZE>						*
 ************************************************************************/
@@ -62,12 +128,13 @@ class deque
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template <class FILTER, class IN, class OUT, class COMPARE>
+template <class FILTER, class IN, class OUT, class OP>
 __global__ void
 extrema_filter(range<range_iterator<IN> >  in,
-	       range<range_iterator<OUT> > out, int winSize, COMPARE compare)
+	       range<range_iterator<OUT> > out, int winSize, OP op)
 {
-    using value_type	= typename FILTER::value_type;
+    using in_type	= typename std::iterator_traits<IN>::value_type;
+    using out_type	= typename std::iterator_traits<OUT>::value_type;
 
     const int	winSize1 = winSize - 1;
     const int	x0	 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
@@ -75,12 +142,12 @@ extrema_filter(range<range_iterator<IN> >  in,
     const int	xsiz	 = ::min(blockDim.x, in.begin().size() - x0);
     const int	ysiz	 = ::min(blockDim.y + winSize1, in.size() - y0);
       
-    __shared__ value_type in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-			      [FILTER::BlockDim + 1];
+    __shared__ in_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+			    [FILTER::BlockDim + 1];
     loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
     __syncthreads();
 
-    __shared__ value_type out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+    __shared__ out_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
     const int	ye = ysiz - winSize1;
 
@@ -91,10 +158,9 @@ extrema_filter(range<range_iterator<IN> >  in,
 	    deque<int, FILTER::WinSizeMax> q;
 	    q.push_back(0);
 
-	    for (int y = 0; ++y != blockDim.y + winSize1; )
+	    for (int y = 1; y != ysiz; ++y)
 	    {
-		while (compare(in_s[y][threadIdx.x],
-			       in_s[q.back()][threadIdx.x]))
+		while (op(in_s[y][threadIdx.x], in_s[q.back()][threadIdx.x]))
 		{
 		    q.pop_back();
 		    if (q.empty())
@@ -107,7 +173,8 @@ extrema_filter(range<range_iterator<IN> >  in,
 	      
 		if (y >= winSize1)
 		    out_s[y - winSize1][threadIdx.x]
-			= in_s[q.front()][threadIdx.x];
+		    	= op(x0 + threadIdx.x, y0 + q.front(),
+		    	     in_s[q.front()][threadIdx.x]);
 	    }
 	}
 	__syncthreads();
@@ -128,173 +195,6 @@ extrema_filter(range<range_iterator<IN> >  in,
     }
 }
 
-template <class FILTER, class IN, class OUT, class POS, class COMPARE>
-__global__ void
-extrema_filterV(range<range_iterator<IN> > in, range<range_iterator<OUT> > out,
-		range<range_iterator<POS> > pos, int winSize, COMPARE compare)
-{
-    using value_type  =	typename FILTER::value_type;
-
-    const int	winSize1 = winSize - 1;
-    const int	x0	 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
-    const int	y0	 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
-    const int	xsiz	 = ::min(blockDim.x, in.begin().size() - x0);
-    const int	ysiz	 = ::min(blockDim.y + winSize1, in.size() - y0);
-      
-    __shared__ value_type in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
-			      [FILTER::BlockDimX + 1];
-    loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
-    __syncthreads();
-    
-    __shared__ value_type out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-    __shared__ short2	  pos_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-
-    const int	ye = ysiz - winSize1;
-
-    if (threadIdx.x < xsiz && ye > 0)
-    {
-	if (threadIdx.y == 0)
-	{
-	    deque<short, FILTER::WinSizeMax> q;
-	    q.push_back(0);
-
-	    for (short y = 0; ++y != blockDim.y + winSize1; )
-	    {
-		while (compare(in_s[y][threadIdx.x],
-			       in_s[q.back()][threadIdx.x]))
-		{
-		    q.pop_back();
-		    if (q.empty())
-			break;
-		}
-		q.push_back(y);
-
-		if (y == q.front() + winSize)
-		    q.pop_front();
-	      
-		if (y >= winSize1)
-		{
-		    out_s[y - winSize1][threadIdx.x]
-			= in_s[q.front()][threadIdx.x];
-		    pos_s[y - winSize1][threadIdx.x]
-			= make_short2(x0 + threadIdx.x,
-				      y0 + q.front());
-		}
-	    }
-	}
-	__syncthreads();
-
-      // 結果を転置して格納
-	if (xsiz == blockDim.x)
-	{
-	    if (threadIdx.x < ye)
-	    {
-		out[x0 + threadIdx.y][y0 + threadIdx.x]
-		    = out_s[threadIdx.x][threadIdx.y];
-		pos[x0 + threadIdx.y][y0 + threadIdx.x]
-		    = pos_s[threadIdx.x][threadIdx.y];
-	    }
-	}
-	else
-	{
-	    if (threadIdx.y < ye)
-	    {
-		out[x0 + threadIdx.x][y0 + threadIdx.y]
-		    = out_s[threadIdx.y][threadIdx.x];
-		pos[x0 + threadIdx.x][y0 + threadIdx.y]
-		    = pos_s[threadIdx.y][threadIdx.x];
-	    }
-	}
-    }
-}
-
-template <class FILTER,
-	  class IN, class POS_IN, class OUT, class POS_OUT, class COMPARE>
-__global__ void
-extrema_filterH(range<range_iterator<IN>      > in, 
-		range<range_iterator<POS_IN>  > pos_in,
-		range<range_iterator<OUT>     > out,
-		range<range_iterator<POS_OUT> > pos_out,
-		int winSize, COMPARE compare)
-{
-    using value_type  =	typename FILTER::value_type;
-
-    const int	winSize1 = winSize - 1;
-    const int	x0	 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
-    const int	y0	 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
-    const int	xsiz	 = ::min(blockDim.x, in.begin().size() - x0);
-    const int	ysiz	 = ::min(blockDim.y + winSize1, in.size() - y0);
-      
-    __shared__ value_type in_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
-			      [FILTER::BlockDimX + 1];
-    loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
-    __syncthreads();
-
-    __shared__ short2	  pos_s[FILTER::BlockDimY + FILTER::WinSizeMax - 1]
-			       [FILTER::BlockDimX + 1];
-    loadTile(slice(pos_in.cbegin(), y0, ysiz, x0, xsiz), pos_s);
-    __syncthreads();
-
-    __shared__ value_type out_s[FILTER::BlockDimY][FILTER::BlockDimX + 1];
-
-    const int	ye = ysiz - winSize1;
-
-    if (threadIdx.x < xsiz && ye > 0)
-    {
-	if (threadIdx.y == 0)
-	{
-	    deque<short, FILTER::WinSizeMax> q;
-	    q.push_back(0);
-
-	    for (short y = 0; ++y != blockDim.y + winSize1; )
-	    {
-		while (compare(in_s[y][threadIdx.x],
-			       in_s[q.back()][threadIdx.x]))
-		{
-		    q.pop_back();
-		    if (q.empty())
-			break;
-		}
-		q.push_back(y);
-
-		if (y == q.front() + winSize)
-		    q.pop_front();
-	      
-		if (y >= winSize1)
-		{
-		    out_s[y - winSize1][threadIdx.x]
-			= in_s[q.front()][threadIdx.x];
-		    pos_s[y - winSize1][threadIdx.x]
-			= pos_s[q.front()][threadIdx.x];
-		}
-	    }
-	}
-	__syncthreads();
-
-      // 結果を転置して格納
-	if (xsiz == blockDim.x)
-	{
-	    if (threadIdx.x < ye)
-	    {
-		out[x0 + threadIdx.y][y0 + threadIdx.x]
-		    = out_s[threadIdx.x][threadIdx.y];
-		pos_out[x0 + threadIdx.y][y0 + threadIdx.x]
-		    = pos_s[threadIdx.x][threadIdx.y];
-	    }
-	}
-	else
-	{
-	    if (threadIdx.y < ye)
-	    {
-		out[x0 + threadIdx.x][y0 + threadIdx.y]
-		    = out_s[threadIdx.y][threadIdx.x];
-		pos_out[x0 + threadIdx.x][y0 + threadIdx.y]
-		    = pos_s[threadIdx.y][threadIdx.x];
-	    }
-	}
-    }
-}
-    
 }	// namespace device
 #endif	// __NVCC__
     
@@ -350,26 +250,24 @@ class ExtremaFilter2 : public BLOCK_TRAITS
     size_t		offsetV()		const	{ return _winSizeV/2; }
     size_t		offsetH()		const	{ return _winSizeH/2; }
 
-    template <class ROW, class ROW_O, class COMPARE>
+    template <class ROW, class ROW_O, class COMP>
     void		convolve(ROW row, ROW rowe, ROW_O rowO,
-				 COMPARE op, bool shift=false)	const	;
-    template <class ROW, class ROW_O, class ROW_P, class COMPARE>
+				 COMP comp, bool shift=false)	const	;
+    template <class ROW, class ROW_O, class ROW_P, class COMP>
     void		extrema(ROW row, ROW rowe, ROW_O rowO, ROW_P rowP,
-				COMPARE compare, bool shift=false) const;
+				COMP comp, bool shift=false) const;
 
   private:
-    size_t			_winSizeV;
-    size_t			_winSizeH;
-    mutable Array2<T>		_buf;
-    mutable Array2<short2>	_buf_pos;
+    size_t		_winSizeV;
+    size_t		_winSizeH;
+    mutable Array2<T>	_buf;
 };
 
 #if defined(__NVCC__)
 template <class T, class BLOCK_TRAITS, size_t WMAX>
-template <class ROW, class ROW_O, class COMPARE> void
+template <class ROW, class ROW_O, class COMP> void
 ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
-						COMPARE compare,
-						bool shift) const
+						COMP comp, bool shift) const
 {
     const int	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
@@ -386,7 +284,8 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     dim3	blocks(gridDim(ncols, threads.x), gridDim(nrows, threads.y));
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cuda::make_range(row, nrows),
-	cuda::make_range(_buf.begin(), _buf.nrow()), _winSizeV, compare);
+	cuda::make_range(_buf.begin(), _buf.nrow()),
+	_winSizeV, device::extreme_value<COMP>(comp));
 
   // Accumulate horizontally,
     blocks.x = gridDim(_buf.ncol(), threads.x);
@@ -395,47 +294,7 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
 	cuda::make_range(_buf.cbegin(), _buf.nrow()),
 	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
 			  (shift ? offsetH() : 0), outSizeH(ncols)),
-	_winSizeH, compare);
-}
-
-template <class T, class BLOCK_TRAITS, size_t WMAX>
-template <class ROW, class ROW_O, class ROW_P, class COMPARE> void
-ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::extrema(ROW row, ROW rowe,
-					       ROW_O rowO, ROW_P rowP,
-					       COMPARE compare,
-					       bool shift) const
-{
-    const int	nrows = std::distance(row, rowe);
-    if (nrows < _winSizeV)
-	return;
-
-    const int	ncols = TU::size(*row);
-    if (ncols < _winSizeH)
-	return;
-
-    _buf.resize(ncols, outSizeV(nrows));
-    _buf_pos.resize(_buf.nrow(), _buf.ncol());
-
-  // Accumultate vetically.
-    const dim3	threads(BlockDim, BlockDim);
-    dim3	blocks(gridDim(ncols, threads.x), gridDim(nrows, threads.y));
-    device::extrema_filterV<ExtremaFilter2><<<blocks, threads>>>(
-	cuda::make_range(row, nrows),
-	cuda::make_range(_buf.begin(), _buf.nrow()),
-	cuda::make_range(_buf_pos.begin(), _buf_pos.nrow()),
-	_winSizeV, compare);
-
-  // Accumulate horizontally.
-    blocks.x = gridDim(_buf.ncol(), threads.x);
-    blocks.y = gridDim(_buf.nrow(), threads.y);
-    device::extrema_filterH<ExtremaFilter2><<<blocks, threads>>>(
-	cuda::make_range(_buf.cbegin(),	    _buf.nrow()),
-	cuda::make_range(_buf_pos.cbegin(), _buf_pos.nrow()),
-	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
-			  (shift ? offsetH() : 0), outSizeH(ncols)),
-	cuda::slice(rowP, (shift ? offsetV() : 0), outSizeV(nrows),
-			  (shift ? offsetH() : 0), outSizeH(ncols)),
-	_winSizeH, compare);
+	_winSizeH, device::extreme_value<COMP>(comp));
 }
 #endif	// __NVCC__
 }	// namespace cuda

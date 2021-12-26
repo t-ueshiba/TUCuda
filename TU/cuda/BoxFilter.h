@@ -85,8 +85,8 @@ box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
 {
     using value_type  =	typename FILTER::value_type;
 
-    __shared__ value_type	val_s[FILTER::WinSizeMax]
-				     [FILTER::BlockDimY][FILTER::BlockDimX + 1];
+    __shared__ value_type val_s[FILTER::WinSizeMax]
+			       [FILTER::BlockDimY][FILTER::BlockDimX + 1];
 
     const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
     const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 行

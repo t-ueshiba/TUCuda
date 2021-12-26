@@ -20,10 +20,10 @@ doJob(const Image<T>& in, size_t winSize)
     const cuda::ExtremaFilter2<T>	extrema(winSize, winSize);
     const cuda::Array2<T>		in_d(in);
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.convolve(in_d.cbegin(), in_d.cend(),
-		     out_d.begin(), thrust::less<T>());
+    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		     thrust::less<T>());
     cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cuProfiler(1);
@@ -31,8 +31,8 @@ doJob(const Image<T>& in, size_t winSize)
     for (size_t n = 0; n < NITER; ++n)
     {
 	cuProfiler.start(0);
-	extrema.convolve(in_d.cbegin(), in_d.cend(),
-			 out_d.begin(), thrust::less<T>());
+	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(),
+			 thrust::less<T>());
 	cuProfiler.nextFrame();
     }
     cuProfiler.print(std::cerr);
@@ -72,12 +72,12 @@ doJob2(const Image<T>& in)
     const cuda::ExtremaFilter2<T>	extrema(3, 3);
     const cuda::Array2<T>		in_d(in);
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
 
     extrema.extrema(in_d.cbegin(), in_d.cend(),
 		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
 
-    Array2<short2>	pos(pos_d);
+    Array2<int2>	pos(pos_d);
     Image<T>		out(in.width(), in.height());
     out = 0;
     for (size_t v = 1; v < out.nrow() - 1; ++v)
@@ -124,22 +124,28 @@ doJob2(const Image<T>& in)
     // 	    std::cerr << slice<3, 3>(in, V-1, u-1);
     // 	}
 }
-    
+
 template <class T> void
 doJob3(const Image<T>& in, size_t winSize)
 {
-    const cuda::ExtremaFilter2<T>	extrema(winSize, winSize);
+    using value_t = thrust::tuple<T, int2>;
+    
+    const cuda::ExtremaFilter2<value_t>	extrema(winSize, winSize);
     const cuda::Array2<T>		in_d(in);
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<short2>		pos_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.extrema(in_d.cbegin(), in_d.cend(),
-		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
+    extrema.convolve(in_d.cbegin(), in_d.cend(),
+		     cuda::make_range_iterator(
+			 thrust::make_zip_iterator(out_d.begin(), pos_d.begin()),
+			 thrust::make_tuple(out_d.stride(), pos_d.stride()),
+			 out_d.size()),
+		     thrust::greater<T>(), true);
 
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
 
-    Array2<short2>	pos(pos_d);
+    Array2<int2>	pos(pos_d);
     Image<T>		out2(in.width(), in.height());
     for (size_t v = 0; v < out2.nrow(); ++v)
     {
@@ -158,7 +164,7 @@ doJob3(const Image<T>& in, size_t winSize)
 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
 		      << ')' << std::endl;
 }
-    
+
 }	// namespace TU
 
 /************************************************************************

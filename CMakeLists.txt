@@ -33,7 +33,7 @@ include_directories(
 link_directories(
     ${TULIBS_LIBRARY_DIR})
 
-file(GLOB sources *.cc *cu)
+file(GLOB sources *.cc *.cu)
 
 cuda_add_library(${PROJECT_NAME} SHARED ${sources})
 

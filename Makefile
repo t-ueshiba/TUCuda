@@ -29,16 +29,25 @@ INCDIR		= $(PREFIX)/include
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= /usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Camera++.h \
+		/usr/local/include/TU/Geometry++.h \
+		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Manip.h \
+		/usr/local/include/TU/Minimize.h \
+		/usr/local/include/TU/Vector++.h \
 		/usr/local/include/TU/algorithm.h \
 		/usr/local/include/TU/iterator.h \
+		/usr/local/include/TU/pair.h \
 		/usr/local/include/TU/range.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/type_traits.h
 HDRS		= TU/cuda/Array++.h \
 		TU/cuda/BoxFilter.h \
+		TU/cuda/ExtremaFilter.h \
 		TU/cuda/FIRFilter.h \
 		TU/cuda/FIRGaussianConvolver.h \
 		TU/cuda/GuidedFilter.h \
+		TU/cuda/ICIA.h \
 		TU/cuda/StereoUtility.h \
 		TU/cuda/Texture.h \
 		TU/cuda/algorithm.h \
@@ -47,10 +56,11 @@ HDRS		= TU/cuda/Array++.h \
 		TU/cuda/fp16.h \
 		TU/cuda/functional.h \
 		TU/cuda/iterator.h \
+		TU/cuda/npp.h \
 		TU/cuda/tuple.h \
 		TU/cuda/vec.h
 SRCS		= FIRFilter.cu \
-		FIRGaussianConvolver.cc \
+		FIRGaussianConvolver.cu \
 		chrono.cc
 OBJS		= FIRFilter.o \
 		FIRGaussianConvolver.o \
@@ -65,11 +75,19 @@ FIRFilter.o: TU/cuda/FIRFilter.h TU/cuda/Array++.h TU/cuda/allocator.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
-	TU/cuda/algorithm.h TU/cuda/iterator.h TU/cuda/tuple.h
+	TU/cuda/algorithm.h TU/cuda/iterator.h TU/cuda/tuple.h TU/cuda/vec.h \
+	/usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Vector++.h
 FIRGaussianConvolver.o: TU/cuda/FIRGaussianConvolver.h TU/cuda/FIRFilter.h \
 	TU/cuda/Array++.h TU/cuda/allocator.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/type_traits.h \
 	/usr/local/include/TU/algorithm.h TU/cuda/algorithm.h \
-	TU/cuda/iterator.h TU/cuda/tuple.h
+	TU/cuda/iterator.h TU/cuda/tuple.h TU/cuda/vec.h \
+	/usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Vector++.h
 chrono.o: TU/cuda/chrono.h

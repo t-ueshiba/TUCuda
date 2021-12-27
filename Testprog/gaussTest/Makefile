@@ -43,11 +43,18 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
+		../../TU/cuda/iterator.h \
+		../../TU/cuda/tuple.h \
+		../../TU/cuda/vec.h \
 		../filterTest/filterImageGold.h \
 		/usr/local/include/TU/Array++.h \
+		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/GaussianConvolver.h \
+		/usr/local/include/TU/Geometry++.h \
 		/usr/local/include/TU/IIRFilter.h \
 		/usr/local/include/TU/Image++.h \
+		/usr/local/include/TU/Manip.h \
+		/usr/local/include/TU/Minimize.h \
 		/usr/local/include/TU/Profiler.h \
 		/usr/local/include/TU/SeparableFilter2.h \
 		/usr/local/include/TU/Vector++.h \
@@ -55,7 +62,8 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
 		/usr/local/include/TU/range.h \
-		/usr/local/include/TU/tuple.h
+		/usr/local/include/TU/tuple.h \
+		/usr/local/include/TU/type_traits.h
 HDRS		=
 SRCS		= main.cu
 OBJS		= main.o
@@ -67,13 +75,17 @@ OBJS		= main.o
 include $(PROJECT)/lib/common.mk
 ###
 main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
-	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/type_traits.h /usr/local/include/TU/Manip.h \
+	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
+	/usr/local/include/TU/algorithm.h \
 	/usr/local/include/TU/GaussianConvolver.h \
 	/usr/local/include/TU/IIRFilter.h \
 	/usr/local/include/TU/SeparableFilter2.h \
 	/usr/local/include/TU/Profiler.h ../../TU/cuda/FIRGaussianConvolver.h \
 	../../TU/cuda/FIRFilter.h ../../TU/cuda/Array++.h \
 	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
+	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h ../../TU/cuda/vec.h \
 	../../TU/cuda/chrono.h ../filterTest/filterImageGold.h

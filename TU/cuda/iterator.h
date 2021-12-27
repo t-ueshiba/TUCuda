@@ -230,44 +230,59 @@ make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
 
-/************************************************************************
-*  TU::cuda::stride(const ITER&)					*
-************************************************************************/
-template <class HEAD, class TAIL> inline auto
-stride(const thrust::detail::cons<HEAD, TAIL>& iter_tuple)
+}	// namespace cuda
+}	// namespace TU
+
+namespace thrust
 {
-    return cuda::tuple_transform([](const auto& iter){ return stride(iter); },
-				 iter_tuple);
+/************************************************************************
+*  thrust::stride(const ITER&)						*
+************************************************************************/
+template <class T> ptrdiff_t
+stride(device_ptr<T>)							;
+
+template <class HEAD, class TAIL> __host__ __device__ inline auto
+stride(const detail::cons<HEAD, TAIL>& iter_tuple)
+{
+    return TU::cuda::tuple_transform([](const auto& iter)
+				     { return stride(iter); }, iter_tuple);
 }
 
 template <class ITER_TUPLE> __host__ __device__ inline auto
-stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
+stride(const zip_iterator<ITER_TUPLE>& iter)
 {
     return stride(iter.get_iterator_tuple());
 }
 
-template <class ITER> auto
-stride(const ITER& iter) -> decltype(stride(iter.base()))
+}	// namespace thrust
+
+namespace TU
 {
-    return stride(iter.base());
+namespace cuda
+{
+/************************************************************************
+*  TU::cuda::stride(const ITER&)					*
+************************************************************************/
+template <class ITER0, class ITER1, class... ITERS> inline auto
+stride(const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
+{
+    return stride(thrust::make_tuple(iter0, iter1, iters...));
 }
 
-
-/*
-template <class FUNC, class ITER> __host__ __device__ inline auto
+template <class FUNC, class ITER> inline auto
 stride(const cuda::map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
 
-template <class FUNC, class ITER> __host__ __device__ inline auto
+template <class FUNC, class ITER> inline auto
 stride(const cuda::assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
-*/
+
 /************************************************************************
 *  TU::cuda::advance_stride(ITER&, STRIDE)				*
 ************************************************************************/
@@ -456,11 +471,9 @@ make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, int size)
 }
     
 template <class ITER, class... SS> __host__ __device__ inline auto
-make_range_iterator(ITER iter,
-		    iterator_stride<ITER> stride, int size, SS... ss)
+make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size, SS... ss)
 {
-    return make_range_iterator(make_range_iterator(iter, ss...),
-			       stride, size);
+    return make_range_iterator(make_range_iterator(iter, ss...), stride, size);
 }
 
 /************************************************************************
@@ -500,8 +513,8 @@ namespace detail
   template <class ITER, class... IS> __host__ __device__ inline auto
   make_slice_iterator(ITER iter, int idx, int size, IS... is)
   {
-      return make_range_iterator(make_slice_iterator((*iter).begin() + idx,
-						     is...),
+      return make_range_iterator(cuda::detail::make_slice_iterator(
+				     (*iter).begin() + idx, is...),
 				 iter.stride(), size);
   }
 }	// namespace detail
@@ -509,8 +522,7 @@ namespace detail
 template <class ITER, class... IS> __host__ __device__ inline auto
 slice(ITER iter, int idx, int size, IS... is)
 {
-    return make_range(detail::make_slice_iterator(iter + idx, is...),
-		      size);
+    return make_range(detail::make_slice_iterator(iter + idx, is...), size);
 }
 
 }	// namespace cuda

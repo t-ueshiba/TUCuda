@@ -75,6 +75,7 @@
 #include <thrust/copy.h>
 #include <thrust/fill.h>
 #include "TU/cuda/allocator.h"
+#include "TU/cuda/iterator.h"
 #include "TU/Array++.h"
 
 //! thrust::device_ptr<S> 型の引数に対しADLによって名前解決を行う関数を収める名前空間
@@ -106,9 +107,6 @@ fill(device_ptr<T> q, size_t n, const S& val)
 {
     fill_n(q, (N ? N : n), val);
 }
-
-template <class T> ptrdiff_t
-stride(device_ptr<T>)							;
 
 }	// namespace thrust
 

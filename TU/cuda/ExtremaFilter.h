@@ -21,18 +21,20 @@ template <class COMP>
 class extreme_value
 {
   public:
-    using value_type	= typename COMP::first_argument_type;
+    using argument_type	= typename COMP::first_argument_type;
+    using result_type	= argument_type;
     
   public:
-    __host__	extreme_value(const COMP& comp) :_comp(comp)		{}
+    __host__	extreme_value() :_comp()				{}
     
     __device__
-    bool	operator ()(const value_type& a, const value_type& b) const
+    bool	operator ()(const argument_type& a,
+			    const argument_type& b) const
 		{
 		    return _comp(a, b);
 		}
     __device__
-    value_type	operator ()(int x, int y, const value_type& v) const
+    result_type	operator ()(int x, int y, const argument_type& v) const
 		{
 		    return v;
 		}
@@ -42,21 +44,22 @@ class extreme_value
 };
     
 /************************************************************************
-*  class extreme_value_position<COMP>					*
+*  class extreme_value_position<COMP, POS>				*
 ************************************************************************/
 template <class COMP, class POS=int2>
 class extreme_value_position
 {
   public:
-    using value_type	= typename COMP::first_argument_type;
+    using argument_type	= typename COMP::first_argument_type;
     using position_type	= POS;
-    using result_type	= thrust::tuple<value_type, position_type>;
+    using result_type	= thrust::tuple<argument_type, position_type>;
     
   public:
-    __host__	extreme_value_position(const COMP& comp) :_comp(comp)	{}
+    __host__	extreme_value_position() :_comp()			{}
     
     __device__
-    bool	operator ()(const value_type& a, const value_type& b) const
+    bool	operator ()(const argument_type& a,
+			    const argument_type& b) const
 		{
 		    return _comp(a, b);
 		}
@@ -66,9 +69,9 @@ class extreme_value_position
 		    return _comp(thrust::get<0>(a), thrust::get<0>(b));
 		}
     __device__
-    result_type	operator ()(int x, int y, const value_type& v) const
+    result_type	operator ()(int x, int y, const argument_type& v) const
 		{
-		    return {v, position_type(x, y)};
+		    return {v, position_type{x, y}};
 		}
     __device__
     result_type	operator ()(int x, int y, const result_type& v) const
@@ -134,7 +137,7 @@ extrema_filter(range<range_iterator<IN> >  in,
 	       range<range_iterator<OUT> > out, int winSize, OP op)
 {
     using in_type	= typename std::iterator_traits<IN>::value_type;
-    using out_type	= typename std::iterator_traits<OUT>::value_type;
+    using out_type	= typename FILTER::value_type;
 
     const int	winSize1 = winSize - 1;
     const int	x0	 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
@@ -250,12 +253,12 @@ class ExtremaFilter2 : public BLOCK_TRAITS
     size_t		offsetV()		const	{ return _winSizeV/2; }
     size_t		offsetH()		const	{ return _winSizeH/2; }
 
-    template <class ROW, class ROW_O, class COMP>
+    template <class ROW, class ROW_O, class OP>
     void		convolve(ROW row, ROW rowe, ROW_O rowO,
-				 COMP comp, bool shift=false)	const	;
-    template <class ROW, class ROW_O, class ROW_P, class COMP>
+				 OP op, bool shift=false)	const	;
+    template <class ROW, class ROW_O, class ROW_P, class OP>
     void		extrema(ROW row, ROW rowe, ROW_O rowO, ROW_P rowP,
-				COMP comp, bool shift=false) const;
+				OP op, bool shift=false) const;
 
   private:
     size_t		_winSizeV;
@@ -265,9 +268,9 @@ class ExtremaFilter2 : public BLOCK_TRAITS
 
 #if defined(__NVCC__)
 template <class T, class BLOCK_TRAITS, size_t WMAX>
-template <class ROW, class ROW_O, class COMP> void
+template <class ROW, class ROW_O, class OP> void
 ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
-						COMP comp, bool shift) const
+						OP op, bool shift) const
 {
     const int	nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
@@ -285,7 +288,7 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
     device::extrema_filter<ExtremaFilter2><<<blocks, threads>>>(
 	cuda::make_range(row, nrows),
 	cuda::make_range(_buf.begin(), _buf.nrow()),
-	_winSizeV, device::extreme_value<COMP>(comp));
+	_winSizeV, op);
 
   // Accumulate horizontally,
     blocks.x = gridDim(_buf.ncol(), threads.x);
@@ -294,7 +297,7 @@ ExtremaFilter2<T, BLOCK_TRAITS, WMAX>::convolve(ROW row, ROW rowe, ROW_O rowO,
 	cuda::make_range(_buf.cbegin(), _buf.nrow()),
 	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
 			  (shift ? offsetH() : 0), outSizeH(ncols)),
-	_winSizeH, device::extreme_value<COMP>(comp));
+	_winSizeH, op);
 }
 #endif	// __NVCC__
 }	// namespace cuda

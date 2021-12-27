@@ -15,6 +15,8 @@ namespace TU
 template <class T> void
 doJob(const Image<T>& in, size_t winSize)
 {
+    using op_t	  = cuda::device::extreme_value<thrust::less<T> >;
+    using value_t = typename op_t::result_type;
     
   // GPUによって計算する．
     const cuda::ExtremaFilter2<T>	extrema(winSize, winSize);
@@ -22,8 +24,7 @@ doJob(const Image<T>& in, size_t winSize)
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
     cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		     thrust::less<T>());
+    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), op_t());
     cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cuProfiler(1);
@@ -31,8 +32,7 @@ doJob(const Image<T>& in, size_t winSize)
     for (size_t n = 0; n < NITER; ++n)
     {
 	cuProfiler.start(0);
-	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(),
-			 thrust::less<T>());
+	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), op_t());
 	cuProfiler.nextFrame();
     }
     cuProfiler.print(std::cerr);
@@ -128,7 +128,9 @@ doJob2(const Image<T>& in)
 template <class T> void
 doJob3(const Image<T>& in, size_t winSize)
 {
-    using value_t = thrust::tuple<T, int2>;
+    using op_t	  = cuda::device::extreme_value_position<thrust::greater<T>,
+							 int2>;
+    using value_t = typename op_t::result_type;
     
     const cuda::ExtremaFilter2<value_t>	extrema(winSize, winSize);
     const cuda::Array2<T>		in_d(in);
@@ -140,7 +142,7 @@ doJob3(const Image<T>& in, size_t winSize)
 			 thrust::make_zip_iterator(out_d.begin(), pos_d.begin()),
 			 thrust::make_tuple(out_d.stride(), pos_d.stride()),
 			 out_d.size()),
-		     thrust::greater<T>(), true);
+		     op_t(), true);
 
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
@@ -191,9 +193,9 @@ main(int argc, char* argv[])
 	in.restore(std::cin);
 	in.save(std::cout);
 	
-      //TU::doJob(in, winSize);
+	TU::doJob(in, winSize);
       //TU::doJob2(in);
-	TU::doJob3(in, winSize);
+      //TU::doJob3(in, winSize);
     }
     catch (std::exception& err)
     {

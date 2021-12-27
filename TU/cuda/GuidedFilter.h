@@ -12,6 +12,8 @@
 
 namespace TU
 {
+template <class T>	class TD;
+    
 namespace cuda
 {
 namespace device
@@ -209,13 +211,13 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ib),
 						 cbegin(*gb)),
-			       thrust::make_tuple(stride(ib), stride(gb)),
+			       cuda::stride(ib, gb),
 			       size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ie),
 						 cbegin(*ge)),
-			       thrust::make_tuple(stride(ie), stride(ge)),
+			       cuda::stride(ie, ge),
 			       size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
@@ -231,11 +233,11 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 	out += offsetV();
     _coeffsFilter.convolve(_c.cbegin(), _c.cend(),
 			   make_range_iterator(
-			       cuda::make_assignment_iterator(
+			       make_assignment_iterator(
 				   device::trans_guides<T>(n),
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			       thrust::make_tuple(stride(gb), stride(out)),
+			       cuda::stride(gb, out),
 			       size(*out)));
     profiler_t::nextFrame();
 }
@@ -289,11 +291,11 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 	out += offsetV();
     _coeffsFilter.convolve(_c.cbegin(), _c.cend(),
 			   make_range_iterator(
-			       cuda::make_assignment_iterator(
+			       make_assignment_iterator(
 				   device::trans_guides<T>(n),
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			       thrust::make_tuple(stride(ib), stride(out)),
+			       cuda::stride(ib, out),
 			       size(*out)));
     profiler_t::nextFrame();
 }

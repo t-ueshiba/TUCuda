@@ -37,6 +37,8 @@ SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/fp16.h \
+		../../TU/cuda/iterator.h \
+		../../TU/cuda/tuple.h \
 		/home/artuser/src/TUTools++/TU/Array++.h \
 		/home/artuser/src/TUTools++/TU/algorithm.h \
 		/home/artuser/src/TUTools++/TU/iterator.h \
@@ -59,4 +61,5 @@ main.o: ../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
 	/home/artuser/src/TUTools++/TU/iterator.h \
 	/home/artuser/src/TUTools++/TU/tuple.h \
 	/home/artuser/src/TUTools++/TU/type_traits.h \
-	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/fp16.h
+	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/fp16.h \
+	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h

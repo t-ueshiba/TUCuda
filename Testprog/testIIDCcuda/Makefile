@@ -55,7 +55,8 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
 		/usr/local/include/TU/range.h \
-		/usr/local/include/TU/tuple.h
+		/usr/local/include/TU/tuple.h \
+		/usr/local/include/TU/type_traits.h
 HDRS		=
 SRCS		= cuda_image_interpolate.cu \
 		main.cu
@@ -69,20 +70,20 @@ OBJS		= cuda_image_interpolate.o \
 include $(PROJECT)/lib/common.mk
 ###
 cuda_image_interpolate.o: /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
-	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/chrono.h
+	/usr/local/include/TU/pair.h /usr/local/include/TU/type_traits.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
+	/usr/local/include/TU/Profiler.h ../../TU/cuda/Array++.h \
+	../../TU/cuda/allocator.h ../../TU/cuda/chrono.h
 main.o: /usr/local/include/TU/IIDCCameraArray.h \
 	/usr/local/include/TU/IIDC++.h /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
-	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/allocator.h
+	/usr/local/include/TU/pair.h /usr/local/include/TU/type_traits.h \
+	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
+	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
+	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
+	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
+	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
+	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h

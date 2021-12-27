@@ -39,7 +39,6 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
 		../../TU/cuda/FIRFilter.h \
-		../../TU/cuda/Texture.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
@@ -86,5 +85,5 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/Profiler.h ../../TU/cuda/FIRFilter.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
 	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h \
-	../../TU/cuda/tuple.h ../../TU/cuda/Texture.h ../../TU/cuda/chrono.h \
-	../../TU/cuda/vec.h filterImageGold.h
+	../../TU/cuda/tuple.h ../../TU/cuda/vec.h ../../TU/cuda/chrono.h \
+	filterImageGold.h

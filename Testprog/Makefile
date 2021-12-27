@@ -1,6 +1,5 @@
 SUBDIR	= boxFilterTest		\
 	  eigen33Test		\
-	  extremaTest		\
 	  extremaFilterTest	\
 	  filterTest		\
 	  fp16Test		\

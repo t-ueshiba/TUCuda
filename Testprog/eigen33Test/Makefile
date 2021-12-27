@@ -36,6 +36,7 @@ INCDIR		= $(PREFIX)/include
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
+		../../TU/cuda/functional.h \
 		../../TU/cuda/iterator.h \
 		../../TU/cuda/tuple.h \
 		../../TU/cuda/vec.h \
@@ -64,18 +65,17 @@ OBJS		= main.o
 include $(PROJECT)/lib/common.mk
 ###
 main.o: ../../TU/cuda/algorithm.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h \
-	/home/artuser/src/TUTools++/TU/type_traits.h ../../TU/cuda/vec.h \
-	/home/artuser/src/TUTools++/TU/Image++.h \
+	../../TU/cuda/iterator.h /home/artuser/src/TUTools++/TU/range.h \
+	/home/artuser/src/TUTools++/TU/iterator.h \
+	/home/artuser/src/TUTools++/TU/tuple.h \
+	/home/artuser/src/TUTools++/TU/type_traits.h \
+	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/tuple.h \
+	../../TU/cuda/vec.h /home/artuser/src/TUTools++/TU/Image++.h \
 	/home/artuser/src/TUTools++/TU/pair.h \
 	/home/artuser/src/TUTools++/TU/Manip.h \
 	/home/artuser/src/TUTools++/TU/Camera++.h \
 	/home/artuser/src/TUTools++/TU/Geometry++.h \
 	/home/artuser/src/TUTools++/TU/Minimize.h \
 	/home/artuser/src/TUTools++/TU/Vector++.h \
-	/home/artuser/src/TUTools++/TU/Array++.h \
-	/home/artuser/src/TUTools++/TU/range.h \
-	/home/artuser/src/TUTools++/TU/iterator.h \
-	/home/artuser/src/TUTools++/TU/tuple.h \
-	/home/artuser/src/TUTools++/TU/algorithm.h eigen33_gpu.h \
-	eigen33_cpu.h
+	/home/artuser/src/TUTools++/TU/Array++.h eigen33_gpu.h \
+	../../TU/cuda/functional.h eigen33_cpu.h

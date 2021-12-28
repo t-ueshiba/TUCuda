@@ -238,7 +238,7 @@ namespace thrust
 /************************************************************************
 *  thrust::stride(const ITER&)						*
 ************************************************************************/
-template <class T> ptrdiff_t
+template <class T> __host__ __device__ ptrdiff_t
 stride(device_ptr<T>)							;
 
 template <class HEAD, class TAIL> __host__ __device__ inline auto
@@ -250,6 +250,7 @@ stride(const detail::cons<HEAD, TAIL>& iter_tuple)
 
 template <class ITER_TUPLE> __host__ __device__ inline auto
 stride(const zip_iterator<ITER_TUPLE>& iter)
+    -> decltype(stride(iter.get_iterator_tuple()))
 {
     return stride(iter.get_iterator_tuple());
 }
@@ -270,14 +271,14 @@ stride(const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
 }
 
 template <class FUNC, class ITER> inline auto
-stride(const cuda::map_iterator<FUNC, ITER>& iter)
+stride(const map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
 
 template <class FUNC, class ITER> inline auto
-stride(const cuda::assignment_iterator<FUNC, ITER>& iter)
+stride(const assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
@@ -306,7 +307,7 @@ advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 
 template <class ITER, class HEAD, class TAIL> __host__ __device__ inline auto
 advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
-    -> TU::void_t<decltype(iter.base())>
+    -> void_t<decltype(iter.base())>
 {
     using base_t = std::decay_t<decltype(iter.base())>;
 
@@ -396,10 +397,14 @@ class range_iterator
   public:
     __host__ __device__
 		range_iterator(ITER iter, stride_t stride, int size)
-		    :super(iter), _stride(stride), _size(size)		{}
+		    :super(iter), _stride(stride), _size(size)
+		{}
+    __host__	range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
+		    :range_iterator(iter->begin(), iter.stride(), iter.size())
+		{}
 
     __host__ __device__
-    int	size() const
+    int		size() const
 		{
 		    return _size;
 		}
@@ -451,8 +456,8 @@ class range_iterator
 		}
 
   private:
-    stride_t	_stride;
-    int		_size;
+    const stride_t	_stride;
+    const int		_size;
 };
 	
 /************************************************************************
@@ -485,18 +490,22 @@ make_range(ITER iter, int size)
     return {iter, size};
 }
 
-template <class ITER> __host__ inline auto
-make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
+template <class T> __host__ __device__ inline range<T*>
+make_range(thrust::device_ptr<T> p, int size)
 {
-    return make_range(make_range_iterator(iter->begin(),
-					  iter.stride(), iter.size()),
-		      size);
+    return {p.get(), size};
 }
-
+    
 template <class ITER, class... SS> __host__ __device__ inline auto
 make_range(ITER iter, int size, SS... ss)
 {
     return make_range(make_range_iterator(iter, ss...), size);
+}
+
+template <class ITER, class... SS> __host__ inline auto
+make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size, SS... ss)
+{
+    return make_range(range_iterator<ITER>(iter), size, ss...);
 }
 
 /************************************************************************
@@ -508,6 +517,12 @@ namespace detail
   make_slice_iterator(ITER iter)
   {
       return iter;
+  }
+
+  template <class T> __host__ __device__ inline T*
+  make_slice_iterator(thrust::device_ptr<T> p)
+  {
+      return p.get();
   }
 
   template <class ITER, class... IS> __host__ __device__ inline auto
@@ -522,7 +537,14 @@ namespace detail
 template <class ITER, class... IS> __host__ __device__ inline auto
 slice(ITER iter, int idx, int size, IS... is)
 {
-    return make_range(detail::make_slice_iterator(iter + idx, is...), size);
+    return make_range(cuda::detail::make_slice_iterator(iter + idx, is...),
+		      size);
+}
+
+template <class ITER, class... IS> __host__ inline auto
+slice(const TU::range_iterator<ITER, 0, 0>& iter, int idx, int size, IS... is)
+{
+    return slice(range_iterator<ITER>(iter), idx, size, is...);
 }
 
 }	// namespace cuda

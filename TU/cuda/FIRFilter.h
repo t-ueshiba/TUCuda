@@ -268,8 +268,6 @@ template <class T, class BLOCK_TRAITS>
 template <size_t L, class IN, class OUT> void
 FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
 {
-    constexpr auto	LobeSizeH = L & ~0x1;	// 中心点を含まないローブ長
-
     const int	nrow = std::distance(in, ie);
     const int	ncol = TU::size(*in);
     const dim3	threads(BlockDimX, BlockDimY);

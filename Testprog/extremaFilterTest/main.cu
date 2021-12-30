@@ -7,7 +7,8 @@
 #include "TU/cuda/algorithm.h"
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
-#include "TU/cuda/ExtremaFilter.h"
+#include "TU/cuda/BoxFilter.h"
+//#include "TU/cuda/ExtremaFilter.h"
 #include <thrust/functional.h>
 
 namespace TU
@@ -15,16 +16,16 @@ namespace TU
 template <class T> void
 doJob(const Image<T>& in, size_t winSize)
 {
-    using op_t	  = cuda::device::extreme_value<thrust::less<T> >;
-    using value_t = typename op_t::result_type;
+    using op_t = cuda::device::extrema_finder<
+		     cuda::device::extrema_value<thrust::less<T> > >;
     
   // GPUによって計算する．
-    const cuda::ExtremaFilter2<T>	extrema(winSize, winSize);
-    const cuda::Array2<T>		in_d(in);
-    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
+    cuda::BoxFilter2<op_t>	extrema(winSize, winSize);
+    const cuda::Array2<T>	in_d(in);
+    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), op_t());
+    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
     cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cuProfiler(1);
@@ -32,7 +33,7 @@ doJob(const Image<T>& in, size_t winSize)
     for (size_t n = 0; n < NITER; ++n)
     {
 	cuProfiler.start(0);
-	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), op_t());
+	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cuProfiler.nextFrame();
     }
     cuProfiler.print(std::cerr);
@@ -65,7 +66,7 @@ doJob(const Image<T>& in, size_t winSize)
 	    std::cerr << slice<3, 3>(in, u-1, V-1);
 	}
 }
-
+#if 0
 template <class T> void
 doJob2(const Image<T>& in)
 {
@@ -166,7 +167,7 @@ doJob3(const Image<T>& in, size_t winSize)
 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
 		      << ')' << std::endl;
 }
-
+#endif
 }	// namespace TU
 
 /************************************************************************

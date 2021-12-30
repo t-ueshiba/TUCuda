@@ -229,7 +229,6 @@ make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
-
 }	// namespace cuda
 }	// namespace TU
 
@@ -254,7 +253,6 @@ stride(const zip_iterator<ITER_TUPLE>& iter)
 {
     return stride(iter.get_iterator_tuple());
 }
-
 }	// namespace thrust
 
 namespace TU
@@ -264,20 +262,21 @@ namespace cuda
 /************************************************************************
 *  TU::cuda::stride(const ITER&)					*
 ************************************************************************/
-template <class ITER0, class ITER1, class... ITERS> inline auto
+template <class ITER0, class ITER1, class... ITERS>
+__host__ __device__ inline auto
 stride(const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
 {
     return stride(thrust::make_tuple(iter0, iter1, iters...));
 }
 
-template <class FUNC, class ITER> inline auto
+template <class FUNC, class ITER> __host__ __device__ inline auto
 stride(const map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
 
-template <class FUNC, class ITER> inline auto
+template <class FUNC, class ITER> __host__ __device__ inline auto
 stride(const assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {

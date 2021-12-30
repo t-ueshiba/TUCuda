@@ -11,7 +11,8 @@ namespace TU
 template <class U, class S, class T> void
 cudaJob(const Array2<S>& in, Array2<T>& out, size_t winSize, bool shift)
 {
-    cuda::BoxFilter2<U>	box(winSize, winSize);
+    cuda::BoxFilter2<cuda::device::box_convolver<U> >
+			box(winSize, winSize);
     cuda::Array2<U>	in_d(in);
     cuda::Array2<U>	out_d(in_d.nrow(), in_d.ncol());
 

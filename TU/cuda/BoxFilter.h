@@ -16,6 +16,171 @@ namespace cuda
 namespace device
 {
 /************************************************************************
+*  class deque<T, MAX_SIZE>						*
+************************************************************************/
+template <class T, int MAX_SIZE>
+class deque
+{
+  public:
+    __device__		deque()	:_front(0), _back(0)	{}
+
+    __device__ bool	empty()	const	{ return _front == _back; }
+    __device__ T	front() const	{ return _buf[_front]; }
+    __device__ T	back()	const
+			{
+			    return _buf[_back == 0 ? MAX_SIZE -1 : _back - 1];
+			}
+    __device__ void	push_front(T val)
+			{
+			    if (_front == 0)
+				_front = MAX_SIZE;
+			    _buf[--_front] = val;
+			}
+    __device__ void	push_back(T val)
+			{
+			    _buf[_back] = val;
+			    if (++_back == MAX_SIZE)
+				_back = 0;
+			}
+    __device__ void	pop_front()
+			{
+			    if (++_front == MAX_SIZE)
+				_front = 0;
+			}
+    __device__ void	pop_back()
+			{
+			    if (_back == 0)
+				_back = MAX_SIZE;
+			    --_back;
+			}
+	
+  private:
+    T	_buf[MAX_SIZE];
+    int	_front;
+    int	_back;
+};
+    
+/************************************************************************
+*  __device__ algorithms						*
+************************************************************************/
+template <class T>
+struct box_convolver
+{
+    using value_type = T;
+    
+    template <class S_, class T_, size_t W_> __device__
+    void	operator ()(const S_ in_s[][W_],
+			    T_ out_s[][W_], int winSize, int ye) const
+		{
+		    out_s[0][threadIdx.x] = in_s[0][threadIdx.x];
+		    for (int y = 1; y != winSize; ++y)
+			out_s[0][threadIdx.x] += in_s[y][threadIdx.x];
+
+		    for (int y = 1; y != ye; ++y)
+			out_s[y][threadIdx.x] = out_s[y-1][threadIdx.x]
+					      + in_s[y-1+winSize][threadIdx.x]
+					      - in_s[y-1][threadIdx.x];
+		}
+};
+
+template <class OP, size_t WMAX=23>
+struct extrema_finder
+{
+    using value_type = typename OP::value_type;
+    
+    template <class S_, class T_, size_t W_> __device__
+    void	operator ()(const S_ in_s[][W_],
+			    T_ out_s[][W_], int winSize, int ye) const
+		{
+		    const OP	op;
+		    const int	x0	 = __mul24(blockIdx.x, blockDim.x);
+		    const int	y0	 = __mul24(blockIdx.y, blockDim.y);
+		    const int	winSize1 = winSize - 1;
+		    deque<int, WMAX> q;
+		    q.push_back(0);
+
+		    for (int y = 1; y != ye + winSize1; ++y)
+		    {
+			while (op(in_s[y][threadIdx.x],
+				  in_s[q.back()][threadIdx.x]))
+			{
+			    q.pop_back();
+			    if (q.empty())
+				break;
+			}
+			q.push_back(y);
+			
+			if (y == q.front() + winSize)
+			    q.pop_front();
+	      
+			if (y >= winSize1)
+			    out_s[y - winSize1][threadIdx.x]
+				= op(in_s[q.front()][threadIdx.x],
+				     y0 + q.front());
+		    }
+		}
+};
+    
+/************************************************************************
+*  __device__ functionals used with find_extrema()			*
+************************************************************************/
+template <class COMP>
+struct extrema_value : public COMP
+{
+    using value_type = typename COMP::first_argument_type;
+    using COMP::operator ();
+    
+    __device__
+    value_type	operator ()(const value_type& v, int pos) const
+		{
+		    return v;
+		}
+};
+
+namespace detail
+{
+template <class COMP>
+struct extrema_position_base : public COMP
+{
+    using argument_type	= typename COMP::first_argument_type;
+    using value_type	= thrust::tuple<argument_type, int>;
+    using COMP::operator ();
+
+    __device__
+    value_type	operator ()(const argument_type& v, int pos) const
+		{
+		    return {v, pos};
+		}
+};
+}	// namespace detail
+    
+template <class COMP>
+class extrema_position : public detail::extrema_position_base<COMP>
+{
+    using typename detail::extrema_position_base<COMP>::value_type;
+    using result_type = int2;
+
+    __device__
+    result_type	operator ()(const value_type& v, int pos) const
+		{
+		    return {pos, thrust::get<1>(v)};
+		}
+};
+    
+template <class COMP>
+class extrema_value_position : public detail::extrema_position_base<COMP>
+{
+    using typename detail::extrema_position_base<COMP>::value_type;
+    using result_type = thrust::tuple<value_type, int2>;
+
+    __device__
+    result_type	operator ()(const value_type& v, int pos) const
+		{
+		    return {thrust::get<0>(v), {pos, thrust::get<1>(v)}};
+		}
+};
+    
+/************************************************************************
 *  __global__ functions							*
 ************************************************************************/
 //! スレッドブロックの縦方向にフィルタを適用する
@@ -31,36 +196,30 @@ __global__ void
 box_filter(range<range_iterator<IN> > in,
 	   range<range_iterator<OUT> > out, int winSize)
 {
-    using value_type  =	typename FILTER::value_type;
+    using convolver_type = typename FILTER::convolver_type;
+    using in_type	 = typename std::iterator_traits<IN>::value_type;
+    using out_type	 = typename std::iterator_traits<OUT>::value_type;
 
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
     const int	xsiz = ::min(blockDim.x, in.begin().size() - x0);
     const int	ysiz = ::min(blockDim.y + winSize - 1, in.size() - y0);
 
-    __shared__ value_type in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
-			      [FILTER::BlockDim + 1];
+    __shared__ in_type	in_s[FILTER::BlockDim + FILTER::WinSizeMax - 1]
+			    [FILTER::BlockDim + 1];
     loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
     __syncthreads();
     
-    __shared__ value_type out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+    __shared__ out_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
     const int	ye = ysiz - winSize + 1;
 
     if (threadIdx.x < xsiz && ye > 0)
     {
-	if (threadIdx.y == 0)
-	{
-	  // 各列を並列に縦方向積算
-	    out_s[0][threadIdx.x] = in_s[0][threadIdx.x];
-	    for (int y = 1; y != winSize; ++y)
-		out_s[0][threadIdx.x] += in_s[y][threadIdx.x];
-
-	    for (int y = 1; y != ye; ++y)
-		out_s[y][threadIdx.x]
-		    = out_s[y-1][threadIdx.x] + in_s[y-1+winSize][threadIdx.x]
-					      - in_s[y-1][threadIdx.x];
-	}
+	const convolver_type	convolve;
+	
+	if (threadIdx.y == 0)		// 各列を並列に縦方向積算
+	    convolve(in_s, out_s, winSize, ye);
 	__syncthreads();
 
       // 結果を格納
@@ -194,10 +353,10 @@ box_filterV(IN in, int nrows, OUT out, int winSizeV,
 #endif	// __NVCC__
 
 /************************************************************************
-*  class BoxFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>			*
+*  class BoxFilter2<CONVOLVER, BLOCK_TRAITS, WMAX, CLOCK>		*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T,
+template <class CONVOLVER=device::box_convolver<float>,
 	  class BLOCK_TRAITS=BlockTraits<>, size_t WMAX=23, class CLOCK=void>
 class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
@@ -205,7 +364,8 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
     using profiler_t	= Profiler<CLOCK>;
 
   public:
-    using value_type	= T;
+    using convolver_type= CONVOLVER;
+    using value_type	= typename convolver_type::value_type;
 
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
@@ -311,25 +471,26 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 			 OP op, size_t disparitySearchWidth)	const	;
 
   private:
-    size_t		_winSizeV;
-    size_t		_winSizeH;
-    mutable Array2<T>	_buf;
-    mutable Array3<T>	_buf3;
+    size_t			_winSizeV;
+    size_t			_winSizeH;
+    mutable Array2<value_type>	_buf;
+    mutable Array3<value_type>	_buf3;
 };
 
 #if defined(__NVCC__)
-template <class T, class BOX_TRAITS, size_t WMAX, class CLOCK>
+template <class CONVOLVER, class BOX_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O> void
-BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
-						 ROW_O rowO, bool shift) const
+BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
+							 ROW_O rowO,
+							 bool shift) const
 {
     profiler_t::start(0);
 
-    const int	nrows = std::distance(row, rowe);
+    const size_t nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    const int	ncols = TU::size(*row);
+    const size_t ncols = TU::size(*row);
     if (ncols < _winSizeH)
 	return;
 
@@ -358,11 +519,11 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     profiler_t::nextFrame();
 }
 
-template <class T, class BOX_TRAITS, size_t WMAX, class CLOCK>
+template <class CONVOLVER, class BOX_TRAITS, size_t WMAX, class CLOCK>
 template <class ROW, class ROW_O, class OP> void
-BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW rowL, ROW rowLe, ROW rowR,
-						 ROW_O rowO, OP op,
-						 size_t disparitySearchWidth) const
+BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
+    ROW rowL, ROW rowLe, ROW rowR, ROW_O rowO,
+    OP op, size_t disparitySearchWidth) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -374,7 +535,7 @@ BoxFilter2<T, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW rowL, ROW rowLe, ROW rowR,
     if (nrows < _winSizeV)
 	return;
 
-    size_t	ncols = std::distance(cbegin(*rowL), cend(*rowL));
+    size_t	ncols = TU::size(*rowL);
     if (ncols < _winSizeH)
 	return;
 

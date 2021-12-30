@@ -201,7 +201,7 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 
     const auto	n     = winSizeV() * winSizeH();
     const auto	nrows = std::distance(ib, ie);
-    const auto	ncols = TU::size(*ib);
+    const auto	ncols = size(*ib);
 
     _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
 

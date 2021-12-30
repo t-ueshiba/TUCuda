@@ -35,7 +35,7 @@ INCDIR		= $(PREFIX)/include
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/ExtremaFilter.h \
+		../../TU/cuda/BoxFilter.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
@@ -75,6 +75,7 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h \
-	../../TU/cuda/tuple.h ../../TU/cuda/vec.h ../../TU/cuda/functional.h \
-	../../TU/cuda/chrono.h ../../TU/cuda/ExtremaFilter.h
+	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h \
+	../../TU/cuda/algorithm.h ../../TU/cuda/vec.h \
+	../../TU/cuda/functional.h ../../TU/cuda/chrono.h \
+	../../TU/cuda/BoxFilter.h

@@ -13,19 +13,11 @@
 
 namespace TU
 {
-template <class T> void
-doJob(const Image<T>& in, size_t winSize)
+template <class CONVOLVER, class IN, class OUT> void
+cudaJob(IN in, IN ie, OUT out, size_t winSize, bool shift)
 {
-    using op_t = cuda::device::extrema_finder<
-		     cuda::device::extrema_value<thrust::less<T> > >;
-    
-  // GPUによって計算する．
-    cuda::BoxFilter2<op_t>	extrema(winSize, winSize);
-    const cuda::Array2<T>	in_d(in);
-    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
-
-    extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+    const cuda::BoxFilter2<CONVOLVER>	filter(winSize, winSize);
+    filter.convolve(in, ie, out, shift);
     cudaDeviceSynchronize();
 
     Profiler<cuda::clock>	cuProfiler(1);
@@ -33,12 +25,38 @@ doJob(const Image<T>& in, size_t winSize)
     for (size_t n = 0; n < NITER; ++n)
     {
 	cuProfiler.start(0);
-	extrema.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
+	filter.convolve(in, ie, out, shift);
 	cuProfiler.nextFrame();
     }
     cuProfiler.print(std::cerr);
-	
-    const Image<T>	out(out_d);
+}
+
+template <class S, class T> void
+box_convolver_test(const Image<T>& in, size_t winSize)
+{
+    using convolver_t = cuda::device::box_convolver<S>;
+
+    const cuda::Array2<T>	in_d(in);
+    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), out_d.begin(),
+			 winSize, false);
+    Image<T>			out(out_d);
+    out *= float(1)/float(winSize*winSize);
+    out.save(std::cout);				// 結果画像をセーブ
+}
+    
+template <class T> void
+extrema_value_test(const Image<T>& in, size_t winSize)
+{
+    using convolver_t = cuda::device::extrema_finder<
+			    cuda::device::extrema_value<thrust::less<T> > >;
+
+  // GPUによって計算する．
+    const cuda::Array2<T>	in_d(in);
+    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), out_d.begin(),
+			 winSize, false);
+    const Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
 
   // CPUによって計算する．
@@ -66,88 +84,72 @@ doJob(const Image<T>& in, size_t winSize)
 	    std::cerr << slice<3, 3>(in, u-1, V-1);
 	}
 }
-#if 0
+
 template <class T> void
-doJob2(const Image<T>& in)
+extrema_position_test(const Image<T>& in, size_t winSize)
 {
-    const cuda::ExtremaFilter2<T>	extrema(3, 3);
-    const cuda::Array2<T>		in_d(in);
-    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
+    using convolver_t = cuda::device::extrema_finder<
+			    cuda::device::extrema_position<thrust::less<T> > >;
 
-    extrema.extrema(in_d.cbegin(), in_d.cend(),
-		    out_d.begin(), pos_d.begin(), thrust::greater<T>(), true);
+  // GPUによって計算する．
+    const cuda::Array2<T>	in_d(in);
+    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
+    cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), pos_d.begin(),
+			 winSize, true);
+    const Array2<int2>		pos(pos_d);
 
-    Array2<int2>	pos(pos_d);
-    Image<T>		out(in.width(), in.height());
-    out = 0;
-    for (size_t v = 1; v < out.nrow() - 1; ++v)
-    	for (size_t u = 1; u < out.ncol() - 1; ++u)
+  // 結果をcheckする．
+    const auto	offsetL = winSize/2;
+    const auto	offsetR = winSize - offsetL;
+    for (size_t v = offsetL; v < pos.nrow() - offsetR; ++v)
+    	for (size_t u = offsetL; u < pos.ncol() - offsetR; ++u)
     	{
     	    const auto	p = pos[v][u];
-    	    out[p.y][p.x] = in[p.y][p.x];
+	    const auto	minval = in[p.y][p.x];
+	    
+	    for (size_t vv = v - offsetL; vv < v + offsetR; ++vv)
+		for (size_t uu = u - offsetL; uu < u + offsetR; ++uu)
+		    if (in[vv][uu] < minval)
+		    {
+			std::cerr << "minval: " << minval
+				  << "@(" << p.x << ' ' << p.y << ')'
+				  << std::endl;
+			for (size_t vvv = v - offsetL; vvv < v + offsetR;
+			     ++vvv)
+			{
+			    for (size_t uuu = u - offsetL; uuu < u + offsetR;
+				 ++uuu)
+				std::cerr << ' ' << in[vvv][uuu];
+			    std::cerr << std::endl;
+			}
+
+			uu = u + offsetR - 1;
+			vv = v + offsetR - 1;
+		    }
     	}
-    out.save(std::cout);				// 結果画像をセーブ
-
-    cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		cuda::maximal3x3<T>());
-    Image<T>	out2(out_d);
-    out2.save(std::cout);
-
-  // 結果を比較する．
-    std::cerr << std::setprecision(5);
-    const int	V = 160;
-    for (size_t u = 2; u < out.width() - 2; ++u)
-	    if (out[V][u] != 0)
-	    {
-		std::cerr << '(' << u << ',' << V << "): " << out[V][u]
-			  << std::endl;
-		std::cerr << slice<5, 5>(in,  V-2, u-2);
-		std::cerr << slice<5, 5>(pos, V-2, u-2);
-		std::cerr << slice<5, 5>(out, V-2, u-2);
-	    }
-
-    // for (size_t v = 1; v < out.height() - 1; ++v)
-    // 	for (size_t u = 1; u < out.width() - 1; ++u)
-    // 	    if (v == V && out[v][u] != out2[v][u])
-    // 	    {
-    // 		std::cerr << '(' << u << ',' << v << "): "
-    // 			  << out[v][u] << " != " << out2[v][u] << std::endl;
-    // 		std::cerr << slice<3, 3>(in, v-1, u-1);
-    // 	    }
-
-    // const int	V = 160;
-    // for (u_int u = 1; u < out.width() - 1; ++u)
-    // 	if (out[V][u] != out2[V][u])
-    // 	{
-    // 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
-    // 		      << ')' << std::endl;
-    // 	    std::cerr << slice<3, 3>(in, V-1, u-1);
-    // 	}
 }
 
 template <class T> void
-doJob3(const Image<T>& in, size_t winSize)
+extrema_value_position_test(const Image<T>& in, size_t winSize)
 {
-    using op_t	  = cuda::device::extreme_value_position<thrust::greater<T>,
-							 int2>;
-    using value_t = typename op_t::result_type;
+    using convolver_t = cuda::device::extrema_finder<
+			    cuda::device::extrema_value_position<
+				thrust::greater<T> > >;
     
-    const cuda::ExtremaFilter2<value_t>	extrema(winSize, winSize);
-    const cuda::Array2<T>		in_d(in);
-    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
+    const cuda::Array2<T>	in_d(in);
+    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
 
-    extrema.convolve(in_d.cbegin(), in_d.cend(),
-		     cuda::make_range_iterator(
-			 thrust::make_zip_iterator(out_d.begin(), pos_d.begin()),
-			 thrust::make_tuple(out_d.stride(), pos_d.stride()),
-			 out_d.size()),
-		     op_t(), true);
-
+    cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(),
+			 cuda::make_range_iterator(
+			     thrust::make_zip_iterator(out_d.begin()->begin(),
+						       pos_d.begin()->begin()),
+			     cuda::stride(out_d.begin(), pos_d.begin()),
+			     out_d.size()),
+			 winSize, true);
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
-
+  /*
     Array2<int2>	pos(pos_d);
     Image<T>		out2(in.width(), in.height());
     for (size_t v = 0; v < out2.nrow(); ++v)
@@ -166,8 +168,9 @@ doJob3(const Image<T>& in, size_t winSize)
 	if (out[V][u] != out2[V][u])
 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
 		      << ')' << std::endl;
+  */
 }
-#endif
+
 }	// namespace TU
 
 /************************************************************************
@@ -193,10 +196,11 @@ main(int argc, char* argv[])
 	TU::Image<value_type>	in;
 	in.restore(std::cin);
 	in.save(std::cout);
-	
-	TU::doJob(in, winSize);
-      //TU::doJob2(in);
-      //TU::doJob3(in, winSize);
+
+	TU::box_convolver_test<float>(in, winSize);
+	TU::extrema_value_test(in, winSize);
+	TU::extrema_position_test(in, winSize);
+	TU::extrema_value_position_test(in, winSize);
     }
     catch (std::exception& err)
     {

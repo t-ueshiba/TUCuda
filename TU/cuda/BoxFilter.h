@@ -61,7 +61,79 @@ class deque
 };
     
 /************************************************************************
-*  __device__ algorithms						*
+*  __device__ functionals used with find_extrema()			*
+************************************************************************/
+template <class COMP>
+struct extrema_value : public COMP
+{
+    using argument_type	= typename COMP::first_argument_type;
+    using value_type	= typename COMP::first_argument_type;
+    using result_type	= value_type;
+    
+    using COMP::operator ();
+    
+    __device__
+    value_type	operator ()(const argument_type& v, int pos) const
+		{
+		    return v;
+		}
+};
+
+namespace detail
+{
+template <class COMP>
+struct extrema_position_base : public COMP
+{
+    using argument_type	= typename COMP::first_argument_type;
+    using value_type	= thrust::tuple<argument_type, int>;
+    using COMP::operator ();
+
+    __device__
+    value_type	operator ()(const argument_type& a, int pos) const
+		{
+		    return {a, pos};
+		}
+    __device__
+    bool	operator ()(const value_type& v, const value_type& w) const
+		{
+		    return operator ()(thrust::get<0>(v), thrust::get<0>(w));
+		}
+};
+}	// namespace detail
+    
+template <class COMP>
+struct extrema_position : public detail::extrema_position_base<COMP>
+{
+    using super		= detail::extrema_position_base<COMP>;
+    using typename super::value_type;
+    using result_type	= int2;
+    using super::operator ();
+    
+    __device__
+    result_type	operator ()(const value_type& v, int pos) const
+		{
+		    return {pos, thrust::get<1>(v)};
+		}
+};
+    
+template <class COMP>
+struct extrema_value_position : public detail::extrema_position_base<COMP>
+{
+    using super		= detail::extrema_position_base<COMP>;
+    using typename super::argument_type;
+    using typename super::value_type;
+    using result_type	= thrust::tuple<argument_type, int2>;
+    using super::operator ();
+
+    __device__
+    result_type	operator ()(const value_type& v, int pos) const
+		{
+		    return {thrust::get<0>(v), {pos, thrust::get<1>(v)}};
+		}
+};
+    
+/************************************************************************
+*  __device__ convolution algorithms					*
 ************************************************************************/
 template <class T>
 struct box_convolver
@@ -122,65 +194,6 @@ struct extrema_finder
 };
     
 /************************************************************************
-*  __device__ functionals used with find_extrema()			*
-************************************************************************/
-template <class COMP>
-struct extrema_value : public COMP
-{
-    using value_type = typename COMP::first_argument_type;
-    using COMP::operator ();
-    
-    __device__
-    value_type	operator ()(const value_type& v, int pos) const
-		{
-		    return v;
-		}
-};
-
-namespace detail
-{
-template <class COMP>
-struct extrema_position_base : public COMP
-{
-    using argument_type	= typename COMP::first_argument_type;
-    using value_type	= thrust::tuple<argument_type, int>;
-    using COMP::operator ();
-
-    __device__
-    value_type	operator ()(const argument_type& v, int pos) const
-		{
-		    return {v, pos};
-		}
-};
-}	// namespace detail
-    
-template <class COMP>
-class extrema_position : public detail::extrema_position_base<COMP>
-{
-    using typename detail::extrema_position_base<COMP>::value_type;
-    using result_type = int2;
-
-    __device__
-    result_type	operator ()(const value_type& v, int pos) const
-		{
-		    return {pos, thrust::get<1>(v)};
-		}
-};
-    
-template <class COMP>
-class extrema_value_position : public detail::extrema_position_base<COMP>
-{
-    using typename detail::extrema_position_base<COMP>::value_type;
-    using result_type = thrust::tuple<value_type, int2>;
-
-    __device__
-    result_type	operator ()(const value_type& v, int pos) const
-		{
-		    return {thrust::get<0>(v), {pos, thrust::get<1>(v)}};
-		}
-};
-    
-/************************************************************************
 *  __global__ functions							*
 ************************************************************************/
 //! スレッドブロックの縦方向にフィルタを適用する
@@ -216,10 +229,11 @@ box_filter(range<range_iterator<IN> > in,
 
     if (threadIdx.x < xsiz && ye > 0)
     {
-	const convolver_type	convolve;
-	
 	if (threadIdx.y == 0)		// 各列を並列に縦方向積算
+	{
+	    const convolver_type	convolve;
 	    convolve(in_s, out_s, winSize, ye);
+	}
 	__syncthreads();
 
       // 結果を格納

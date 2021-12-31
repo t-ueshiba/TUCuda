@@ -23,7 +23,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb
+LIBS		= -lTUCuda -lTUTools -ltbb
 LINKER		= $(NVCC)
 
 BINDIR		= $(PREFIX)/bin

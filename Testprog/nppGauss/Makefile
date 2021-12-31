@@ -25,7 +25,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUTools++ -lTUCuda++ -ltbb -lnppif
+LIBS		= -lTUCuda -lTUTools -ltbb -lnppif
 
 LINKER		= $(NVCC)
 
@@ -56,7 +56,7 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/home/ueshiba/src/TUTools++/TU/range.h \
 		/home/ueshiba/src/TUTools++/TU/tuple.h \
 		/home/ueshiba/src/TUTools++/TU/type_traits.h
-HDRS		=
+DRS		=
 SRCS		= main.cu
 OBJS		= main.o
 

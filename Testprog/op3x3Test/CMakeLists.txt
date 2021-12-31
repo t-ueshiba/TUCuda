@@ -2,4 +2,4 @@ project(op3x3Test)
 
 file(GLOB sources *.cc *cu)
 cuda_add_executable(${PROJECT_NAME} ${sources})
-target_link_libraries(${PROJECT_NAME} TUCuda++ TUTools++)
+target_link_libraries(${PROJECT_NAME} TUCuda)

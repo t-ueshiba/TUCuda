@@ -13,19 +13,17 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG
+CPPFLAGS	= -DNDEBUG -DUSE_TBB
 CFLAGS		= -O3
-NVCCFLAGS	= -O3
+NVCCFLAGS	= -O3 #-arch=sm_53 -Xcompiler -mf16c
 ifeq ($(shell arch), armv7l)
-  CPPFLAGS     += -DNEON
-else ifeq ($(shell arch), aarch64)
   CPPFLAGS     += -DNEON
 else
   CPPFLAGS     += -DSSE3
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUCuda -lTUTools -ltbb
+LIBS		= -lTUTools -lTUCuda -ltbb
 LINKER		= $(NVCC)
 
 BINDIR		= $(PREFIX)/bin
@@ -37,9 +35,11 @@ INCDIR		= $(PREFIX)/include
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
 EXTHDRS		= ../../TU/cuda/Array++.h \
+		../../TU/cuda/BoxFilter.h \
 		../../TU/cuda/algorithm.h \
 		../../TU/cuda/allocator.h \
 		../../TU/cuda/chrono.h \
+		../../TU/cuda/functional.h \
 		../../TU/cuda/iterator.h \
 		../../TU/cuda/tuple.h \
 		../../TU/cuda/vec.h \
@@ -75,5 +75,7 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
 	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h \
-	../../TU/cuda/tuple.h ../../TU/cuda/vec.h ../../TU/cuda/chrono.h
+	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h \
+	../../TU/cuda/algorithm.h ../../TU/cuda/vec.h \
+	../../TU/cuda/functional.h ../../TU/cuda/chrono.h \
+	../../TU/cuda/BoxFilter.h

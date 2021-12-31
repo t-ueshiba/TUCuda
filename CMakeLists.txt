@@ -36,6 +36,7 @@ link_directories(
 file(GLOB sources *.cc *.cu)
 
 cuda_add_library(${PROJECT_NAME} SHARED ${sources})
+target_link_libraries(${PROJECT_NAME} TUTools)
 
 install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
 

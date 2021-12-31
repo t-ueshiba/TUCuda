@@ -1,4 +1,4 @@
-project(filterTest)
+project(boxFilterTest2)
 
 file(GLOB sources *.cc *cu)
 cuda_add_executable(${PROJECT_NAME} ${sources})

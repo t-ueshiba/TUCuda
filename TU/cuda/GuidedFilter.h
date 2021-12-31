@@ -170,10 +170,12 @@ class GuidedFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
     size_t	offsetV()		const	{return winSizeV() - 1;}
 
   private:
-    BoxFilter2<params_t, BLOCK_TRAITS, WMAX>	_paramsFilter;
-    BoxFilter2<coeffs_t, BLOCK_TRAITS, WMAX>	_coeffsFilter;
-    T						_e;
-    mutable Array2<coeffs_t>			_c;
+    BoxFilter2<device::box_convolver<params_t>,
+	       BLOCK_TRAITS, WMAX>	_paramsFilter;
+    BoxFilter2<device::box_convolver<coeffs_t>,
+	       BLOCK_TRAITS, WMAX>	_coeffsFilter;
+    T					_e;
+    mutable Array2<coeffs_t>		_c;
 };
 
 //! 2次元入力データと2次元ガイドデータにguided filterを適用する

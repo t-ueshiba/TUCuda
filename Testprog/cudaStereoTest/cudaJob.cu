@@ -15,7 +15,8 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array3<S>& costs,
 {
   // スコアを計算する．
     cuda::Array2<T>	imageL_d(imageL), imageR_d(imageR);
-    cuda::BoxFilter2<S, cuda::BlockTraits<>, 23, cuda::clock>
+    cuda::BoxFilter2<cuda::device::box_convolver<S>,
+		     cuda::BlockTraits<>, 23, cuda::clock>
 			boxFilter(winSize, winSize);
 #ifdef DISPARITY_MAJOR
     cuda::Array3<S>	costs_d(disparitySearchWidth,
@@ -53,7 +54,8 @@ cudaJob(const Array2<T>& imageL, const Array2<T>& imageR, Array2<S>& imageD,
 {
   // スコアを計算する．
     cuda::Array2<T>	imageL_d(imageL), imageR_d(imageR);
-    cuda::BoxFilter2<S, cuda::BlockTraits<>, 23, std::chrono::system_clock>
+    cuda::BoxFilter2<cuda::device::box_convolver<S>,
+		     cuda::BlockTraits<>, 23, std::chrono::system_clock>
 			boxFilter(winSize, winSize);
     cuda::Array3<S>	costs_d(disparitySearchWidth,
     				imageL_d.nrow(), imageL_d.ncol());

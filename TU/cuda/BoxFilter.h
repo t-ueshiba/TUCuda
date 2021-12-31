@@ -138,7 +138,8 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
 template <class T>
 struct box_convolver
 {
-    using value_type = T;
+    using value_type	= T;
+    using result_type	= T;
     
     template <class S_, class T_, size_t W_> __device__
     void	operator ()(const S_ in_s[][W_],
@@ -158,7 +159,8 @@ struct box_convolver
 template <class OP, size_t WMAX=23>
 struct extrema_finder
 {
-    using value_type = typename OP::value_type;
+    using value_type	= typename OP::value_type;
+    using result_type	= typename OP::result_type;
     
     template <class S_, class T_, size_t W_> __device__
     void	operator ()(const S_ in_s[][W_],
@@ -210,8 +212,12 @@ box_filter(range<range_iterator<IN> > in,
 	   range<range_iterator<OUT> > out, int winSize)
 {
     using convolver_type = typename FILTER::convolver_type;
+    using value_type	 = typename convolver_type::value_type;
+    using result_type	 = typename convolver_type::result_type;
     using in_type	 = typename std::iterator_traits<IN>::value_type;
-    using out_type	 = typename std::iterator_traits<OUT>::value_type;
+    using out_type	 = std::conditional_t<
+				std::is_same<in_type, value_type>::value,
+				result_type, value_type>;
 
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅

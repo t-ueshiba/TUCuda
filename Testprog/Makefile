@@ -1,6 +1,6 @@
 SUBDIR	= boxFilterTest		\
+	  boxFilterTest2	\
 	  eigen33Test		\
-	  extremaFilterTest	\
 	  filterTest		\
 	  fp16Test		\
 	  gaussTest		\

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(TUCuda++)
+project(TUCuda)
 
 enable_language(CXX)
 set(CMAKE_CXX_STANDARD		14)
@@ -41,7 +41,7 @@ install(TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib)
 
 add_subdirectory(TU)
 
-option(BUILD_TUCUDAPP_TEST_PROGRAMS "Building test programs for TUCuda++" OFF)
+option(BUILD_TUCUDAPP_TEST_PROGRAMS "Building test programs for TUCuda" OFF)
 
 if(BUILD_TUCUDAPP_TEST_PROGRAMS)
   add_subdirectory(Testprog)

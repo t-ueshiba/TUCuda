@@ -367,6 +367,57 @@ class range
     const int	_size;
 };
 
+template <class T>
+class range<thrust::device_ptr<T> >
+{
+  public:
+    using value_type	 = iterator_value<thrust::device_ptr<T> >;
+    using const_iterator = const_iterator_t<thrust::device_ptr<T> >;
+    
+  public:
+    __host__ __device__
+		range(thrust::device_ptr<T> p, int size)
+		    :_begin(p.get()), _size(size)		{}
+
+		range()						= delete;
+		range(const range&)				= default;
+    __host__ __device__
+    range&	operator =(const range& r)
+		{
+		  //assert(r.size() == size());
+		    copy<0>(r._begin, _size, _begin);
+		    return *this;
+		}
+		range(range&&)					= default;
+    range&	operator =(range&&)				= default;
+    
+    __host__ __device__
+    int		size()	  const	{ return _size; }
+    __host__ __device__
+    auto	begin()		{ return _begin; }
+    __host__ __device__
+    auto	end()		{ return _begin + _size; }
+    __host__ __device__
+    auto	begin()	  const	{ return const_iterator(_begin); }
+    __host__ __device__
+    auto	end()	  const	{ return const_iterator(_begin + _size); }
+    __host__ __device__
+    auto	cbegin()  const	{ return begin(); }
+    __host__ __device__
+    auto	cend()	  const	{ return end(); }
+    __host__ __device__
+    decltype(auto)
+		operator [](int i) const
+		{
+		  //assert(i < size());
+		    return *(_begin + i);
+		}
+
+  private:
+    T* const	_begin;
+    int const	_size;
+};
+
 /************************************************************************
 *  class TU::cuda::range_iterator<ITER>					*
 ************************************************************************/
@@ -468,12 +519,6 @@ make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size)
     return {iter, stride, size};
 }
     
-template <class T> __host__ __device__ inline range_iterator<T*>
-make_range_iterator(thrust::device_ptr<T> p, ptrdiff_t stride, int size)
-{
-    return {p.get(), stride, size};
-}
-    
 template <class ITER, class... SS> __host__ __device__ inline auto
 make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size, SS... ss)
 {
@@ -489,12 +534,6 @@ make_range(ITER iter, int size)
     return {iter, size};
 }
 
-template <class T> __host__ __device__ inline range<T*>
-make_range(thrust::device_ptr<T> p, int size)
-{
-    return {p.get(), size};
-}
-    
 template <class ITER, class... SS> __host__ __device__ inline auto
 make_range(ITER iter, int size, SS... ss)
 {
@@ -516,12 +555,6 @@ namespace detail
   make_slice_iterator(ITER iter)
   {
       return iter;
-  }
-
-  template <class T> __host__ __device__ inline T*
-  make_slice_iterator(thrust::device_ptr<T> p)
-  {
-      return p.get();
   }
 
   template <class ITER, class... IS> __host__ __device__ inline auto

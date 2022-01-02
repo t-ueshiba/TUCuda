@@ -140,11 +140,11 @@ namespace device
 template <class BLOCK_TRAITS, class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
-    const auto	nrow = std::distance(in, ie);
+    const int	nrow = std::distance(in, ie);
     if (nrow < 2)
 	return;
 
-    const auto	ncol = TU::size(*in);
+    const int	ncol = TU::size(*in);
     if (ncol < 2)
 	return;
 
@@ -343,11 +343,11 @@ namespace device
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)
 {
-    const auto	nrow = std::distance(in, ie);
+    const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
 
-    const auto	ncol = TU::size(*in);
+    const int	ncol = TU::size(*in);
     if (ncol < 1)
 	return;
 
@@ -355,6 +355,43 @@ transform2(IN in, IN ie, OUT out, OP op)
     const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
     device::transform2<<<blocks, threads>>>(cuda::make_range(in,  nrow),
 					    cuda::make_range(out, nrow), op);
+}
+#endif
+
+/************************************************************************
+*  fill<BLOCK_TRAITS>(OUT out, OUT oe, T val)				*
+************************************************************************/
+template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class T> void
+fill(OUT out, OUT oe, T val)						;
+
+#if defined(__NVCC__)
+namespace device
+{
+  template <class OUT, class T> __global__ void
+  fill(range<range_iterator<OUT> > out, T val)
+  {
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+      if (y < out.size() && x < out.begin().size())
+	  out[y][x] = val;
+  }
+}	// namespace cuda
+
+template <class BLOCK_TRAITS, class OUT, class T> void
+fill(OUT out, OUT oe, T val)
+{
+    const int	nrow = std::distance(out, oe);
+    if (nrow < 1)
+	return;
+
+    const int	ncol = TU::size(*out);
+    if (ncol < 1)
+	return;
+
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
+    device::fill<<<blocks, threads>>>(cuda::make_range(out, nrow), val);
 }
 #endif
 }	// namespace cuda

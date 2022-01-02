@@ -9,7 +9,6 @@
 #include "TU/cuda/functional.h"
 #include "TU/cuda/chrono.h"
 #include "TU/cuda/BoxFilter.h"
-//#include "TU/cuda/ExtremaFilter.h"
 #include <thrust/functional.h>
 
 namespace TU
@@ -17,7 +16,8 @@ namespace TU
 template <class CONVOLVER, class IN, class OUT> void
 cudaJob(IN in, IN ie, OUT out, size_t winSize, bool shift)
 {
-    const cuda::BoxFilter2<CONVOLVER>	filter(winSize, winSize);
+    const cuda::BoxFilter2<CONVOLVER, cuda::BlockTraits<32, 16> >
+				filter(winSize, winSize);
     filter.convolve(in, ie, out, shift);
     cudaDeviceSynchronize();
 

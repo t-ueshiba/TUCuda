@@ -198,8 +198,11 @@ class minimal3x3
 
 //! 2つの値の閾値付き差を表す関数オブジェクト
 template <class T>
-struct diff
+class diff
 {
+  public:
+    using result_type = T;
+
     __host__ __device__
     diff(T thresh)	:_thresh(thresh)			{}
 
@@ -211,6 +214,17 @@ struct diff
 
   private:
     const T	_thresh;
+};
+
+struct border4
+{
+    using result_type = bool;
+
+    template <class ITER> __host__ __device__ bool
+    operator ()(ITER p, ITER c, ITER n) const
+    {
+	return (c[1] != c[0] || c[1] != c[2] || c[1] != p[1] || c[1] != n[1]);
+    }
 };
 
 /************************************************************************

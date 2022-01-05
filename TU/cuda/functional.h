@@ -24,7 +24,7 @@ struct diffH3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return T(0.5)*(c[2] - c[0]);
@@ -37,7 +37,7 @@ struct diffV3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return T(0.5)*(n[1] - p[1]);
@@ -50,7 +50,7 @@ struct diffHH3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return c[0] - T(2)*c[1] + c[2];
@@ -63,7 +63,7 @@ struct diffVV3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return p[1] - T(2)*c[1] + n[1];
@@ -76,7 +76,7 @@ struct diffHV3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return T(0.25)*(p[0] - p[2] - n[0] + n[2]);
@@ -89,7 +89,7 @@ struct sobelH3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return T(0.125)*(p[2] - p[0] + n[2] - n[0]) + T(0.250)*(c[2] - c[0]);
@@ -102,7 +102,7 @@ struct sobelV3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return T(0.125)*(n[0] - p[0] + n[2] - p[2]) + T(0.250)*(n[1] - p[1]);
@@ -115,7 +115,7 @@ struct sobelAbs3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return abs(sobelH3x3<T>()(p, c, n)) + abs(sobelV3x3<T>()(p, c, n));
@@ -128,7 +128,7 @@ struct laplacian3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return c[0] + c[2] + p[1] + n[1] - T(4)*c[1];
@@ -141,7 +141,7 @@ struct det3x3
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	const T	dxy = diffHV3x3<T>()(p, c, n);
@@ -160,7 +160,7 @@ class maximal3x3
     __host__ __device__
     maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return ((c[1] > p[0]) && (c[1] > p[1]) && (c[1] > p[2]) &&
@@ -183,7 +183,7 @@ class minimal3x3
     __host__ __device__
     minimal3x3(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}
 
-    template <class ITER> __host__ __device__ T
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return ((c[1] < p[0]) && (c[1] < p[1]) && (c[1] < p[2]) &&
@@ -206,7 +206,7 @@ class diff
     __host__ __device__
     diff(T thresh)	:_thresh(thresh)			{}
 
-    __host__ __device__ T
+    __host__ __device__ result_type
     operator ()(T x, T y) const
     {
 	return thrust::minimum<T>()((x > y ? x - y : y - x), _thresh);
@@ -216,11 +216,11 @@ class diff
     const T	_thresh;
 };
 
-struct border4
+struct is_border4
 {
     using result_type = bool;
 
-    template <class ITER> __host__ __device__ bool
+    template <class ITER> __host__ __device__ result_type
     operator ()(ITER p, ITER c, ITER n) const
     {
 	return (c[1] != c[0] || c[1] != c[2] || c[1] != p[1] || c[1] != n[1]);

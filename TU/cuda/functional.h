@@ -557,27 +557,17 @@ struct plane_moment
    * [[  x,   y,   z],
    *  [x*x, x*y, x*z],
    *  [y*y, y*z, z*z],
-   *  [  w,   0,   0]]		# w = (z > 0 ? 1 : 0)
+   *  [  0,   0,   w]]		# w = (z > 0 ? 1 : 0)
    */
     using result_type = mat4x<T, 3>;
 
-    __host__ __device__ static result_type
-    zero()
-    {
-	return _zero;
-    }
-    
     __host__ __device__ result_type
     operator ()(const vec<T, 3>& point) const
     {
 	return {point, point.x * point,
 		{point.y * point.y, point.y * point.z, point.z * point.z},
-		{point.z > T(0) ? T(1) : T(0), T(0), T(0)}};
+		{T(0), T(0), point.z > T(0) ? T(1) : T(0)}};
     }
-
-  private:
-    constexpr static result_type _zero{{0, 0, 0}, {0, 0, 0}, 
-				       {0, 0, 0}, {0, 0, 0}};
 };
 
 template <class T>
@@ -599,10 +589,10 @@ struct plane_estimator
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {
-	if (moment.w.x < T(4))	// Four or more points required.
+	if (moment.w.z < T(4))	// Four or more points required.
 	    return _invalid_plane;
 
-	const auto	sc = T(1)/moment.w.x;
+	const auto	sc = T(1)/moment.w.z;
 	result_type	plane;
 	plane.x = moment.x * sc;
 

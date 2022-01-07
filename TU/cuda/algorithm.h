@@ -299,50 +299,48 @@ transform2(IN in, IN ie, OUT out, OP op)				;
 #if defined(__NVCC__)
 namespace device
 {
-  namespace detail
-  {
-      template <class OP, class T>
-      static auto	check_unary(OP op, T arg)
-			    -> decltype(op(arg), std::true_type());
-      template <class OP, class T>
-      static auto	check_unary(OP op, T arg)
-			    -> decltype(op(0, 0, arg), std::false_type());
-      template <class OP, class T>
-      using is_unary	= decltype(check_unary(std::declval<OP>(),
-					       std::declval<T>()));
-
-      template <class OP, class T,
-		std::enable_if_t<is_unary<OP, T>::value>* = nullptr>
-      __device__ decltype(auto)
-      apply(OP&& op, int x, int y, T&& arg)
-      {
-	  return op(std::forward<T>(arg));
-      }
-
-      template <class OP, class T,
-		std::enable_if_t<!is_unary<OP, T>::value>* = nullptr>
-      __device__ decltype(auto)
-      apply(OP&& op, int x, int y, T&& arg)
-      {
-	  return op(x, y, std::forward<T>(arg));
-      }
-  }
-    
   template <class IN, class OUT, class OP> __global__ static void
   transform2(range<range_iterator<IN> > in,
-	     range<range_iterator<OUT> > out, OP op)
+	     range<range_iterator<OUT> > out, OP op, std::true_type)
   {
       const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
       if (y < in.size() && x < in.begin().size())
-	  out[y][x] = detail::apply(op, x, y, in[y][x]);
+	  out[y][x] = op(in[y][x]);
+  }
+    
+  template <class IN, class OUT, class OP> __global__ static void
+  transform2(range<range_iterator<IN> > in,
+	     range<range_iterator<OUT> > out, OP op, std::false_type)
+  {
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+      if (y < in.size() && x < in.begin().size())
+	  out[y][x] = op(x, y, in[y][x]);
   }
 }	// namespace device
 
+namespace detail
+{
+  template <class OP, class T>
+  static auto	check_unarity(OP op, T arg)
+		    -> decltype(op(arg), std::true_type());
+  template <class OP, class T>
+  static auto	check_unarity(OP op, T arg)
+		    -> decltype(op(0, 0, arg), std::false_type());
+  template <class OP, class T>
+  using is_unary = decltype(check_unarity(std::declval<OP>(),
+					  std::declval<T>()));
+}
+    
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)
 {
+    using value_type	= typename std::iterator_traits<IN>::value_type
+							   ::value_type;
+
     const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
@@ -353,8 +351,10 @@ transform2(IN in, IN ie, OUT out, OP op)
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
-    device::transform2<<<blocks, threads>>>(cuda::make_range(in,  nrow),
-					    cuda::make_range(out, nrow), op);
+    device::transform2<<<blocks, threads>>>(
+	cuda::make_range(in,  nrow), cuda::make_range(out, nrow), op,
+	std::integral_constant<bool,
+			       detail::is_unary<OP, value_type>::value>());
 }
 #endif
 

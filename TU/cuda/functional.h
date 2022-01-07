@@ -550,23 +550,36 @@ namespace device
   }
 }	// namespace device
 
-template <class T>
+template <class T, bool POINT_ARG=false>
 struct plane_moment
 {
   /*
    * [[  x,   y,   z],
    *  [x*x, x*y, x*z],
    *  [y*y, y*z, z*z],
-   *  [  0,   0,   w]]		# w = (z > 0 ? 1 : 0)
+   *  [  u,   v,   w]]		# w = (z > 0 ? 1 : 0)
    */
     using result_type = mat4x<T, 3>;
 
-    __host__ __device__ result_type
+    template <bool POINT_ARG_=POINT_ARG>
+    __host__ __device__ std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
     {
 	return {point, point.x * point,
 		{point.y * point.y, point.y * point.z, point.z * point.z},
 		{T(0), T(0), point.z > T(0) ? T(1) : T(0)}};
+    }
+
+    template <bool POINT_ARG_=POINT_ARG>
+    __host__ __device__ std::enable_if_t<POINT_ARG_, result_type>
+    operator ()(int u, int v, const vec<T, 3>& point) const
+    {
+	
+	return {point, point.x * point,
+		{point.y * point.y, point.y * point.z, point.z * point.z},
+		{T(point.z > 0 ? u : 0),
+		 T(point.z > 0 ? v : 0),
+		 T(point.z > 0 ? 1 : 0)}};
     }
 };
 
@@ -576,7 +589,7 @@ struct plane_estimator
   /*
    * [[cx, cy, cz],		# center of sampled points
    *  [nx, ny, nz],		# plane normal
-   *  [mse, curvature, 0]]	# mean-square error and curvature
+   *  [u, v, mse]]		# mean of 2D sample points, mean-square error
    */
     using result_type = mat3x<T, 3>;
 
@@ -635,7 +648,7 @@ struct plane_estimator
 	if (dot(plane.x, plane.y) > T(0))
 	    plane.y *= T(-1);
 	
-	plane.z = {eval_min*sc, eval_min/(evals.x + evals.y + evals.z), T(0)};
+	plane.z = {moment.w.x*sc, moment.w.y*sc, eval_min*sc};
 
 	return plane;
     }
@@ -643,7 +656,7 @@ struct plane_estimator
   private:
     constexpr static result_type _invalid_plane{{0, 0, 0},
 						{0, 0, 0},
-						{device::maxval<T>, 0, 0}};
+						{0, 0, device::maxval<T>}};
 };
 
 template <class T=vec<uint8_t, 3> >

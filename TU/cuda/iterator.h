@@ -516,24 +516,25 @@ stride(const range_iterator<ITER>& iter)
 *  TU::cuda::make_range_iterator()					*
 ************************************************************************/
 template <class ITER> __host__ __device__ inline range_iterator<ITER>
-make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size)
+make_range_iterator(const ITER& iter, iterator_stride<ITER> stride, int size)
 {
     return {iter, stride, size};
 }
     
 template <class ITER, class... SS> __host__ __device__ inline auto
-make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size, SS... ss)
+make_range_iterator(const ITER& iter,
+		    iterator_stride<ITER> stride, int size, SS... ss)
 {
     return make_range_iterator(make_range_iterator(iter, ss...), stride, size);
 }
 
-template <class ITER> __host__ __device__ inline ITER
-make_range_iterator(ITER iter)
+template <class ITER> inline const ITER&
+make_range_iterator(const ITER& iter)
 {
     return iter;
 }
     
-template <class ITER> __host__ inline auto
+template <class ITER> inline auto
 make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 {
     return make_range_iterator(make_range_iterator(iter->begin()),
@@ -544,18 +545,18 @@ make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 *  TU::cuda::make_range()						*
 ************************************************************************/
 template <class ITER> __host__ __device__ inline range<ITER>
-make_range(ITER iter, int size)
+make_range(const ITER& iter, int size)
 {
     return {iter, size};
 }
 
 template <class ITER, class... SS> __host__ __device__ inline auto
-make_range(ITER iter, int size, SS... ss)
+make_range(const ITER& iter, int size, SS... ss)
 {
     return make_range(make_range_iterator(iter, ss...), size);
 }
 
-template <class ITER, class... SS> __host__ inline auto
+template <class ITER, class... SS> inline auto
 make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
 {
     return make_range(make_range_iterator(iter), size);
@@ -566,14 +567,14 @@ make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
 ************************************************************************/
 namespace detail
 {
-  template <class ITER> __host__ __device__ inline ITER
-  make_slice_iterator(ITER iter)
+  template <class ITER> __host__ __device__ inline const ITER&
+  make_slice_iterator(const ITER& iter)
   {
       return iter;
   }
 
   template <class ITER, class... IS> __host__ __device__ inline auto
-  make_slice_iterator(ITER iter, int idx, int size, IS... is)
+  make_slice_iterator(const ITER& iter, int idx, int size, IS... is)
   {
       return make_range_iterator(cuda::detail::make_slice_iterator(
 				     (*iter).begin() + idx, is...),
@@ -582,7 +583,7 @@ namespace detail
 }	// namespace detail
     
 template <class ITER, class... IS> __host__ __device__ inline auto
-slice(ITER iter, int idx, int size, IS... is)
+slice(const ITER& iter, int idx, int size, IS... is)
 {
     return make_range(cuda::detail::make_slice_iterator(iter + idx, is...),
 		      size);

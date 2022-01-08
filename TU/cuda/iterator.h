@@ -9,6 +9,29 @@
 #include "TU/range.h"
 #include "TU/cuda/tuple.h"
 
+namespace thrust
+{
+/************************************************************************
+*  thrust::stride(const ITER&)						*
+************************************************************************/
+template <class T> ptrdiff_t
+stride(device_ptr<T>)							;
+
+template <class HEAD, class TAIL> __host__ __device__ inline auto
+stride(const detail::cons<HEAD, TAIL>& iter_tuple)
+{
+    return TU::cuda::tuple_transform([](const auto& iter)
+				     { return stride(iter); }, iter_tuple);
+}
+	    
+template <class ITER_TUPLE> __host__ __device__ inline auto
+stride(const zip_iterator<ITER_TUPLE>& iter)
+    -> decltype(stride(iter.get_iterator_tuple()))
+{
+    return stride(iter.get_iterator_tuple());
+}
+}	// namespace thrust
+
 namespace TU
 {
 namespace cuda
@@ -229,38 +252,9 @@ make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 	    thrust::make_zip_iterator(
 		thrust::make_tuple(iter0, iter1, iters...))};
 }
-}	// namespace cuda
-}	// namespace TU
 
-namespace thrust
-{
 /************************************************************************
-*  thrust::stride(const ITER&)						*
-************************************************************************/
-template <class T> __host__ __device__ ptrdiff_t
-stride(device_ptr<T>)							;
-
-template <class HEAD, class TAIL> __host__ __device__ inline auto
-stride(const detail::cons<HEAD, TAIL>& iter_tuple)
-{
-    return TU::cuda::tuple_transform([](const auto& iter)
-				     { return stride(iter); }, iter_tuple);
-}
-
-template <class ITER_TUPLE> __host__ __device__ inline auto
-stride(const zip_iterator<ITER_TUPLE>& iter)
-    -> decltype(stride(iter.get_iterator_tuple()))
-{
-    return stride(iter.get_iterator_tuple());
-}
-}	// namespace thrust
-
-namespace TU
-{
-namespace cuda
-{
-/************************************************************************
-*  TU::cuda::stride(const ITER&)					*
+*  TU::cuda::stride(const ITER&, const ITER1&, const ITERS&...)		*
 ************************************************************************/
 template <class ITER0, class ITER1, class... ITERS>
 __host__ __device__ inline auto
@@ -449,7 +443,8 @@ class range_iterator
 		range_iterator(ITER iter, stride_t stride, int size)
 		    :super(iter), _stride(stride), _size(size)
 		{}
-    __host__	range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
+    __host__ __device__
+		range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 		    :range_iterator(iter->begin(), iter.stride(), iter.size())
 		{}
 
@@ -509,7 +504,14 @@ class range_iterator
     const stride_t	_stride;
     const int		_size;
 };
-	
+    
+template <class ITER> __host__ __device__ inline auto
+stride(const range_iterator<ITER>& iter)
+    -> decltype(stride(iter.base()))
+{
+    return stride(iter.base());
+}
+
 /************************************************************************
 *  TU::cuda::make_range_iterator()					*
 ************************************************************************/
@@ -523,6 +525,19 @@ template <class ITER, class... SS> __host__ __device__ inline auto
 make_range_iterator(ITER iter, iterator_stride<ITER> stride, int size, SS... ss)
 {
     return make_range_iterator(make_range_iterator(iter, ss...), stride, size);
+}
+
+template <class ITER> __host__ __device__ inline ITER
+make_range_iterator(ITER iter)
+{
+    return iter;
+}
+    
+template <class ITER> __host__ inline auto
+make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
+{
+    return make_range_iterator(make_range_iterator(iter->begin()),
+			       iter.stride(), iter.size());
 }
 
 /************************************************************************
@@ -541,9 +556,9 @@ make_range(ITER iter, int size, SS... ss)
 }
 
 template <class ITER, class... SS> __host__ inline auto
-make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size, SS... ss)
+make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
 {
-    return make_range(range_iterator<ITER>(iter), size, ss...);
+    return make_range(make_range_iterator(iter), size);
 }
 
 /************************************************************************
@@ -571,12 +586,6 @@ slice(ITER iter, int idx, int size, IS... is)
 {
     return make_range(cuda::detail::make_slice_iterator(iter + idx, is...),
 		      size);
-}
-
-template <class ITER, class... IS> __host__ inline auto
-slice(const TU::range_iterator<ITER, 0, 0>& iter, int idx, int size, IS... is)
-{
-    return slice(range_iterator<ITER>(iter), idx, size, is...);
 }
 
 }	// namespace cuda

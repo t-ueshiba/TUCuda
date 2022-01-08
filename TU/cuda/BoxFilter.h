@@ -519,7 +519,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
   // Accumulate vertically.
     profiler_t::start(1);
     const dim3	threads(BlockDim, BlockDim);
-    dim3	blocks(gridDim(ncols, threads.x), gridDim(nrows, threads.y));
+    dim3	blocks(grid_dim(ncols, threads.x), grid_dim(nrows, threads.y));
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 	cuda::make_range(row, nrows),
 	cuda::make_range(_buf.begin(), _buf.nrow()), _winSizeV);
@@ -527,8 +527,8 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
   // Accumulate horizontally.
     cudaDeviceSynchronize();
     profiler_t::start(2);
-    blocks.x = gridDim(_buf.ncol(), threads.x);
-    blocks.y = gridDim(_buf.nrow(), threads.y);
+    blocks.x = grid_dim(_buf.ncol(), threads.x);
+    blocks.y = grid_dim(_buf.nrow(), threads.y);
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 	cuda::make_range(_buf.cbegin(), _buf.nrow()),
 	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),

@@ -28,7 +28,7 @@ struct BlockTraits
 *  global functions							*
 ************************************************************************/
 static inline size_t
-gridDim(size_t dim, size_t blockDim)
+grid_dim(size_t dim, size_t blockDim)
 {
     return (dim + blockDim - 1)/blockDim;
 }
@@ -149,7 +149,8 @@ subsample(IN in, IN ie, OUT out)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim(ncol/2, threads.x), gridDim(nrow/2, threads.y));
+    const dim3	blocks(grid_dim(ncol/2, threads.x),
+		       grid_dim(nrow/2, threads.y));
     device::subsample<<<blocks, threads>>>(cuda::make_range(in,  nrow),
 					   cuda::make_range(out, nrow/2));
 }
@@ -213,7 +214,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
+    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
     device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(
 	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op);
 }
@@ -350,7 +351,7 @@ transform2(IN in, IN ie, OUT out, OP op)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
+    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
     device::transform2<<<blocks, threads>>>(
 	cuda::make_range(in,  nrow), cuda::make_range(out, nrow), op,
 	std::integral_constant<bool,
@@ -390,7 +391,7 @@ fill(OUT out, OUT oe, T val)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(gridDim(ncol, threads.x), gridDim(nrow, threads.y));
+    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
     device::fill<<<blocks, threads>>>(cuda::make_range(out, nrow), val);
 }
 #endif

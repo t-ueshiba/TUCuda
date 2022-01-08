@@ -140,52 +140,38 @@ warp(const Array2<T>& a, OUT out, MAP map)				;
 #if defined(__NVCC__)
 namespace device
 {
-  template <class T, class OUT, class MAP, class STRIDE_O> __global__
-  static void
-  warp(cudaTextureObject_t tex, OUT out, MAP map,
-       int x0, int y0, STRIDE_O stride_o)
+  template <class T, class OUT, class MAP> __global__ void
+  warp(cudaTextureObject_t tex, range<range_iterator<OUT> > out, MAP map)
   {
-      const auto	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-      const auto	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
-      const auto	p = map(x, y);
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
-      advance_stride(out, y * stride_o);
-      out[x] = tex2D<T>(tex, p.x, p.y);
+      if (y < out.size() && x < out.begin().size())
+      {
+	  const auto	p = map(x, y);
+
+	  out[y][x] = tex2D<T>(tex, p.x, p.y);
+      }
   }
 }	// namespace device
 
 template <class BLOCK_TRAITS, class T, class OUT, class MAP> inline void
 warp(const Array2<T>& a, OUT out, MAP map)
 {
-    const auto		nrow     = a.nrow();
-    const auto		ncol     = a.ncol();
-    const auto		stride_o = stride(out);
+    const int	nrow = a.nrow();
+    if (nrow < 1)
+	return;
+
+    const int	ncol = a.ncol();
+    if (ncol < 1)
+	return;
+
     const Texture<T>	tex(a);
 
-  // 左上
-    dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 map, 0, 0, stride_o);
-  // 右上
-    const auto	x0 = blocks.x*threads.x;
-    threads.x = ncol - x0;
-    blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 map, x0, 0, stride_o);
-  // 左下
-    const auto	y0 = blocks.y*threads.y;
-    threads.x = BLOCK_TRAITS::BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y0;
-    blocks.y  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 map, 0, y0, stride_o);
-  // 右下
-    threads.x = ncol - x0;
-    blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 map, x0, y0, stride_o);
+    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
+    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
+    device::warp<T><<<blocks, threads>>>(tex.get(),
+					 cuda::make_range(out, nrow), map);
 }
 #endif
 

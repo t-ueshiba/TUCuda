@@ -259,6 +259,26 @@ struct is_border4
     }
 };
 
+template <class T>
+class overlay
+{
+  public:
+    using result_type = void;
+
+    __host__ __device__
+    overlay(T val)	:_val(val)				{}
+    
+    template <class T_> __host__ __device__ void
+    operator ()(T_&& out, bool draw) const
+    {
+	if (draw)
+	    out = _val;
+    }
+
+  private:
+    const T	_val;
+};
+    
 /************************************************************************
 *  undistortion operator						*
 ************************************************************************/

@@ -565,7 +565,8 @@ struct plane_moment
     __host__ __device__ std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
     {
-	return {point, point.x * point,
+	return {point,
+		point.x * point,
 		{point.y * point.y, point.y * point.z, point.z * point.z},
 		{T(0), T(0), point.z > T(0) ? T(1) : T(0)}};
     }
@@ -574,8 +575,8 @@ struct plane_moment
     __host__ __device__ std::enable_if_t<POINT_ARG_, result_type>
     operator ()(int u, int v, const vec<T, 3>& point) const
     {
-	
-	return {point, point.x * point,
+	return {point,
+		point.x * point,
 		{point.y * point.y, point.y * point.z, point.z * point.z},
 		{T(point.z > 0 ? u : 0),
 		 T(point.z > 0 ? v : 0),

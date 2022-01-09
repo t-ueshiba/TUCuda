@@ -104,7 +104,7 @@ namespace device
       for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)
       {
 	  const auto	row = src[ty];
-	  for (int tx = threadIdx.x; tx < src.size(); tx += blockDim.x)
+	  for (int tx = threadIdx.x; tx < row.size(); tx += blockDim.x)
 	      dst[ty][tx] = row[tx];
       }
   }

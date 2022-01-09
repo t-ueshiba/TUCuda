@@ -34,7 +34,7 @@
 // Author: Toshio Ueshiba
 //
 /*!
-  \file		GuidedFilter2.h
+  \file		GuidedFilter.h
   \author	Toshio UESHIBA
   \brief	guided filterに関するクラスの定義と実装
 */

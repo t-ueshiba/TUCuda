@@ -1,71 +1,46 @@
-// Software License Agreement (BSD License)
-//
-// Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above
-//    copyright notice, this list of conditions and the following
-//    disclaimer in the documentation and/or other materials provided
-//    with the distribution.
-//  * Neither the name of National Institute of Advanced Industrial
-//    Science and Technology (AIST) nor the names of its contributors
-//    may be used to endorse or promote products derived from this software
-//    without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-//
-// Author: Toshio Ueshiba
-//
 /*!
-  \mainpage	libTUCuda++ - NVIDIA社のCUDAを利用するためのユティリティライブラリ
+  \mainpage	libTUCuda - NVIDIA社のCUDAを利用するためのユティリティライブラリ
   \anchor	libTUCuda
 
   \section copyright 著作権
-  平成14-23年（独）産業技術総合研究所 著作権所有
+  Software License Agreement (BSD License)
 
-  創作者：植芝俊夫
+  Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
+  All rights reserved.
 
-  本プログラムは（独）産業技術総合研究所の職員である植芝俊夫が創作し，
-  （独）産業技術総合研究所が著作権を所有する秘密情報です．著作権所有
-  者による許可なしに本プログラムを使用，複製，改変，第三者へ開示する
-  等の行為を禁止します．
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
 
-  このプログラムによって生じるいかなる損害に対しても，著作権所有者お
-  よび創作者は責任を負いません。
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+   * Neither the name of National Institute of Advanced Industrial
+     Science and Technology (AIST) nor the names of its contributors
+     may be used to endorse or promote products derived from this software
+     without specific prior written permission.
 
-  Copyright 2002-2011.
-  National Institute of Advanced Industrial Science and Technology (AIST)
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
 
-  Creator: Toshio UESHIBA
+  Author: Toshio Ueshiba
 
-  [AIST Confidential and all rights reserved.]
-  This program is confidential. Any using, copying, changing or
-  giving any information concerning with this program to others
-  without permission by the copyright holder are strictly prohibited.
-
-  [No Warranty.]
-  The copyright holder or the creator are not responsible for any
-  damages caused by using this program.
 
   \section abstract 概要
-  libTUCuda++は，C++環境においてNVIDIA社のCUDAを利用するためのユティリティ
+  libTUCudaは，C++環境においてNVIDIA社のCUDAを利用するためのユティリティ
   ライブラリである．以下のようなクラスおよび関数が実装されている．
 
   <b>デバイス側のグローバルメモリを確保するアロケータ
@@ -74,13 +49,15 @@
   <b>デバイス側のグローバルメモリ領域にマップされるホスト側メモリを確保するアロケータ
   - #TU::cuda::mapped_allocator
 
-  <b>デバイス側のグローバルメモリ領域にとられる1次元および2次元配列</b>
+  <b>デバイス側のグローバルメモリ領域にとられる1/2/3次元配列</b>
   - #TU::cuda::Array
   - #TU::cuda::Array2
+  - #TU::cuda::Array3
 
-  <b>デバイス側のグローバルメモリ領域にマップされるホスト側1次元および2次元配列</b>
+  <b>デバイス側のグローバルメモリ領域にマップされるホスト側1/2/3次元配列</b>
   - #TU::cuda::MappedArray
   - #TU::cuda::MappedArray2
+  - #TU::cuda::MappedArray3
 
   <b>デバイス側のテクスチャメモリ</b>
   - #TU::cuda::Texture
@@ -89,12 +66,12 @@
   - #TU::cuda::FIRFilter2
   - #TU::cuda::FIRGaussianConvolver2
   - #TU::cuda::BoxFilter2
+  - #TU::cuda::GuidedFilter2
 
   <b>アルゴリズム</b>
   - #TU::cuda::copyToConstantMemory(ITER, ITER, T*)
   - #TU::cuda::subsample(IN, IN, OUT)
   - #TU::cuda::op3x3(IN, IN, OUT, OP)
-  - #TU::cuda::suppressNonExtrema3x3(IN, IN, OUT, OP, typename std::iterator_traits<IN>::value_type::value_type)
 
   <b>時間計測</b>
   - #TU::cuda::clock

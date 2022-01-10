@@ -110,7 +110,7 @@ nppiFilterGauss(IN in, IN ie, OUT out, NppiMaskSize mask_size)
 {
     using value_t = value_t<iterator_value<IN> >;
 
-    return nppiFilterGauss<size<value_t>()>(
+    return nppiFilterGauss<size0<value_t>()>(
 		get_element_ptr(std::cbegin(*in)),
 		stride(in)*sizeof(value_t),
 		get_element_ptr(std::begin(*out)),
@@ -126,7 +126,7 @@ nppiFilterGauss(IN in, IN ie, OUT out,
 {
     using value_t = value_t<iterator_value<IN> >;
 
-    return nppiFilterGauss<size<value_t>()>(
+    return nppiFilterGauss<size0<value_t>()>(
 		get_element_ptr(std::cbegin(*in)),
 		stride(in)*sizeof(value_t),
 		get_element_ptr(std::begin(*out)),

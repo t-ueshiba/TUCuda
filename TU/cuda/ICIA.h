@@ -161,7 +161,7 @@ sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
     else
     {
 	sqr = 0;
-	set_zero(g);
+	g   = 0;
     }
 }
 

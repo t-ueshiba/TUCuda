@@ -16,7 +16,7 @@ namespace device
   fit_plane(const vec<T, 3>* ps, const vec<T, 3>* pe,
 	    mat4x<T, 3>* sum, mat3x<T, 3>* plane)
   {
-      set_zero(*sum);
+      *sum = 0;
       
       plane_moment_generator<T>	gen;
       for (; ps != pe; ++ps)

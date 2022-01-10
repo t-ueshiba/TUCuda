@@ -402,7 +402,7 @@ namespace device
     // The function accesses only the diagonal and upper triangular parts of A.
     // The access is read-only.
     // ----------------------------------------------------------------------
-      set_zero(Qt);
+      Qt = T(0);
       Qt.x.x = Qt.y.y = Qt.z.z = T(1);
 
     // Bring first row and column to the desired form

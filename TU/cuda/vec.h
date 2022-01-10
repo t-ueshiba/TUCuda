@@ -126,12 +126,12 @@ namespace detail
 }	// namespace derail
 
 /************************************************************************
-*  struct vec<T, N>							*
+*  struct mat2x<T, C>, mat3x<T, C>, mat4x<T, C>				*
 ************************************************************************/
-template <class T, size_t N>	struct vec;
+template <class T, size_t C>	struct mat2x;
 
 template <class T>
-struct vec<T, 2> : public detail::base_vec<T, 2>::type
+struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
 {
     using super		= typename detail::base_vec<T, 2>::type;
 
@@ -150,14 +150,23 @@ struct vec<T, 2> : public detail::base_vec<T, 2>::type
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
-    __host__ __device__
-			vec()			:super()		{}
+    __host__ __device__	mat2x()			:super()		{}
     __host__ __device__ constexpr
-			vec(T x, T y)		:super{x, y}		{}
+			mat2x(T x, T y=0)	:super{x, y}		{}
+
+    __host__ __device__
+    mat2x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    return *this;
+			}
 };
     
+template <class T, size_t C>	struct mat3x;
+
 template <class T>
-struct vec<T, 3> : public detail::base_vec<T, 3>::type
+struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
 {
     using super		= typename detail::base_vec<T, 3>::type;
 
@@ -177,14 +186,24 @@ struct vec<T, 3> : public detail::base_vec<T, 3>::type
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
-    __host__ __device__
-			vec()			:super()		{}
+    __host__ __device__	mat3x()			 :super()		{}
     __host__ __device__ constexpr
-			vec(T x, T y, T z)	:super{x, y, z}		{}
+			mat3x(T x, T y=0, T z=0) :super{x, y, z}	{}
+
+    __host__ __device__
+    mat3x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    z = c;
+			    return *this;
+			}
 };
     
+template <class T, size_t C>	struct mat4x;
+
 template <class T>
-struct vec<T, 4> : public detail::base_vec<T, 4>::type
+struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 {
     using super		= typename detail::base_vec<T, 4>::type;
 
@@ -205,17 +224,27 @@ struct vec<T, 4> : public detail::base_vec<T, 4>::type
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
-    __host__ __device__
-			vec()			:super()		{}
+    __host__ __device__	mat4x()			   :super()		{}
     __host__ __device__ constexpr
-			vec(T x, T y, T z, T w)	:super{x, y, z, w}	{}
+			mat4x(T x,
+			      T y=0, T z=0, T w=0) :super{x, y, z, w}	{}
+
+    __host__ __device__
+    mat4x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    z = c;
+			    w = c;
+			    return *this;
+			}
 };
-    
-/************************************************************************
-*  struct mat2x<T, C>, mat3x<T, C>, mat4x<T, C>				*
-************************************************************************/
-template <class T, size_t C>	struct mat3x;
-template <class T, size_t C>	struct mat4x;
+
+template <class T, size_t D>
+using vec = std::conditional_t<D == 1, T,
+	    std::conditional_t<D == 2, mat2x<T, 1>,
+	    std::conditional_t<D == 3, mat3x<T, 1>,
+	    std::conditional_t<D == 4, mat4x<T, 1>, void> > > >;
 
 template <class T, size_t C>
 struct mat2x
@@ -251,6 +280,14 @@ struct mat2x
     transpose()	const
     {
 	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}, {x.w, y.w}};
+    }
+
+    __host__ __device__ mat2x&
+    operator =(T c)
+    {
+	x = c;
+	y = c;
+	return *this;
     }
 
     value_type	x, y;
@@ -291,6 +328,15 @@ struct mat3x
     {
 	return {{x.x, y.x, z.x}, {x.y, y.y, z.y},
 		{x.z, y.z, z.z}, {x.w, y.w, z.w}};
+    }
+
+    __host__ __device__ mat3x&
+    operator =(T c)
+    {
+	x = c;
+	y = c;
+	z = c;
+	return *this;
     }
 
     value_type	x, y, z;
@@ -334,6 +380,16 @@ struct mat4x
 		{x.z, y.z, z.z, w.z}, {x.w, y.w, z.w, w.w}};
     }
 
+    __host__ __device__ mat4x&
+    operator =(T c)
+    {
+	x = c;
+	y = c;
+	z = c;
+	w = c;
+	return *this;
+    }
+
     value_type	x, y, z, w;
 };
 
@@ -345,9 +401,6 @@ size1()
 
 // TU::element_t<E> requires begin(std::decval<E>()) be valid.
 // We have to override TU::cuda::begin() defined in tuple.h,
-template <class T, size_t N> const typename vec<T, N>::value_type*
-begin(const vec<T, N>&)							;
-
 template <class T, size_t C> const typename mat2x<T, C>::value_type*
 begin(const mat2x<T, C>&)						;
 
@@ -358,10 +411,10 @@ template <class T, size_t C> const typename mat4x<T, C>::value_type*
 begin(const mat4x<T, C>&)						;
 
 template <class T, size_t R, size_t C>
-using mat = std::conditional_t<C == 1, vec<T, R>,
-	    std::conditional_t<R == 1, vec<T, C>,
+using mat = std::conditional_t<R == 1, vec<T, C>,
 	    std::conditional_t<R == 2, mat2x<T, C>,
-	    std::conditional_t<R == 3, mat3x<T, C>, mat4x<T, C> > > > >;
+	    std::conditional_t<R == 3, mat3x<T, C>,
+	    std::conditional_t<R == 4, mat4x<T, C>, void> > > >;
 
 /************************************************************************
 *  Access element by its integral index					*
@@ -387,95 +440,95 @@ __host__ __device__ inline auto&	val(VM& a)		{ return a.w; }
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator -(const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator -(const mat2x<T, C>& a)
 {
     return {-a.x, -a.y};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM&>
-operator +=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+operator +=(mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     a.x += b.x;
     a.y += b.y;
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM&>
-operator -=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+operator -=(mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     a.x -= b.x;
     a.y -= b.y;
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM&>
-operator *=(VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+operator *=(mat2x<T, C>& a, T c)
 {
     a.x *= c;
     a.y *= c;
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator +(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator +(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator -(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator -(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator *(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator *(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator /(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator /(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator *(const VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator *(const mat2x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2, VM>
-operator /(element_t<VM> c, const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+operator /(T c, const mat2x<T, C>& a)
 {
     return {c / a.x, c / a.y};
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator ==(const mat2x<T, C>& a, const mat2x<T, C>& b)
+{
+    return a.x == b.x && a.y == b.y;
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator !=(const mat2x<T, C>& a, const mat2x<T, C>& b)
+{
+    return !(a == b);
 }
 
 /************************************************************************
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator -(const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator -(const mat3x<T, C>& a)
 {
     return {-a.x, -a.y, -a.z};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM&>
-operator +=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+operator +=(mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -483,9 +536,8 @@ operator +=(VM& a, const VM& b)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM&>
-operator -=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+operator -=(mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     a.x -= b.x;
     a.y -= b.y;
@@ -493,9 +545,8 @@ operator -=(VM& a, const VM& b)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM&>
-operator *=(VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+operator *=(mat3x<T, C>& a, T c)
 {
     a.x *= c;
     a.y *= c;
@@ -503,61 +554,65 @@ operator *=(VM& a, element_t<VM> c)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator +(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator +(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator -(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator -(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator *(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator *(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator /(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator /(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator *(const VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator *(const mat3x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3, VM>
-operator /(element_t<VM> c, const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+operator /(T c, const mat3x<T, C>& a)
 {
     return {c / a.x, c / a.y, c / a.z};
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator ==(const mat3x<T, C>& a, const mat3x<T, C>& b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator !=(const mat3x<T, C>& a, const mat3x<T, C>& b)
+{
+    return !(a == b);
 }
 
 /************************************************************************
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator -(const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator -(const mat4x<T, C>& a)
 {
     return {-a.x, -a.y, -a.z, -a.w};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM&>
-operator +=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+operator +=(mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     a.x += b.x;
     a.y += b.y;
@@ -566,9 +621,8 @@ operator +=(VM& a, const VM& b)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM&>
-operator -=(VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+operator -=(mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     a.x -= b.x;
     a.y -= b.y;
@@ -577,9 +631,8 @@ operator -=(VM& a, const VM& b)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM&>
-operator *=(VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+operator *=(mat4x<T, C>& a, T c)
 {
     a.x *= c;
     a.y *= c;
@@ -588,46 +641,52 @@ operator *=(VM& a, element_t<VM> c)
     return a;
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator +(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator +(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator -(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator -(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator *(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator *(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator /(const VM& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator /(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator *(const VM& a, element_t<VM> c)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator *(const mat4x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
 
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4, VM>
-operator /(element_t<VM> c, const VM& a)
+template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+operator /(T c, const mat4x<T, C>& a)
 {
     return {c / a.x, c / a.y, c / a.z, c / a.w};
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator ==(const mat4x<T, C>& a, const mat4x<T, C>& b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+}
+
+template <class T, size_t C> __host__ __device__ inline bool
+operator !=(const mat4x<T, C>& a, const mat4x<T, C>& b)
+{
+    return !(a == b);
 }
 
 /************************************************************************
@@ -657,75 +716,35 @@ operator /(const VM& a, element_t<VM> c)
 /************************************************************************
 *  Output functions							*
 ************************************************************************/
-template <class VM>
-std::enable_if_t<size0<VM>() == 2, std::ostream&>
-operator <<(std::ostream& out, const VM& a)
+template <class T, size_t C> std::ostream&
+operator <<(std::ostream& out, const mat2x<T, C>& a)
 {
     return out << '[' << a.x << ' ' << a.y << ']';
 }
 
-template <class VM>
-std::enable_if_t<size0<VM>() == 3, std::ostream&>
-operator <<(std::ostream& out, const VM& a)
+template <class T, size_t C> std::ostream&
+operator <<(std::ostream& out, const mat3x<T, C>& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ']';
 }
 
-template <class VM>
-std::enable_if_t<size0<VM>() == 4, std::ostream&>
-operator <<(std::ostream& out, const VM& a)
+template <class T, size_t C> std::ostream&
+operator <<(std::ostream& out, const mat4x<T, C>& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
 }
 
 /************************************************************************
-*  set_zero()								*
-************************************************************************/
-template <class T> __host__ __device__ inline
-std::enable_if_t<std::is_arithmetic<T>::value>
-set_zero(T& x)
-{
-    x = 0;
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 2>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 3>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-    set_zero(a.z);
-}
-
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size0<VM>() == 4>
-set_zero(VM& a)
-{
-    set_zero(a.x);
-    set_zero(a.y);
-    set_zero(a.z);
-    set_zero(a.w);
-}
-
-/************************************************************************
 *  homogeneous()							*
 ************************************************************************/
-template <class T> __host__ __device__ inline vec<T, 3>
-homogeneous(const vec<T, 2>& a)
+template <class T> __host__ __device__ inline mat3x<T, 1>
+homogeneous(const mat2x<T, 1>& a)
 {
     return {a.x, a.y, T(1)};
 }
 
-template <class T> __host__ __device__ inline vec<T, 4>
-homogeneous(const vec<T, 3>& a)
+template <class T> __host__ __device__ inline mat4x<T, 1>
+homogeneous(const mat3x<T, 1>& a)
 {
     return {a.x, a.y, a.z, T(1)};
 }
@@ -733,14 +752,14 @@ homogeneous(const vec<T, 3>& a)
 /************************************************************************
 *  inhomogeneous()							*
 ************************************************************************/
-template <class T> __host__ __device__ inline vec<T, 2>
-inhomogeneous(const vec<T, 3>& a)
+template <class T> __host__ __device__ inline mat2x<T, 1>
+inhomogeneous(const mat3x<T, 1>& a)
 {
     return {a.x / a.z, a.y / a.z};
 }
 
-template <class T> __host__ __device__ inline vec<T, 3>
-inhomogeneous(const vec<T, 4>& a)
+template <class T> __host__ __device__ inline mat3x<T, 1>
+inhomogeneous(const mat4x<T, 1>& a)
 {
     return {a.x / a.w, a.y / a.w, a.z / a.w};
 }
@@ -748,23 +767,20 @@ inhomogeneous(const vec<T, 4>& a)
 /************************************************************************
 *  dot()								*
 ************************************************************************/
-template <class T, class VM, std::enable_if_t<size0<VM>() == 2>* = nullptr>
-__host__ __device__ inline auto
-dot(const vec<T, 2>& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline vec<T, C>
+dot(const mat2x<T, 1>& a, const mat2x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y;
 }
 
-template <class T, class VM, std::enable_if_t<size0<VM>() == 3>* = nullptr>
-__host__ __device__ inline auto
-dot(const vec<T, 3>& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline vec<T, C>
+dot(const mat3x<T, 1>& a, const mat3x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-template <class T, class VM, std::enable_if_t<size0<VM>() == 4>* = nullptr>
-__host__ __device__ inline auto
-dot(const vec<T, 4>& a, const VM& b)
+template <class T, size_t C> __host__ __device__ inline vec<T, C>
+dot(const mat4x<T, 1>& a, const mat4x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
@@ -793,8 +809,9 @@ dot(const mat4x<T, C>& m, const VM& a)
 /************************************************************************
 *  square()								*
 ************************************************************************/
-template <class T, size_t N> __host__ __device__ inline T
-square(const vec<T, N>& a)
+template <class VM> __host__ __device__ inline
+std::enable_if_t<size1<VM>() == 1, element_t<VM> >
+square(const VM& a)
 {
     return dot(a, a);
 }
@@ -802,8 +819,8 @@ square(const vec<T, N>& a)
 /************************************************************************
 *  cross()								*
 ************************************************************************/
-template <class T> __host__ __device__ inline vec<T, 3>
-cross(const vec<T, 3>& a, const vec<T, 3>& b)
+template <class T> __host__ __device__ inline mat3x<T, 1>
+cross(const mat3x<T, 1>& a, const mat3x<T, 1>& b)
 {
     return {a.y * b.z - a.z * b.y,
 	    a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
@@ -835,33 +852,29 @@ namespace device
 /************************************************************************
 *  atomic operations							*
 ************************************************************************/
-template <class T, class OP> __device__ inline
-std::enable_if_t<size0<T>() == 1>
+template <class T, class OP> __device__ inline void
 atomicOp(T& dst, const T& src, OP op)
 {
     op(&dst, src);
 }
     
-template <class VM, class OP> __device__ inline
-std::enable_if_t<size0<VM>() == 2>
-atomicOp(VM& dst, const VM& src, OP op)
+template <class T, size_t C, class OP> __device__ inline void
+atomicOp(mat2x<T, C>& dst, const mat2x<T, C>& src, OP op)
 {
     atomicOp(dst.x, src.x, op);
     atomicOp(dst.y, src.y, op);
 }
     
-template <class VM, class OP> __device__ inline
-std::enable_if_t<size0<VM>() == 3>
-atomicOp(VM& dst, const VM& src, OP op)
+template <class T, size_t C, class OP> __device__ inline void
+atomicOp(mat3x<T, C>& dst, const mat3x<T, C>& src, OP op)
 {
     atomicOp(dst.x, src.x, op);
     atomicOp(dst.y, src.y, op);
     atomicOp(dst.z, src.z, op);
 }
     
-template <class VM, class OP> __device__ inline
-std::enable_if_t<size0<VM>() == 4>
-atomicOp(VM& dst, const VM& src, OP op)
+template <class T, size_t C, class OP> __device__ inline void
+atomicOp(mat4x<T, C>& dst, const mat4x<T, C>& src, OP op)
 {
     atomicOp(dst.x, src.x, op);
     atomicOp(dst.y, src.y, op);
@@ -1171,24 +1184,26 @@ class to_vec
 template <class T>
 struct from_vec
 {
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 1, T>
-    	operator ()(const S_& val) const
-    	{
-    	    return T(val);
-    	}
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 2, T>
-    	operator ()(const S_& yuv422) const
-    	{
-    	    return T(yuv422.y);
-    	}
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 3 || size0<S_>() == 4, T>
-    	operator ()(const S_& rgb) const
-    	{
-    	    return T(0.229f*rgb.x + 0.587f*rgb.y +0.114f*rgb.z);
-    	}
+    template <class T_>
+    T		operator ()(const T_& val) const
+		{
+		    return T(val);
+		}
+    template <class T_>
+    T		operator ()(const cuda::mat2x<T_, 1>& yuv422) const
+	    	{
+		    return T(yuv422.y);
+		}
+    template <class T_>
+    T		operator ()(const cuda::mat3x<T_, 1>& rgb) const
+		{
+		    return T(0.229f*rgb.x + 0.587f*rgb.y +0.114f*rgb.z);
+		}
+    template <class T_>
+    T		operator ()(const cuda::mat4x<T_, 1>& rgba) const
+		{
+		    return T(0.229f*rgba.x + 0.587f*rgba.y +0.114f*rgba.z);
+		}
 };
 
 template <class E>
@@ -1196,25 +1211,22 @@ struct from_vec<RGB_<E> >
 {
     using elm_t	 = typename E::element_type;
 
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 1, RGB_<E> >
-    	operator ()(const S_& val) const
-    	{
-    	    return {elm_t(val), elm_t(val), elm_t(val)};
-    	}
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 3, RGB_<E> >
-    	operator ()(const S_& rgb) const
-    	{
-    	    return {elm_t(rgb.x), elm_t(rgb.y), elm_t(rgb.z)};
-    	}
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 4, RGB_<E> >
-	operator ()(const S_& rgba) const
-	{
-	    return {elm_t(rgba.x), elm_t(rgba.y),
-		    elm_t(rgba.z), elm_t(rgba.w)};
-	}
+    template <class T_>
+    RGB_<E>	operator ()(const T_& val) const
+		{
+		    return {elm_t(val), elm_t(val), elm_t(val)};
+		}
+    template <class T_>
+    RGB_<E>	operator ()(const cuda::mat3x<T_, 1>& rgb) const
+	    	{
+		    return {elm_t(rgb.x), elm_t(rgb.y), elm_t(rgb.z)};
+		}
+    template <class T_>
+    RGB_<E>	operator ()(const cuda::mat4x<T_, 1>& rgba) const
+		{
+		    return {elm_t(rgba.x), elm_t(rgba.y),
+			    elm_t(rgba.z), elm_t(rgba.w)};
+		}
 };
 
 template <>
@@ -1222,18 +1234,16 @@ struct from_vec<YUV422>
 {
     using elm_t	 = YUV422::element_type;
 
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 1, YUV422>
-	operator ()(const S_& val) const
-	{
-	    return {elm_t(val)};
-	}
-    template <class S_>
-    std::enable_if_t<size0<S_>() == 2, YUV422>
-	operator ()(const S_& yuv422) const
-	{
-	    return {elm_t(yuv422.y), elm_t(yuv422.x)};
-	}
+    template <class T_>
+    YUV422	operator ()(const T_& val) const
+		{
+		    return {elm_t(val)};
+		}
+    template <class T_>
+    YUV422	operator ()(const cuda::mat2x<T_, 1>& yuv422) const
+		{
+		    return {elm_t(yuv422.y), elm_t(yuv422.x)};
+		}
 };
 
 }	// namespace TU

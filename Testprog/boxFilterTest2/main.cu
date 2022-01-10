@@ -23,7 +23,7 @@ doJob(const Array2<T>& in, size_t winSize)
     const cuda::BoxFilter2<convolver_t>	filter(winSize, winSize);
     const cuda::Array2<T>		in_d(in);
     cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>			pos_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<cuda::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
 	
     filter.convolve(in_d.cbegin(), in_d.cend(),
 		    cuda::make_range_iterator(
@@ -43,7 +43,7 @@ doJob(const Array2<T>& in, size_t winSize)
     }
     std::cerr << std::endl;
 
-    Array2<int2>	pos(pos_d);
+    Array2<cuda::vec<int, 2> >	pos(pos_d);
     for (size_t v = 0; v < out.nrow(); ++v)
     {
 	std::cerr << "v=" << v << ':';

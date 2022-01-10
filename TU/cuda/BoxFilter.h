@@ -141,7 +141,7 @@ struct extrema_position : public detail::extrema_position_base<COMP>
 {
     using super		= detail::extrema_position_base<COMP>;
     using typename super::value_type;
-    using result_type	= int2;
+    using result_type	= vec<int, 2>;
     using super::operator ();
     
     __device__
@@ -157,7 +157,7 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
     using super		= detail::extrema_position_base<COMP>;
     using typename super::argument_type;
     using typename super::value_type;
-    using result_type	= thrust::tuple<argument_type, int2>;
+    using result_type	= thrust::tuple<argument_type, vec<int, 2> >;
     using super::operator ();
 
     __device__

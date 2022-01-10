@@ -111,11 +111,11 @@ extrema_position_test(const Image<T>& in, size_t winSize)
 
   // GPUによって計算する．
     std::cerr << "=== extrema_position_test ===\n[GPU] ";
-    const cuda::Array2<T>	in_d(in);
-    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
+    const cuda::Array2<T>		in_d(in);
+    cuda::Array2<cuda::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), pos_d.begin(),
 			 winSize, true);
-    const Array2<int2>		pos(pos_d);
+    const Array2<cuda::vec<int, 2> >	pos(pos_d);
 
   // 結果をcheckする．
     const auto	offsetL = winSize/2;
@@ -156,9 +156,9 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 				thrust::greater<T> > >;
     
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";
-    const cuda::Array2<T>	in_d(in);
-    cuda::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<int2>		pos_d(in_d.nrow(), in_d.ncol());
+    const cuda::Array2<T>		in_d(in);
+    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
+    cuda::Array2<cuda::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
 
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(),
 			 cuda::make_range_iterator(
@@ -170,7 +170,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
   /*
-    Array2<int2>	pos(pos_d);
+    Array2<cuda::vec<int, 2> >	pos(pos_d);
     Image<T>		out2(in.width(), in.height());
     for (size_t v = 0; v < out2.nrow(); ++v)
     {

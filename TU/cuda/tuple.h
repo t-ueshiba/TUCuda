@@ -145,13 +145,10 @@ tuple_transform(FUNC f, TUPLES&&... x)
 				 f,
 				 detail::get_tail(std::forward<TUPLES>(x))...));
 }
-}	// namespace cuda
 
 /************************************************************************
 *  Arithmetic operators							*
 ************************************************************************/
-//  ADLに頼らずに namespace TU から呼ぶため，これらの overload された演算子は，
-//  namespace TU::cuda ではなく，namespace TU の中で定義する．
 template <class T, std::enable_if_t<cuda::is_cons<T>::value>* = nullptr>
 __host__ __device__ inline auto
 operator -(const T& t)
@@ -260,8 +257,6 @@ operator --(T&& t)
     return t;
 }
 
-namespace cuda
-{
 /************************************************************************
 *  I/O functions							*
 ************************************************************************/

@@ -90,47 +90,6 @@ namespace detail
   constexpr std::integral_constant<size_t, 2>	size(YUV422)		;
   constexpr std::integral_constant<size_t, 2>	size(YUYV422)		;
 
-  constexpr std::integral_constant<size_t, 1>	size(char1)		;
-  constexpr std::integral_constant<size_t, 2>	size(char2)		;
-  constexpr std::integral_constant<size_t, 3>	size(char3)		;
-  constexpr std::integral_constant<size_t, 4>	size(char4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(uchar1)		;
-  constexpr std::integral_constant<size_t, 2>	size(uchar2)		;
-  constexpr std::integral_constant<size_t, 3>	size(uchar3)		;
-  constexpr std::integral_constant<size_t, 4>	size(uchar4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(short1)		;
-  constexpr std::integral_constant<size_t, 2>	size(short2)		;
-  constexpr std::integral_constant<size_t, 3>	size(short3)		;
-  constexpr std::integral_constant<size_t, 4>	size(short4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(ushort1)		;
-  constexpr std::integral_constant<size_t, 2>	size(ushort2)		;
-  constexpr std::integral_constant<size_t, 3>	size(ushort3)		;
-  constexpr std::integral_constant<size_t, 4>	size(ushort4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(int1)		;
-  constexpr std::integral_constant<size_t, 2>	size(int2)		;
-  constexpr std::integral_constant<size_t, 3>	size(int3)		;
-  constexpr std::integral_constant<size_t, 4>	size(int4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(uint1)		;
-  constexpr std::integral_constant<size_t, 2>	size(uint2)		;
-  constexpr std::integral_constant<size_t, 3>	size(uint3)		;
-  constexpr std::integral_constant<size_t, 4>	size(uint4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(float1)		;
-  constexpr std::integral_constant<size_t, 2>	size(float2)		;
-  constexpr std::integral_constant<size_t, 3>	size(float3)		;
-  constexpr std::integral_constant<size_t, 4>	size(float4)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(longlong1)		;
-  constexpr std::integral_constant<size_t, 2>	size(longlong2)		;
-
-  constexpr std::integral_constant<size_t, 1>	size(double1)		;
-  constexpr std::integral_constant<size_t, 2>	size(double2)		;
-
   template <class T>
   constexpr T					element_t(T)		;
   template <class E>
@@ -138,97 +97,109 @@ namespace detail
   constexpr YUV444::element_type		element_t(YUV444)	;
   constexpr YUV422::element_type		element_t(YUV422)	;
 
-  constexpr int8_t				element_t(char1)	;
-  constexpr int8_t				element_t(char2)	;
-  constexpr int8_t				element_t(char3)	;
-  constexpr int8_t				element_t(char4)	;
-
-  constexpr uint8_t				element_t(uchar1)	;
-  constexpr uint8_t				element_t(uchar2)	;
-  constexpr uint8_t				element_t(uchar3)	;
-  constexpr uint8_t				element_t(uchar4)	;
-
-  constexpr int16_t				element_t(short1)	;
-  constexpr int16_t				element_t(short2)	;
-  constexpr int16_t				element_t(short3)	;
-  constexpr int16_t				element_t(short4)	;
-
-  constexpr uint16_t				element_t(ushort1)	;
-  constexpr uint16_t				element_t(ushort2)	;
-  constexpr uint16_t				element_t(ushort3)	;
-  constexpr uint16_t				element_t(ushort4)	;
-
-  constexpr int32_t				element_t(int1)		;
-  constexpr int32_t				element_t(int2)		;
-  constexpr int32_t				element_t(int3)		;
-  constexpr int32_t				element_t(int4)		;
-
-  constexpr uint32_t				element_t(uint1)	;
-  constexpr uint32_t				element_t(uint2)	;
-  constexpr uint32_t				element_t(uint3)	;
-  constexpr uint32_t				element_t(uint4)	;
-
-  constexpr float				element_t(float1)	;
-  constexpr float				element_t(float2)	;
-  constexpr float				element_t(float3)	;
-  constexpr float				element_t(float4)	;
-
-  constexpr int64_t				element_t(longlong1)	;
-  constexpr int64_t				element_t(longlong2)	;
-
-  constexpr double				element_t(double1)	;
-  constexpr double				element_t(double2)	;
-
   template <class T>
   constexpr auto	value_t(T val) -> decltype(element_t(val))	;
 
-  template <class T, size_t N>	struct vec;
+  template <class T, size_t N>	struct base_vec;
 
-  template <>	struct vec<int8_t,   1>		{ using type = char1;	};
-  template <>	struct vec<int8_t,   2>		{ using type = char2;	};
-  template <>	struct vec<int8_t,   3>		{ using type = char3;	};
-  template <>	struct vec<int8_t,   4>		{ using type = char4;	};
+  template <>	struct base_vec<int8_t,   1>	{ using type = char1;	};
+  template <>	struct base_vec<int8_t,   2>	{ using type = char2;	};
+  template <>	struct base_vec<int8_t,   3>	{ using type = char3;	};
+  template <>	struct base_vec<int8_t,   4>	{ using type = char4;	};
 
-  template <>	struct vec<uint8_t,  1>		{ using type = uchar1;	};
-  template <>	struct vec<uint8_t,  2>		{ using type = uchar2;	};
-  template <>	struct vec<uint8_t,  3>		{ using type = uchar3;	};
-  template <>	struct vec<uint8_t,  4>		{ using type = uchar4;	};
+  template <>	struct base_vec<uint8_t,  1>	{ using type = uchar1;	};
+  template <>	struct base_vec<uint8_t,  2>	{ using type = uchar2;	};
+  template <>	struct base_vec<uint8_t,  3>	{ using type = uchar3;	};
+  template <>	struct base_vec<uint8_t,  4>	{ using type = uchar4;	};
 
-  template <>	struct vec<int16_t,  1>		{ using type = short1;	};
-  template <>	struct vec<int16_t,  2>		{ using type = short2;	};
-  template <>	struct vec<int16_t,  3>		{ using type = short3;	};
-  template <>	struct vec<int16_t,  4>		{ using type = short4;	};
+  template <>	struct base_vec<int16_t,  1>	{ using type = short1;	};
+  template <>	struct base_vec<int16_t,  2>	{ using type = short2;	};
+  template <>	struct base_vec<int16_t,  3>	{ using type = short3;	};
+  template <>	struct base_vec<int16_t,  4>	{ using type = short4;	};
 
-  template <>	struct vec<uint16_t, 1>		{ using type = ushort1;	};
-  template <>	struct vec<uint16_t, 2>		{ using type = ushort2;	};
-  template <>	struct vec<uint16_t, 3>		{ using type = ushort3;	};
-  template <>	struct vec<uint16_t, 4>		{ using type = ushort4;	};
+  template <>	struct base_vec<uint16_t, 1>	{ using type = ushort1;	};
+  template <>	struct base_vec<uint16_t, 2>	{ using type = ushort2;	};
+  template <>	struct base_vec<uint16_t, 3>	{ using type = ushort3;	};
+  template <>	struct base_vec<uint16_t, 4>	{ using type = ushort4;	};
 
-  template <>	struct vec<int32_t,  1>		{ using type = int1;	};
-  template <>	struct vec<int32_t,  2>		{ using type = int2;	};
-  template <>	struct vec<int32_t,  3>		{ using type = int3;	};
-  template <>	struct vec<int32_t,  4>		{ using type = int4;	};
+  template <>	struct base_vec<int32_t,  1>	{ using type = int1;	};
+  template <>	struct base_vec<int32_t,  2>	{ using type = int2;	};
+  template <>	struct base_vec<int32_t,  3>	{ using type = int3;	};
+  template <>	struct base_vec<int32_t,  4>	{ using type = int4;	};
 
-  template <>	struct vec<uint32_t, 1>		{ using type = uint1;	};
-  template <>	struct vec<uint32_t, 2>		{ using type = uint2;	};
-  template <>	struct vec<uint32_t, 3>		{ using type = uint3;	};
-  template <>	struct vec<uint32_t, 4>		{ using type = uint4;	};
+  template <>	struct base_vec<uint32_t, 1>	{ using type = uint1;	};
+  template <>	struct base_vec<uint32_t, 2>	{ using type = uint2;	};
+  template <>	struct base_vec<uint32_t, 3>	{ using type = uint3;	};
+  template <>	struct base_vec<uint32_t, 4>	{ using type = uint4;	};
 
-  template <>	struct vec<float,    1>		{ using type = float1;	};
-  template <>	struct vec<float,    2>		{ using type = float2;	};
-  template <>	struct vec<float,    3>		{ using type = float3;	};
-  template <>	struct vec<float,    4>		{ using type = float4;	};
+  template <>	struct base_vec<float,    1>	{ using type = float1;	};
+  template <>	struct base_vec<float,    2>	{ using type = float2;	};
+  template <>	struct base_vec<float,    3>	{ using type = float3;	};
+  template <>	struct base_vec<float,    4>	{ using type = float4;	};
 
-  template <>	struct vec<int64_t,  1>		{ using type = longlong1; };
-  template <>	struct vec<int64_t,  2>		{ using type = longlong2; };
+  template <>	struct base_vec<int64_t,  1>	{ using type = longlong1; };
+  template <>	struct base_vec<int64_t,  2>	{ using type = longlong2; };
 
-  template <>	struct vec<double,   1>		{ using type = double1;	};
-  template <>	struct vec<double,   2>		{ using type = double2;	};
+  template <>	struct base_vec<double,   1>	{ using type = double1;	};
+  template <>	struct base_vec<double,   2>	{ using type = double2;	};
 }	// namespace derail
 
-template <class T, size_t N>
-using vec = typename detail::vec<T, N>::type;
+/************************************************************************
+*  struct vec<T, N>							*
+************************************************************************/
+template <class T, size_t N>	struct vec;
 
+template <class T>
+struct vec<T, 2> : public detail::base_vec<T, 2>::type
+{
+    using super		= typename detail::base_vec<T, 2>::type;
+    using element_type	= T;
+    using value_type	= element_type;
+    using super::x;
+    using super::y;
+
+    __host__ __device__
+		vec()			:super()			{}
+    __host__ __device__
+    constexpr	vec(T x, T y)		:super{x, y}			{}
+};
+    
+template <class T>
+struct vec<T, 3> : public detail::base_vec<T, 3>::type
+{
+    using super		= typename detail::base_vec<T, 3>::type;
+    using element_type	= T;
+    using value_type	= element_type;
+    using super::x;
+    using super::y;
+    using super::z;
+
+    __host__ __device__
+		vec()			:super()			{}
+    __host__ __device__
+    constexpr	vec(T x, T y, T z)	:super{x, y, z}			{}
+};
+    
+template <class T>
+struct vec<T, 4> : public detail::base_vec<T, 4>::type
+{
+    using super		= typename detail::base_vec<T, 4>::type;
+    using element_type	= T;
+    using value_type	= element_type;
+    using super::x;
+    using super::y;
+    using super::z;
+    using super::w;
+
+    __host__ __device__
+		vec()			:super()			{}
+    __host__ __device__
+    constexpr	vec(T x, T y, T z, T w)	:super{x, y, z, w}		{}
+};
+    
+/************************************************************************
+*  struct mat2x<T, C>, mat3x<T, C>, mat4x<T, C>				*
+************************************************************************/
 template <class T, size_t C>	struct mat3x;
 template <class T, size_t C>	struct mat4x;
 
@@ -327,12 +298,15 @@ struct mat4x
 
 namespace detail
 {
+  template <class T, size_t N>
+  constexpr std::integral_constant<size_t, N>	size(vec<T, N>)		;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, 2>	size(mat2x<T, C>)	;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, 3>	size(mat3x<T, C>)	;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, 4>	size(mat4x<T, C>)	;
+
   template <class T>
   constexpr std::integral_constant<size_t, 1>	ncol(T)			;
   template <class T, size_t C>
@@ -341,12 +315,18 @@ namespace detail
   constexpr std::integral_constant<size_t, C>	ncol(mat3x<T, C>)	;
   template <class T, size_t C>
   constexpr std::integral_constant<size_t, C>	ncol(mat4x<T, C>)	;
+
+  template <class T, size_t N>
+  constexpr typename vec<T, N>::element_type	element_t(vec<T, N>)	;
   template <class T, size_t C>
   constexpr typename mat2x<T, C>::element_type	element_t(mat2x<T, C>)	;
   template <class T, size_t C>
   constexpr typename mat3x<T, C>::element_type	element_t(mat3x<T, C>)	;
   template <class T, size_t C>
   constexpr typename mat4x<T, C>::element_type	element_t(mat4x<T, C>)	;
+
+  template <class T, size_t N>
+  constexpr typename vec<T, N>::value_type	value_t(vec<T, N>)	;
   template <class T, size_t C>
   constexpr typename mat2x<T, C>::value_type	value_t(mat2x<T, C>)	;
   template <class T, size_t C>
@@ -378,11 +358,6 @@ using mat = std::conditional_t<R == 2, mat2x<T, C>,
 			       std::conditional_t<R == 3,
 						  mat3x<T, C>, mat4x<T, C> > >;
 
-}	// namespace cuda
-
-//  vec<T, N> はCUDA組み込みのベクトル型の別名であり global namespace
-//  で定義されている．これに関係する演算子は，ADLに頼らずに namespace TU
-//  から呼ぶために，namespace TU::cuda ではなく，namespace TU の中で定義する．
 /************************************************************************
 *  Access element by its integral index					*
 ************************************************************************/
@@ -408,14 +383,14 @@ __host__ __device__ inline auto&	val(VM& a)		{ return a.w; }
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
+std::enable_if_t<size<VM>() == 2, VM>
 operator -(const VM& a)
 {
     return {-a.x, -a.y};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM&>
+std::enable_if_t<size<VM>() == 2, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -424,7 +399,7 @@ operator +=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM&>
+std::enable_if_t<size<VM>() == 2, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -433,8 +408,8 @@ operator -=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM&>
-operator *=(VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 2, VM&>
+operator *=(VM& a, element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -442,43 +417,43 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
+std::enable_if_t<size<VM>() == 2, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
+std::enable_if_t<size<VM>() == 2, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
+std::enable_if_t<size<VM>() == 2, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
+std::enable_if_t<size<VM>() == 2, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
-operator *(const VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 2, VM>
+operator *(const VM& a, element_t<VM> c)
 {
     return {a.x * c, a.y * c};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 2, VM>
-operator /(cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<size<VM>() == 2, VM>
+operator /(element_t<VM> c, const VM& a)
 {
     return {c / a.x, c / a.y};
 }
@@ -487,14 +462,14 @@ operator /(cuda::element_t<VM> c, const VM& a)
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
+std::enable_if_t<size<VM>() == 3, VM>
 operator -(const VM& a)
 {
     return {-a.x, -a.y, -a.z};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM&>
+std::enable_if_t<size<VM>() == 3, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -504,7 +479,7 @@ operator +=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM&>
+std::enable_if_t<size<VM>() == 3, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -514,8 +489,8 @@ operator -=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM&>
-operator *=(VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 3, VM&>
+operator *=(VM& a, element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -524,43 +499,43 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
+std::enable_if_t<size<VM>() == 3, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
+std::enable_if_t<size<VM>() == 3, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
+std::enable_if_t<size<VM>() == 3, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
+std::enable_if_t<size<VM>() == 3, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
-operator *(const VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 3, VM>
+operator *(const VM& a, element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 3, VM>
-operator /(cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<size<VM>() == 3, VM>
+operator /(element_t<VM> c, const VM& a)
 {
     return {c / a.x, c / a.y, c / a.z};
 }
@@ -569,14 +544,14 @@ operator /(cuda::element_t<VM> c, const VM& a)
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
+std::enable_if_t<size<VM>() == 4, VM>
 operator -(const VM& a)
 {
     return {-a.x, -a.y, -a.z, -a.w};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM&>
+std::enable_if_t<size<VM>() == 4, VM&>
 operator +=(VM& a, const VM& b)
 {
     a.x += b.x;
@@ -587,7 +562,7 @@ operator +=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM&>
+std::enable_if_t<size<VM>() == 4, VM&>
 operator -=(VM& a, const VM& b)
 {
     a.x -= b.x;
@@ -598,8 +573,8 @@ operator -=(VM& a, const VM& b)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM&>
-operator *=(VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 4, VM&>
+operator *=(VM& a, element_t<VM> c)
 {
     a.x *= c;
     a.y *= c;
@@ -609,43 +584,43 @@ operator *=(VM& a, cuda::element_t<VM> c)
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
+std::enable_if_t<size<VM>() == 4, VM>
 operator +(const VM& a, const VM& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
+std::enable_if_t<size<VM>() == 4, VM>
 operator -(const VM& a, const VM& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
+std::enable_if_t<size<VM>() == 4, VM>
 operator *(const VM& a, const VM& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
+std::enable_if_t<size<VM>() == 4, VM>
 operator /(const VM& a, const VM& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
-operator *(const VM& a, cuda::element_t<VM> c)
+std::enable_if_t<size<VM>() == 4, VM>
+operator *(const VM& a, element_t<VM> c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<cuda::size<VM>() == 4, VM>
-operator /(cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<size<VM>() == 4, VM>
+operator /(element_t<VM> c, const VM& a)
 {
     return {c / a.x, c / a.y, c / a.z, c / a.w};
 }
@@ -654,52 +629,50 @@ operator /(cuda::element_t<VM> c, const VM& a)
 *  Multiplication and division by scalar				*
 ************************************************************************/
 template <class VM> __host__ __device__ inline
-std::enable_if_t<(cuda::size<VM>() > 1), VM&>
-operator /=(VM& a, cuda::element_t<VM> c)
+std::enable_if_t<(size<VM>() > 1), VM&>
+operator /=(VM& a, element_t<VM> c)
 {
-    return a *= (cuda::element_t<VM>(1)/c);
+    return a *= (element_t<VM>(1)/c);
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<(cuda::size<VM>() > 1), VM>
-operator *(cuda::element_t<VM> c, const VM& a)
+std::enable_if_t<(size<VM>() > 1), VM>
+operator *(element_t<VM> c, const VM& a)
 {
     return a * c;
 }
 
 template <class VM> __host__ __device__ inline
-std::enable_if_t<(cuda::size<VM>() > 1), VM>
-operator /(const VM& a, cuda::element_t<VM> c)
+std::enable_if_t<(size<VM>() > 1), VM>
+operator /(const VM& a, element_t<VM> c)
 {
-    return a * (cuda::element_t<VM>(1)/c);
+    return a * (element_t<VM>(1)/c);
 }
 
 /************************************************************************
 *  Output functions							*
 ************************************************************************/
 template <class VM>
-std::enable_if_t<cuda::size<VM>() == 2, std::ostream&>
+std::enable_if_t<size<VM>() == 2, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ']';
 }
 
 template <class VM>
-std::enable_if_t<cuda::size<VM>() == 3, std::ostream&>
+std::enable_if_t<size<VM>() == 3, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ']';
 }
 
 template <class VM>
-std::enable_if_t<cuda::size<VM>() == 4, std::ostream&>
+std::enable_if_t<size<VM>() == 4, std::ostream&>
 operator <<(std::ostream& out, const VM& a)
 {
     return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
 }
 
-namespace cuda
-{
 /************************************************************************
 *  set_zero()								*
 ************************************************************************/

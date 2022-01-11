@@ -249,8 +249,8 @@ using vec = std::conditional_t<D == 1, T,
 template <class T, size_t C>
 struct mat2x
 {
-    using element_type		= T;
-    using value_type		= vec<T, C>;
+    using element_type	= T;
+    using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
     static size_t	rank()			{ return 2; }
@@ -296,8 +296,8 @@ struct mat2x
 template <class T, size_t C>
 struct mat3x
 {
-    using element_type		= T;
-    using value_type		= vec<T, C>;
+    using element_type	= T;
+    using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
     static size_t	rank()			{ return 2; }
@@ -345,8 +345,8 @@ struct mat3x
 template <class T, size_t C>
 struct mat4x
 {
-    using element_type		= T;
-    using value_type		= vec<T, C>;
+    using element_type	= T;
+    using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
     static size_t	rank()			{ return 2; }
@@ -809,9 +809,9 @@ dot(const mat4x<T, C>& m, const VM& a)
 /************************************************************************
 *  square()								*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
-std::enable_if_t<size1<VM>() == 1, element_t<VM> >
-square(const VM& a)
+template <class VEC> __host__ __device__ inline
+std::enable_if_t<size1<VEC>() == 1, element_t<VEC> >
+square(const VEC& a)
 {
     return dot(a, a);
 }
@@ -829,20 +829,23 @@ cross(const mat3x<T, 1>& a, const mat3x<T, 1>& b)
 /************************************************************************
 *  ext()								*
 ************************************************************************/
-template <class T, size_t N> __host__ __device__ inline mat<T, 2, N>
-ext(const vec<T, 2>& a, const vec<T, N>& b)
+template <class T, class VEC> __host__ __device__ inline
+std::enable_if_t<size1<VEC>() == 1, mat2x<T, size1<VEC>()> >
+ext(const mat2x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b};
 }
 
-template <class T, size_t N> __host__ __device__ inline mat<T, 3, N>
-ext(const vec<T, 3>& a, const vec<T, N>& b)
+template <class T, class VEC> __host__ __device__ inline
+std::enable_if_t<size1<VEC>() == 1, mat3x<T, size1<VEC>()> >
+ext(const mat3x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b, a.z * b};
 }
 
-template <class T, size_t N> __host__ __device__ inline mat<T, 4, N>
-ext(const vec<T, 4>& a, const vec<T, N>& b)
+template <class T, class VEC> __host__ __device__ inline
+std::enable_if_t<size1<VEC>() == 1, mat4x<T, size1<VEC>()> >
+ext(const mat4x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b, a.z * b, a.w * b};
 }
@@ -1123,59 +1126,57 @@ get_element_ptr(thrust::device_ptr<const T> p)
     return reinterpret_cast<const element_t<T>*>(p.get());
 }
 
-}	// namespace cuda
-
 /************************************************************************
-*  class to_vec<T>							*
+*  struct to_vec<T>							*
 ************************************************************************/
 //! カラー画素をCUDAベクトルへ変換する関数オブジェクト
 /*!
   \param T	変換先のCUDAベクトルの型
 */
 template <class T>
-class to_vec
+struct to_vec
 {
-  public:
-    template <class S_>
-    T	operator ()(const S_& val) const
-	{
-	    return vec(val, std::integral_constant<size_t, size0<T>()>());
-	}
+    using result_type	= T;
 
-  private:
     template <class S_>
-    T	vec(const S_& val, std::integral_constant<size_t, 1>) const
-	{
-	    return T(val);
-	}
-    template <class S_>
-    T	vec(const S_& val, std::integral_constant<size_t, 3>) const
-	{
-	    using elm_t	= element_t<T>;
+    result_type	operator ()(const S_& val) const
+		{
+		    return T(val);
+		}
+};
 
-	    return {elm_t(val), elm_t(val), elm_t(val)};
-	}
+template <class T>
+struct to_vec<mat3x<T, 1> >
+{
+    using result_type	= mat3x<T, 1>;
+    
+    template <class S_>
+    result_type	operator ()(const S_& val) const
+		{
+		    return {T(val), T(val), T(val)};
+		}
     template <class E_>
-    T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 3>) const
-	{
-	    using elm_t	= element_t<T>;
+    result_type	operator ()(const RGB_<E_>& rgb) const
+		{
+		    return {T(rgb.r), T(rgb.g), T(rgb.b)};
+		}
+};
 
-	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b)};
-	}
+template <class T>
+struct to_vec<mat4x<T, 1> >
+{
+    using result_type	= mat4x<T, 1>;
+    
     template <class S_>
-    T	vec(const S_& val, std::integral_constant<size_t, 4>) const
-	{
-	    using elm_t	= element_t<T>;
-
-	    return {elm_t(val), elm_t(val), elm_t(val), elm_t(255)};
-	}
+    result_type	operator ()(const S_& val) const
+		{
+		    return {T(val), T(val), T(val), T(255)};
+		}
     template <class E_>
-    T	vec(const RGB_<E_>& rgb, std::integral_constant<size_t, 4>) const
-	{
-	    using elm_t	= element_t<T>;
-
-	    return {elm_t(rgb.r), elm_t(rgb.g), elm_t(rgb.b), elm_t(rgb.a)};
-	}
+    result_type	operator ()(const RGB_<E_>& rgb) const
+		{
+		    return {T(rgb.r), T(rgb.g), T(rgb.b), T(rgb.a)};
+		}
 };
 
 /************************************************************************
@@ -1184,23 +1185,25 @@ class to_vec
 template <class T>
 struct from_vec
 {
+    using result_type	= T;
+    
     template <class T_>
-    T		operator ()(const T_& val) const
+    result_type	operator ()(const T_& val) const
 		{
 		    return T(val);
 		}
     template <class T_>
-    T		operator ()(const cuda::mat2x<T_, 1>& yuv422) const
+    result_type	operator ()(const mat2x<T_, 1>& yuv422) const
 	    	{
 		    return T(yuv422.y);
 		}
     template <class T_>
-    T		operator ()(const cuda::mat3x<T_, 1>& rgb) const
+    result_type	operator ()(const mat3x<T_, 1>& rgb) const
 		{
 		    return T(0.229f*rgb.x + 0.587f*rgb.y +0.114f*rgb.z);
 		}
     template <class T_>
-    T		operator ()(const cuda::mat4x<T_, 1>& rgba) const
+    result_type	operator ()(const mat4x<T_, 1>& rgba) const
 		{
 		    return T(0.229f*rgba.x + 0.587f*rgba.y +0.114f*rgba.z);
 		}
@@ -1209,20 +1212,21 @@ struct from_vec
 template <class E>
 struct from_vec<RGB_<E> >
 {
-    using elm_t	 = typename E::element_type;
+    using result_type	= RGB_<E>;
+    using elm_t		= typename E::element_type;
 
     template <class T_>
-    RGB_<E>	operator ()(const T_& val) const
+    result_type	operator ()(const T_& val) const
 		{
 		    return {elm_t(val), elm_t(val), elm_t(val)};
 		}
     template <class T_>
-    RGB_<E>	operator ()(const cuda::mat3x<T_, 1>& rgb) const
+    result_type	operator ()(const mat3x<T_, 1>& rgb) const
 	    	{
 		    return {elm_t(rgb.x), elm_t(rgb.y), elm_t(rgb.z)};
 		}
     template <class T_>
-    RGB_<E>	operator ()(const cuda::mat4x<T_, 1>& rgba) const
+    result_type	operator ()(const mat4x<T_, 1>& rgba) const
 		{
 		    return {elm_t(rgba.x), elm_t(rgba.y),
 			    elm_t(rgba.z), elm_t(rgba.w)};
@@ -1232,18 +1236,19 @@ struct from_vec<RGB_<E> >
 template <>
 struct from_vec<YUV422>
 {
-    using elm_t	 = YUV422::element_type;
+    using result_type	= YUV422;
+    using elm_t		= YUV422::element_type;
 
     template <class T_>
-    YUV422	operator ()(const T_& val) const
+    result_type	operator ()(const T_& val) const
 		{
 		    return {elm_t(val)};
 		}
     template <class T_>
-    YUV422	operator ()(const cuda::mat2x<T_, 1>& yuv422) const
+    result_type	operator ()(const mat2x<T_, 1>& yuv422) const
 		{
 		    return {elm_t(yuv422.y), elm_t(yuv422.x)};
 		}
 };
-
+}	// namespace cuda
 }	// namespace TU

@@ -712,9 +712,10 @@ struct plane_estimator
 						{0, 0, device::maxval<T>}};
 };
 
+template <class T=vec<uint8_t, 3> >
 struct colored_normal
 {
-    using result_type	= vec<uint8_t, 3>;
+    using result_type	= T;
 
     __host__ __device__ result_type
     operator ()(const vec<float, 3>& normal) const

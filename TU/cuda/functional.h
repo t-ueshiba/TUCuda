@@ -730,12 +730,6 @@ struct colored_normal
     {
 	return (*this)(plane.y);
     }
-
-    template <class T_> __host__ __device__ result_type
-    operator ()(const mat4x<T_, 3>& moment) const
-    {
-	return (*this)(plane_estimator<T_>()(moment));
-    }
 };
 #endif
 }	// namespace cuda

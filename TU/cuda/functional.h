@@ -228,6 +228,50 @@ class minimal3x3
     const T	_nonMinimal;
 };
 
+//! 極大点検出オペレータを表す関数オブジェクト(4-neighbor)
+template <class T>
+class maximal4
+{
+  public:
+    using result_type = T;
+
+    __host__ __device__
+    maximal4(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
+
+    template <class ITER> __host__ __device__ result_type
+    operator ()(ITER p, ITER c, ITER n) const
+    {
+	return ((c[1] > p[1]) && (c[1] > c[0]) &&
+		(c[1] > c[2]) && (c[1] > n[1]) ?
+		c[1] : _nonMaximal);
+    }
+
+  private:
+    const T	_nonMaximal;
+};
+
+//! 極小点検出オペレータを表す関数オブジェクト(4-neighbor)
+template <class T>
+class minimal4
+{
+  public:
+    using result_type = T;
+
+    __host__ __device__
+    minimal4(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}
+
+    template <class ITER> __host__ __device__ result_type
+    operator ()(ITER p, ITER c, ITER n) const
+    {
+	return ((c[1] < p[1]) && (c[1] < c[0]) &&
+		(c[1] < c[2]) && (c[1] < n[1]) ?
+		c[1] : _nonMinimal);
+    }
+
+  private:
+    const T	_nonMinimal;
+};
+
 //! 2つの値の閾値付き差を表す関数オブジェクト
 template <class T>
 class diff

@@ -201,7 +201,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
     const Texture<T>	tex(a);
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
+    const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::warp<T><<<blocks, threads>>>(tex.get(),
 					 cuda::make_range(out, nrow), map);
 }

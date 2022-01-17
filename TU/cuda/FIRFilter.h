@@ -1,6 +1,3 @@
-/*
- *  $Id$
- */
 /*!
   \file		FIRFilter.h
   \brief	finite impulse responseフィルタの定義と実装
@@ -271,7 +268,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
     const int	nrow = std::distance(in, ie);
     const int	ncol = TU::size(*in);
     const dim3	threads(BlockDimX, BlockDimY);
-    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
+    const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
 	cuda::make_range(in, nrow), cuda::make_range(out, nrow));
 }
@@ -283,7 +280,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
     const int	nrow = std::distance(in, ie);
     const int	ncol = TU::size(*in);
     const dim3	threads(BlockDimX, BlockDimY);
-    const dim3	blocks(grid_dim(ncol, threads.x), grid_dim(nrow, threads.y));
+    const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 	cuda::make_range(in, nrow),
 	cuda::slice(out, (shift ? offsetV() : 0), outSizeV(nrow),

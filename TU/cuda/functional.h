@@ -669,7 +669,7 @@ struct plane_moment
 
     template <bool POINT_ARG_=POINT_ARG>
     __host__ __device__ std::enable_if_t<POINT_ARG_, result_type>
-    operator ()(int u, int v, const vec<T, 3>& point) const
+    operator ()(int v, int u, const vec<T, 3>& point) const
     {
 	return {point,
 		point.x * point,

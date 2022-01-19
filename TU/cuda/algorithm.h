@@ -270,26 +270,28 @@ namespace device
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
+      constexpr int	Stride = BLOCK_TRAITS::BlockDimX + N - 1;
+      constexpr int	Offset = (N - 1)/2;
+      
       const int	x0 = __mul24(blockIdx.x, blockDim.x);
       const int	y0 = __mul24(blockIdx.y, blockDim.y);
-
+      const int	xs = ::max(x0 - Offset, 0);
+      const int	ys = ::max(y0 - Offset, 0);
+      
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
-      constexpr int		Stride = BLOCK_TRAITS::BlockDimX + N - 1;
       __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + N - 1][Stride];
       loadTile(slice(in.cbegin(),
-		     y0, ::min(blockDim.y + N - 1, in.size() - y0),
-		     x0, ::min(blockDim.x + N - 1, in.begin().size() - x0)),
+		     ys, ::min(blockDim.y + N - 1, in.size() - ys),
+		     xs, ::min(blockDim.x + N - 1, in.begin().size() - xs)),
 	       in_s);
       __syncthreads();
 
     // 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
-      const int	tx = threadIdx.x;
-      const int ty = threadIdx.y;
-      const int	x  = x0 + tx;
-      const int	y  = y0 + ty;
+      const int	x  = x0 + threadIdx.x;
+      const int	y  = y0 + threadIdx.y;
       if (y < in.size() && x < in.begin().size())
 	  out[y][x] = op(y, x, in.size(), in.begin().size(),
-			 in_s[ty] + tx, Stride);
+			 in_s[y - ys] + x - xs, Stride);
   }
 }	// namespace device
 

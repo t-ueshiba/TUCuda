@@ -383,7 +383,7 @@ rend(const thrust::detail::cons<HEAD, TAIL>& t)
 template <class HEAD, class TAIL> inline size_t
 size(const thrust::detail::cons<HEAD, TAIL>& t)
 {
-    return thrust::get<0>(t).size();
+    return size(thrust::get<0>(t));
 }
 
 }	// namespace cuda

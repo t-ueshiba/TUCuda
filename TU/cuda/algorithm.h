@@ -179,7 +179,7 @@ subsample(IN in, IN ie, OUT out)
     if (nrow < 2)
 	return;
 
-    const int	ncol = TU::size(*in);
+    const int	ncol = size(*in);
     if (ncol < 2)
 	return;
 
@@ -243,7 +243,7 @@ op3x3(IN in, IN ie, OUT out, OP op)
     if (nrow < 1)
 	return;
 
-    const int	ncol = TU::size(*in);
+    const int	ncol = size(*in);
     if (ncol < 1)
 	return;
 
@@ -255,34 +255,37 @@ op3x3(IN in, IN ie, OUT out, OP op)
 #endif
 
 /************************************************************************
-*  opNxN<N, BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)			*
+*  opNxM<N, M, BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)		*
 ************************************************************************/
-template <size_t N, class BLOCK_TRAITS=BlockTraits<>,
+template <size_t N, size_t M, class BLOCK_TRAITS=BlockTraits<>,
 	  class IN, class OUT, class OP>
-void	opNxN(IN in, IN ie, OUT out, OP op)				;
+void	opNxM(IN in, IN ie, OUT out, OP op)				;
 
 #if defined(__NVCC__)
 namespace device
 {
-  template <int N, class BLOCK_TRAITS, class IN, class OUT, class OP>
+  template <size_t N, size_t M, class BLOCK_TRAITS,
+	    class IN, class OUT, class OP>
   __global__ static void
-  opNxN(range<range_iterator<IN> > in, range<range_iterator<OUT> > out, OP op)
+  opNxM(range<range_iterator<IN> > in, range<range_iterator<OUT> > out, OP op)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-      constexpr int	Stride = BLOCK_TRAITS::BlockDimX + N - 1;
-      constexpr int	Offset = (N - 1)/2;
+      constexpr int	Stride = BLOCK_TRAITS::BlockDimX + M - 1;
+      constexpr int	OffsetX = (M - 1)/2;
+      constexpr int	OffsetY = (N - 1)/2;
       
       const int	x0 = __mul24(blockIdx.x, blockDim.x);
       const int	y0 = __mul24(blockIdx.y, blockDim.y);
-      const int	xs = ::max(x0 - Offset, 0);
-      const int	ys = ::max(y0 - Offset, 0);
+      const int	xs = ::max(x0 - OffsetX, 0);
+      const int	ys = ::max(y0 - OffsetY, 0);
       
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
       __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + N - 1][Stride];
       loadTile(slice(in.cbegin(),
-		     ys, ::min(blockDim.y + N - 1, in.size() - ys),
-		     xs, ::min(blockDim.x + N - 1, in.begin().size() - xs)),
+		     ys, ::min(int(blockDim.y + N - 1), in.size() - ys),
+		     xs, ::min(int(blockDim.x + M - 1),
+			       in.begin().size() - xs)),
 	       in_s);
       __syncthreads();
 
@@ -295,20 +298,21 @@ namespace device
   }
 }	// namespace device
 
-template <size_t N, class BLOCK_TRAITS, class IN, class OUT, class OP> void
-opNxN(IN in, IN ie, OUT out, OP op)
+template <size_t N, size_t M, class BLOCK_TRAITS,
+	  class IN, class OUT, class OP> void
+opNxM(IN in, IN ie, OUT out, OP op)
 {
     const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
 
-    const int	ncol = TU::size(*in);
+    const int	ncol = size(*in);
     if (ncol < 1)
 	return;
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
-    device::opNxN<N, BLOCK_TRAITS><<<blocks, threads>>>(
+    device::opNxM<N, M, BLOCK_TRAITS><<<blocks, threads>>>(
 	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op);
 }
 #endif
@@ -355,7 +359,7 @@ namespace detail
       if (r < 1)
 	  return;
 
-      size_t	c = TU::size(*in) - j;
+      size_t	c = size(*in) - j;
       if (c < 1)
 	  return;
 
@@ -439,7 +443,7 @@ transform2(IN in, IN ie, OUT out, OP op)
     if (nrow < 1)
 	return;
 
-    const int	ncol = TU::size(*in);
+    const int	ncol = size(*in);
     if (ncol < 1)
 	return;
 
@@ -479,7 +483,7 @@ fill(OUT out, OUT oe, T val)
     if (nrow < 1)
 	return;
 
-    const int	ncol = TU::size(*out);
+    const int	ncol = size(*out);
     if (ncol < 1)
 	return;
 

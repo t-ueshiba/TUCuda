@@ -270,7 +270,7 @@ class logical_and4 : public OperatorTraits<3, 3>
     using result_type = bool;
 
     __host__ __device__
-    logical_and4(COMP comp)	:_comp(comp)			{}
+    logical_and4(COMP comp=COMP())	:_comp(comp)		{}
 
     template <class T_, size_t W_> __host__ __device__ result_type
     operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
@@ -293,7 +293,7 @@ class logical_or4 : public OperatorTraits<3, 3>
     using result_type = bool;
 
     __host__ __device__
-    logical_or4(COMP comp)	:_comp(comp)			{}
+    logical_or4(COMP comp=COMP())	:_comp(comp)		{}
 
     template <class T_, size_t W_> __host__ __device__ result_type
     operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
@@ -383,16 +383,19 @@ class extremal3x3 : public OperatorTraits<3, 3>
 };
 
 template <class T>
-using maximal4 = extremal3x3<T, logical_and4<thrust::greater<T> > >;
+using maximal4	 = extremal3x3<T, logical_and4<thrust::greater<T> > >;
 
 template <class T>
-using minimal4 = extremal3x3<T, logical_and4<thrust::less<T> > >;
+using minimal4	 = extremal3x3<T, logical_and4<thrust::less<T> > >;
 
 template <class T>
-using maximal8 = extremal3x3<T, logical_and8<thrust::greater<T> > >;
+using maximal8	 = extremal3x3<T, logical_and8<thrust::greater<T> > >;
 
 template <class T>
-using minimal8 = extremal3x3<T, logical_and8<thrust::less<T> > >;
+using minimal8	 = extremal3x3<T, logical_and8<thrust::less<T> > >;
+
+template <class T>
+using is_border4 = logical_or4<thrust::not_equal_to<T> >;
 
 //! 2つの値の閾値付き差を表す関数オブジェクト
 template <class T>

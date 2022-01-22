@@ -14,6 +14,30 @@
 #define OP	cuda::maximal3x3
 //#define OP	cuda::minimal3x3
 
+namespace TU
+{
+template <class T>
+class maximal3x3
+{
+  public:
+    using result_type = T;
+
+    maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
+
+    template <class ITER> result_type
+    operator ()(ITER p, ITER c, ITER n) const
+    {
+	return ((c[1] > p[0]) && (c[1] > p[1]) && (c[1] > p[2]) &&
+		(c[1] > c[0])		       && (c[1] > c[2]) &&
+		(c[1] > n[0]) && (c[1] > n[1]) && (c[1] > n[2]) ?
+		c[1] : _nonMaximal);
+    }
+
+  private:
+    const T	_nonMaximal;
+};
+}
+
 /************************************************************************
 *  Global fucntions							*
 ************************************************************************/
@@ -37,7 +61,8 @@ main(int argc, char *argv[])
       // GPUによって計算する．
 	cuda::Array2<in_t>	in_d(in);
 	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
-	cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(), OP<in_t>());
+	cuda::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		    cuda::maximal8<in_t>());
 	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -45,7 +70,8 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cuda::op3x3(in_d.cbegin(), in_d.cend(), out_d.begin(), OP<in_t>());
+	    cuda::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
+			cuda::maximal8<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);
@@ -60,7 +86,7 @@ main(int argc, char *argv[])
 	{
 	    outGold = in;
 	    profiler.start(0);
-	    op3x3(outGold.begin(), outGold.end(), OP<in_t>());
+	    op3x3(outGold.begin(), outGold.end(), TU::maximal3x3<in_t>());
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);

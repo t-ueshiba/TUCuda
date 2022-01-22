@@ -191,87 +191,23 @@ subsample(IN in, IN ie, OUT out)
 #endif
 
 /************************************************************************
-*  op3x3<BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)			*
+*  opNxM<BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)		*
 ************************************************************************/
-//! CUDAによって2次元配列に対して3x3近傍演算を行う．
-/*!
-  \param in	入力2次元配列の最初の行を指す反復子
-  \param ie	入力2次元配列の最後の次の行を指す反復子
-  \param out	出力2次元配列の最初の行を指す反復子
-  \param op	3x3近傍演算子
-*/
 template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT, class OP>
-void	op3x3(IN in, IN ie, OUT out, OP op)				;
+void	opNxM(IN in, IN ie, OUT out, OP op)				;
 
 #if defined(__NVCC__)
 namespace device
 {
   template <class BLOCK_TRAITS, class IN, class OUT, class OP>
   __global__ static void
-  op3x3(range<range_iterator<IN> > in, range<range_iterator<OUT> > out, OP op)
-  {
-      using	value_type = typename std::iterator_traits<IN>::value_type;
-
-      const int	x0 = __mul24(blockIdx.x, blockDim.x);
-      const int	y0 = __mul24(blockIdx.y, blockDim.y);
-
-    // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
-      __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + 2]
-				    [BLOCK_TRAITS::BlockDimX + 2 + 1];
-      loadTile(slice(in.cbegin(),
-		     y0, ::min(blockDim.y + 2, in.size() - y0),
-		     x0, ::min(blockDim.x + 2, in.begin().size() - x0)),
-	       in_s);
-      __syncthreads();
-
-    // 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
-      const int	tx = threadIdx.x;
-      const int ty = threadIdx.y;
-      const int	x  = x0 + tx;
-      const int	y  = y0 + ty;
-      if (y + 2 < in.size() && x + 2 < in.begin().size())
-	  out[y + 1][x + 1] = op(in_s[ty]     + tx,
-				 in_s[ty + 1] + tx,
-				 in_s[ty + 2] + tx);
-  }
-}	// namespace device
-
-template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
-op3x3(IN in, IN ie, OUT out, OP op)
-{
-    const int	nrow = std::distance(in, ie);
-    if (nrow < 1)
-	return;
-
-    const int	ncol = size(*in);
-    if (ncol < 1)
-	return;
-
-    const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
-    const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
-    device::op3x3<BLOCK_TRAITS><<<blocks, threads>>>(
-	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op);
-}
-#endif
-
-/************************************************************************
-*  opNxM<N, M, BLOCK_TRAITS>(IN in, IN ie, OUT out, OP op)		*
-************************************************************************/
-template <size_t N, size_t M, class BLOCK_TRAITS=BlockTraits<>,
-	  class IN, class OUT, class OP>
-void	opNxM(IN in, IN ie, OUT out, OP op)				;
-
-#if defined(__NVCC__)
-namespace device
-{
-  template <size_t N, size_t M, class BLOCK_TRAITS,
-	    class IN, class OUT, class OP>
-  __global__ static void
   opNxM(range<range_iterator<IN> > in, range<range_iterator<OUT> > out, OP op)
   {
       using	value_type = typename std::iterator_traits<IN>::value_type;
 
-      constexpr int	Stride = BLOCK_TRAITS::BlockDimX + M - 1;
+      constexpr int	M	= OP::OperatorSizeX;
+      constexpr int	N	= OP::OperatorSizeY;
+      constexpr int	Stride	= BLOCK_TRAITS::BlockDimX + M - 1;
       constexpr int	OffsetX = (M - 1)/2;
       constexpr int	OffsetY = (N - 1)/2;
       
@@ -290,16 +226,15 @@ namespace device
       __syncthreads();
 
     // 共有メモリに保存した原画像から現在画素に対するフィルタ出力を計算
-      const int	x  = x0 + threadIdx.x;
-      const int	y  = y0 + threadIdx.y;
+      const int	x = x0 + threadIdx.x;
+      const int	y = y0 + threadIdx.y;
       if (y < in.size() && x < in.begin().size())
-	  out[y][x] = op(y, x, in.size(), in.begin().size(),
-			 in_s[y - ys] + x - xs, Stride);
+	  out[y][x] = op(y - ys, x - xs,
+			 in.size() - ys, in.begin().size() - xs, in_s);
   }
 }	// namespace device
 
-template <size_t N, size_t M, class BLOCK_TRAITS,
-	  class IN, class OUT, class OP> void
+template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 opNxM(IN in, IN ie, OUT out, OP op)
 {
     const int	nrow = std::distance(in, ie);
@@ -312,7 +247,7 @@ opNxM(IN in, IN ie, OUT out, OP op)
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
-    device::opNxM<N, M, BLOCK_TRAITS><<<blocks, threads>>>(
+    device::opNxM<BLOCK_TRAITS><<<blocks, threads>>>(
 	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op);
 }
 #endif

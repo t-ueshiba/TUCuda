@@ -48,229 +48,351 @@ namespace TU
 namespace cuda
 {
 /************************************************************************
-*  3x3 operators							*
+*  1x3, 3x1 and 3x3  operators						*
 ************************************************************************/
+template <size_t OPERATOR_SIZE_Y, size_t OPERATOR_SIZE_X>
+struct OperatorTraits
+{
+    constexpr static size_t	OperatorSizeY = OPERATOR_SIZE_Y;
+    constexpr static size_t	OperatorSizeX = OPERATOR_SIZE_X;
+};
+    
 //! 横方向1階微分オペレータを表す関数オブジェクト
 template <class T>
-struct diffH3x3
+struct diffH1x3 : public OperatorTraits<1, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return T(0.5)*(c[2] - c[0]);
+	return T(0.5)*(in[y][x+1] - in[y][x-1]);
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < x && x + 1 < ncol ? (*this)(y, x, in) : T(0));
     }
 };
 
 //! 縦方向1階微分オペレータを表す関数オブジェクト
 template <class T>
-struct diffV3x3
+struct diffV3x1 : public OperatorTraits<3, 1>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return T(0.5)*(n[1] - p[1]);
+	return T(0.5)*(in[y+1][x] - in[y-1][x]);
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow ? (*this)(y, x, in) : T(0));
     }
 };
 
 //! 横方向2階微分オペレータを表す関数オブジェクト
 template <class T>
-struct diffHH3x3
+struct diffHH1x3 : public OperatorTraits<1, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return c[0] - T(2)*c[1] + c[2];
+	return in[y][x-1] - 2*in[y][x] + in[y][x+1];
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < x && x + 1 < ncol ? (*this)(y, x, in) : T(0));
     }
 };
 
 //! 縦方向2階微分オペレータを表す関数オブジェクト
 template <class T>
-struct diffVV3x3
+struct diffVV3x1 : public OperatorTraits<3, 1>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return p[1] - T(2)*c[1] + n[1];
+	return in[y-1][x] - 2*in[y][x] + in[y+1][x];
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow ? (*this)(y, x, in) : T(0));
     }
 };
 
 //! 縦横両方向2階微分オペレータを表す関数オブジェクト
 template <class T>
-struct diffHV3x3
+struct diffHV3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return T(0.25)*(p[0] - p[2] - n[0] + n[2]);
+	return T(0.25)*(in[y-1][x-1] - in[y-1][x+1] -
+			in[y+1][x-1] + in[y+1][x+1]);
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
 //! 横方向1階微分Sobelオペレータを表す関数オブジェクト
 template <class T>
-struct sobelH3x3
+struct sobelH3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return T(0.125)*(p[2] - p[0] + n[2] - n[0]) + T(0.250)*(c[2] - c[0]);
+	return T(0.125)*(in[y-1][x+1] - in[y-1][x-1] +
+			 in[y+1][x+1] - in[y+1][x-1]) +
+	       T(0.250)*(in[y  ][x+1] - in[y  ][x-1]);
+	
+    }
+    
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
 //! 縦方向1階微分Sobelオペレータを表す関数オブジェクト
 template <class T>
-struct sobelV3x3
+struct sobelV3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return T(0.125)*(n[0] - p[0] + n[2] - p[2]) + T(0.250)*(n[1] - p[1]);
+	return T(0.125)*(in[y+1][x-1] - in[y-1][x-1] +
+			 in[y+1][x+1] - in[y-1][x+1]) +
+	       T(0.250)*(in[y+1][x  ] - in[y-1][x  ]);
+    }
+    
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
 //! 1階微分Sobelオペレータの縦横両方向出力の絶対値の和を表す関数オブジェクト
 template <class T>
-struct sobelAbs3x3
+struct sobelAbs3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return abs(sobelH3x3<T>()(p, c, n)) + abs(sobelV3x3<T>()(p, c, n));
+	return abs(sobelH3x3<T>()(y, x, in)) + abs(sobelV3x3<T>()(y, x, in));
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
 //! ラプラシアンオペレータを表す関数オブジェクト
 template <class T>
-struct laplacian3x3
+struct laplacian3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	return c[0] + c[2] + p[1] + n[1] - T(4)*c[1];
+	return in[y][x-1] + in[y][x+1] +
+	       in[y-1][x] + in[y+1][x] - T(4)*in[y][x];
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
 //! ヘッセ行列式オペレータを表す関数オブジェクト
 template <class T>
-struct det3x3
+struct det3x3 : public OperatorTraits<3, 3>
 {
     using result_type = T;
 
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, T_ in[][W_]) const
     {
-	const T	dxy = diffHV3x3<T>()(p, c, n);
+	const auto	dxy = diffHV3x3<T>()(y, x, in);
 
-	return diffHH3x3<T>()(p, c, n) * diffVV3x3<T>()(p, c, n) - dxy * dxy;
+	return diffHH1x3<T>()(y, x, in) * diffVV3x1<T>()(y, x, in) - dxy * dxy;
+    }
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (0 < y && y + 1 < nrow && 0 < x && x + 1 < ncol ?
+		(*this)(y, x, in) : T(0));
     }
 };
 
-//! 極大点検出オペレータを表す関数オブジェクト
-template <class T>
-class maximal3x3
+//! Logical AND operator between a pixel and its 4-neighbors
+template <class COMP>
+class logical_and4 : public OperatorTraits<3, 3>
+{
+  public:
+    using result_type = bool;
+
+    __host__ __device__
+    logical_and4(COMP comp)	:_comp(comp)			{}
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (y   <= 0    || _comp(in[y][x], in[y-1][x])) &&
+	       (y+1 >= nrow || _comp(in[y][x], in[y+1][x])) &&
+	       (x   <= 0    || _comp(in[y][x], in[y][x-1])) &&
+	       (x   >= ncol || _comp(in[y][x], in[y][x+1]));
+    }
+
+  private:
+    const COMP	_comp;
+};
+
+//! Logical OR operator between a pixel and its 4-neighbors
+template <class COMP>
+class logical_or4 : public OperatorTraits<3, 3>
+{
+  public:
+    using result_type = bool;
+
+    __host__ __device__
+    logical_or4(COMP comp)	:_comp(comp)			{}
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return (y   > 0    && _comp(in[y][x], in[y-1][x])) ||
+	       (y+1 < nrow && _comp(in[y][x], in[y+1][x])) ||
+	       (x   > 0    && _comp(in[y][x], in[y][x-1])) ||
+	       (x   < ncol && _comp(in[y][x], in[y][x+1]));
+    }
+
+  private:
+    const COMP	_comp;
+};
+
+//! Logical AND operator between a pixel and its 4-neighbors
+template <class COMP>
+class logical_and8 : public OperatorTraits<3, 3>
+{
+  public:
+    using result_type = bool;
+
+    __host__ __device__
+    logical_and8(COMP comp=COMP())	:_comp(comp)		{}
+
+    template <class T, size_t W> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T in[][W]) const
+    {
+	return logical_and4<COMP>(_comp)(y, x, nrow, ncol, in)  &&
+	       (y <= 0       ||
+		(x   <= 0    || _comp(in[y][x], in[y-1][x-1]))  &&
+		(x+1 >= ncol || _comp(in[y][x], in[y-1][x+1]))) &&
+	       (y+1 >= nrow  ||
+		(x   <= 0    || _comp(in[y][x], in[y+1][x-1]))  &&
+		(x+1 >= ncol || _comp(in[y][x], in[y+1][x+1])));
+    }
+
+  private:
+    const COMP	_comp;
+};
+
+//! Logical OR operator between a pixel and its 4-neighbors
+template <class COMP>
+class logical_or8 : public OperatorTraits<3, 3>
+{
+  public:
+    using result_type = bool;
+
+    __host__ __device__
+    logical_or8(COMP comp=COMP())	:_comp(comp)		{}
+
+    template <class T_, size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
+    {
+	return logical_or4<COMP>(_comp)(y, x, nrow, ncol, in)  ||
+	       (y > 0       &&
+		(x   > 0    && _comp(in[y][x], in[y-1][x-1]))  ||
+		(x+1 < ncol && _comp(in[y][x], in[y-1][x+1]))) ||
+	       (y+1 < nrow  &&
+		(x   > 0    && _comp(in[y][x], in[y+1][x-1]))  ||
+		(x+1 < ncol && _comp(in[y][x], in[y+1][x+1])));
+    }
+
+  private:
+    const COMP	_comp;
+};
+
+//!
+template <class T, class LOGICAL_AND>
+class extremal3x3 : public OperatorTraits<3, 3>
 {
   public:
     using result_type = T;
 
     __host__ __device__
-    maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
-
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
+    extremal3x3(T false_value=0) 
+	:_false_value(false_value), _logical_and()		{}
+    
+    template <size_t W_> __host__ __device__ result_type
+    operator ()(int y, int x, int nrow, int ncol, T in[][W_]) const
     {
-	return ((c[1] > p[0]) && (c[1] > p[1]) && (c[1] > p[2]) &&
-		(c[1] > c[0])		       && (c[1] > c[2]) &&
-		(c[1] > n[0]) && (c[1] > n[1]) && (c[1] > n[2]) ?
-		c[1] : _nonMaximal);
+	return (_logical_and(y, x, nrow, ncol, in) ? in[y][x] : _false_value);
     }
-
+    
   private:
-    const T	_nonMaximal;
+    const T		_false_value;
+    const LOGICAL_AND	_logical_and;
 };
 
-//! 極小点検出オペレータを表す関数オブジェクト
 template <class T>
-class minimal3x3
-{
-  public:
-    using result_type = T;
+using maximal4 = extremal3x3<T, logical_and4<thrust::greater<T> > >;
 
-    __host__ __device__
-    minimal3x3(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}
-
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
-    {
-	return ((c[1] < p[0]) && (c[1] < p[1]) && (c[1] < p[2]) &&
-		(c[1] < c[0])		       && (c[1] < c[2]) &&
-		(c[1] < n[0]) && (c[1] < n[1]) && (c[1] < n[2]) ?
-		c[1] : _nonMinimal);
-    }
-
-  private:
-    const T	_nonMinimal;
-};
-
-//! 極大点検出オペレータを表す関数オブジェクト(4-neighbor)
 template <class T>
-class maximal4
-{
-  public:
-    using result_type = T;
+using minimal4 = extremal3x3<T, logical_and4<thrust::less<T> > >;
 
-    __host__ __device__
-    maximal4(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
-
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
-    {
-	return ((c[1] > p[1]) && (c[1] > c[0]) &&
-		(c[1] > c[2]) && (c[1] > n[1]) ?
-		c[1] : _nonMaximal);
-    }
-
-  private:
-    const T	_nonMaximal;
-};
-
-//! 極小点検出オペレータを表す関数オブジェクト(4-neighbor)
 template <class T>
-class minimal4
-{
-  public:
-    using result_type = T;
+using maximal8 = extremal3x3<T, logical_and8<thrust::greater<T> > >;
 
-    __host__ __device__
-    minimal4(T nonMinimal=0)	:_nonMinimal(nonMinimal)	{}
-
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
-    {
-	return ((c[1] < p[1]) && (c[1] < c[0]) &&
-		(c[1] < c[2]) && (c[1] < n[1]) ?
-		c[1] : _nonMinimal);
-    }
-
-  private:
-    const T	_nonMinimal;
-};
+template <class T>
+using minimal8 = extremal3x3<T, logical_and8<thrust::less<T> > >;
 
 //! 2つの値の閾値付き差を表す関数オブジェクト
 template <class T>
@@ -290,17 +412,6 @@ class diff
 
   private:
     const T	_thresh;
-};
-
-struct is_border4
-{
-    using result_type = bool;
-
-    template <class ITER> __host__ __device__ result_type
-    operator ()(ITER p, ITER c, ITER n) const
-    {
-	return (c[1] != c[0] || c[1] != c[2] || c[1] != p[1] || c[1] != n[1]);
-    }
 };
 
 template <class T>

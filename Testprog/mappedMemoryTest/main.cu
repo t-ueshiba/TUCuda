@@ -11,12 +11,6 @@
 #include "TU/cuda/chrono.h"
 #include <thrust/system/cuda/experimental/pinned_allocator.h>
 
-//#define OP	cuda::det3x3
-//#define OP	cuda::laplacian3x3
-//#define OP	cuda::sobelAbs3x3
-#define OP	cuda::maximal3x3
-//#define OP	cuda::minimal3x3
-
 namespace TU
 {
 #if 0
@@ -35,6 +29,26 @@ template <class T>
 //using allocator_t = cuda::mapped_allocator<T>;
 using allocator_t = thrust::system::cuda::experimental::pinned_allocator<T>;
     
+template <class T>
+class maximal3x3
+{
+  public:
+    using result_type = T;
+
+    maximal3x3(T nonMaximal=0)	:_nonMaximal(nonMaximal)	{}
+
+    template <class ITER> result_type
+    operator ()(ITER p, ITER c, ITER n) const
+    {
+	return ((c[1] > p[0]) && (c[1] > p[1]) && (c[1] > p[2]) &&
+		(c[1] > c[0])		       && (c[1] > c[2]) &&
+		(c[1] > n[0]) && (c[1] > n[1]) && (c[1] > n[2]) ?
+		c[1] : _nonMaximal);
+    }
+
+  private:
+    const T	_nonMaximal;
+};
 }
 
 /************************************************************************
@@ -46,11 +60,11 @@ main(int argc, char *argv[])
     using namespace	std;
     using namespace	TU;
 
-  //typedef u_char	in_t;
-    typedef float	in_t;
-  //typedef u_char	out_t;
-    typedef float	out_t;
-
+  //using in_t	= u_char;
+  //using out_t	= u_char;
+    using in_t	= float;
+    using out_t	= float;
+    
     try
     {
 	cudaSetDeviceFlags(cudaDeviceMapHost);
@@ -61,7 +75,8 @@ main(int argc, char *argv[])
 
       // GPUによって計算する．
 	Image<out_t, allocator_t<out_t> >	out(in.width(), in.height());
-	cuda::op3x3(in.cbegin(), in.cend(), out.begin(), OP<in_t>());
+	cuda::opNxM(in.cbegin(), in.cend(), out.begin(),
+		    cuda::maximal8<in_t>());
 	cudaDeviceSynchronize();
 
 	Profiler<cuda::clock>	cuProfiler(1);
@@ -69,7 +84,8 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cuda::op3x3(in.cbegin(), in.cend(), out.begin(), OP<in_t>());
+	    cuda::opNxM(in.cbegin(), in.cend(), out.begin(),
+			cuda::maximal8<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);
@@ -83,7 +99,7 @@ main(int argc, char *argv[])
 	{
 	    outGold = in;
 	    profiler.start(0);
-	    op3x3(outGold.begin(), outGold.end(), OP<in_t>());
+	    op3x3(outGold.begin(), outGold.end(), TU::maximal3x3<in_t>());
 	    profiler.nextFrame();
 	}
 	profiler.print(cerr);

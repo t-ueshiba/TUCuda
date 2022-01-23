@@ -44,29 +44,6 @@
 #include "TU/range.h"
 #include "TU/cuda/tuple.h"
 
-namespace thrust
-{
-/************************************************************************
-*  thrust::stride(const ITER&)						*
-************************************************************************/
-template <class T> __host__ __device__ ptrdiff_t
-stride(device_ptr<T>)							;
-
-template <class HEAD, class TAIL> __host__ __device__ inline auto
-stride(const detail::cons<HEAD, TAIL>& iter_tuple)
-{
-    return TU::cuda::tuple_transform([](const auto& iter)
-				     { return stride(iter); }, iter_tuple);
-}
-	    
-template <class ITER_TUPLE> __host__ __device__ inline auto
-stride(const zip_iterator<ITER_TUPLE>& iter)
-    -> decltype(stride(iter.get_iterator_tuple()))
-{
-    return stride(iter.get_iterator_tuple());
-}
-}	// namespace thrust
-
 namespace TU
 {
 namespace cuda

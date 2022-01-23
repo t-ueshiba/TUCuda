@@ -41,6 +41,7 @@
 #pragma once
 
 #include "TU/type_traits.h"
+#include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
 
 namespace TU
@@ -317,6 +318,11 @@ cu_apply(FUNC&& f, T&& t)
     return f(std::forward<T>(t));
 }
 
+}	// namespace cuda
+}	// namespace TU
+
+namespace thrust
+{
 /************************************************************************
 *  begin|end|rbegin|rend|size for tuples				*
 ************************************************************************/
@@ -324,18 +330,16 @@ template <class HEAD, class TAIL> inline auto
 begin(thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		cuda::tuple_transform([](auto&& x)
-				{ using std::begin; return begin(x); },
-				t));
+		TU::cuda::tuple_transform(
+		    [](auto&& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class HEAD, class TAIL> inline auto
 end(thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		cuda::tuple_transform([](auto&& x)
-				{ using std::end; return end(x); },
-				t));
+		TU::cuda::tuple_transform(
+		    [](auto&& x){ using std::end; return end(x); }, t));
 }
 
 template <class HEAD, class TAIL> inline auto
@@ -354,18 +358,16 @@ template <class HEAD, class TAIL> inline auto
 begin(const thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		cuda::tuple_transform([](auto&& x)
-				{ using std::begin; return begin(x); },
-				t));
+		TU::cuda::tuple_transform(
+		    [](auto&& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class HEAD, class TAIL> inline auto
 end(const thrust::detail::cons<HEAD, TAIL>& t)
 {
     return thrust::make_zip_iterator(
-		cuda::tuple_transform([](auto&& x)
-				{ using std::end; return end(x); },
-				t));
+		TU::cuda::tuple_transform(
+		    [](auto&& x){ using std::end; return end(x); }, t));
 }
 
 template <class HEAD, class TAIL> inline auto
@@ -386,5 +388,24 @@ size(const thrust::detail::cons<HEAD, TAIL>& t)
     return size(thrust::get<0>(t));
 }
 
-}	// namespace cuda
-}	// namespace TU
+/************************************************************************
+*  thrust::stride(const ITER&)						*
+************************************************************************/
+template <class T> __host__ __device__ ptrdiff_t
+stride(device_ptr<T>)							;
+
+template <class HEAD, class TAIL> __host__ __device__ inline auto
+stride(const detail::cons<HEAD, TAIL>& iter_tuple)
+{
+    return TU::cuda::tuple_transform([](const auto& iter)
+				     { return stride(iter); }, iter_tuple);
+}
+	    
+template <class ITER_TUPLE> __host__ __device__ inline auto
+stride(const zip_iterator<ITER_TUPLE>& iter)
+    -> decltype(stride(iter.get_iterator_tuple()))
+{
+    return stride(iter.get_iterator_tuple());
+}
+
+}	// namespace thrust

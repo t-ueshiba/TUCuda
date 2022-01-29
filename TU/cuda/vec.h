@@ -885,42 +885,42 @@ namespace device
 ************************************************************************/
 template <class T> __device__
 inline std::enable_if_t<std::is_arithmetic<T>::value, T>
-atomicOp(T* p, const T& val, std::nullptr_t)
+atomicOp(T* p, T val, std::nullptr_t)
 {
     return ::atomicExch(p, val);
 }
     
 template <class T> __device__
 inline std::enable_if_t<std::is_arithmetic<T>::value, T>
-atomicOp(T* p, const T& val, std::plus<>)
+atomicOp(T* p, T val, std::plus<>)
 {
     return ::atomicAdd(p, val);
 }
     
 template <class T> __device__
 inline std::enable_if_t<std::is_arithmetic<T>::value, T>
-atomicOp(T* p, const T& val, std::minus<>)
+atomicOp(T* p, T val, std::minus<>)
 {
     return ::atomicSub(p, val);
 }
     
 template <class T> __device__
 inline std::enable_if_t<std::is_integral<T>::value, T>
-atomicOp(T* p, const T& val, std::bit_and<>)
+atomicOp(T* p, T val, std::bit_and<>)
 {
     return ::atomicAnd(p, val);
 }
     
 template <class T> __device__
 inline std::enable_if_t<std::is_integral<T>::value, T>
-atomicOp(T* p, const T& val, std::bit_or<>)
+atomicOp(T* p, T val, std::bit_or<>)
 {
     return ::atomicOr(p, val);
 }
     
 template <class T> __device__
 inline std::enable_if_t<std::is_integral<T>::value, T>
-atomicOp(T* p, const T& val, std::bit_xor<>)
+atomicOp(T* p, T val, std::bit_xor<>)
 {
     return ::atomicXor(p, val);
 }

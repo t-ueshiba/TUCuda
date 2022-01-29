@@ -152,7 +152,9 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
 
     __host__ __device__	mat2x()			:super()		{}
     __host__ __device__ constexpr
-			mat2x(T x, T y=0)	:super{x, y}		{}
+			mat2x(T c)		:super{c, c}		{}
+    __host__ __device__ constexpr
+			mat2x(T x, T y)		:super{x, y}		{}
 
     __host__ __device__
     mat2x&		operator =(T c)
@@ -186,9 +188,11 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
-    __host__ __device__	mat3x()			 :super()		{}
+    __host__ __device__	mat3x()		     :super()			{}
     __host__ __device__ constexpr
-			mat3x(T x, T y=0, T z=0) :super{x, y, z}	{}
+			mat3x(T c)	     :super{c, c, c}		{}
+    __host__ __device__ constexpr
+			mat3x(T x, T y, T z) :super{x, y, z}		{}
 
     __host__ __device__
     mat3x&		operator =(T c)
@@ -226,8 +230,9 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 
     __host__ __device__	mat4x()			   :super()		{}
     __host__ __device__ constexpr
-			mat4x(T x,
-			      T y=0, T z=0, T w=0) :super{x, y, z, w}	{}
+			mat4x(T c)		  :super{c, c, c, c}	{}
+    __host__ __device__ constexpr
+			mat4x(T x, T y, T z, T w) :super{x, y, z, w}	{}
 
     __host__ __device__
     mat4x&		operator =(T c)
@@ -261,6 +266,21 @@ struct mat2x
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
+    __host__ __device__	mat2x()						{}
+    __host__ __device__	constexpr
+			mat2x(const value_type& xx, const value_type& yy)
+			    :x(xx), y(yy)				{}
+    __host__ __device__	constexpr
+			mat2x(T c) :x(c), y(c)				{}
+    
+    __host__ __device__
+    mat2x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    return *this;
+			}
+
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 2, mat2x<T, 2> >
     transpose()	const
@@ -282,14 +302,6 @@ struct mat2x
 	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}, {x.w, y.w}};
     }
 
-    __host__ __device__ mat2x&
-    operator =(T c)
-    {
-	x = c;
-	y = c;
-	return *this;
-    }
-
     value_type	x, y;
 };
 
@@ -307,6 +319,23 @@ struct mat3x
     static size_t	size1()			{ return C; }
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
+
+    __host__ __device__	mat3x()						{}
+    __host__ __device__	constexpr
+			mat3x(const value_type& xx, const value_type& yy,
+			      const value_type& zz)
+			    :x(xx), y(yy), z(zz)			{}
+    __host__ __device__	constexpr
+			mat3x(T c) :x(c), y(c), z(c)			{}
+    
+    __host__ __device__
+    mat3x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    z = c;
+			    return *this;
+			}
 
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 2, mat2x<T, 3> >
@@ -330,15 +359,6 @@ struct mat3x
 		{x.z, y.z, z.z}, {x.w, y.w, z.w}};
     }
 
-    __host__ __device__ mat3x&
-    operator =(T c)
-    {
-	x = c;
-	y = c;
-	z = c;
-	return *this;
-    }
-
     value_type	x, y, z;
 };
 
@@ -356,6 +376,24 @@ struct mat4x
     static size_t	size1()			{ return C; }
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
+
+    __host__ __device__	mat4x()						{}
+    __host__ __device__	constexpr
+			mat4x(const value_type& xx, const value_type& yy,
+			      const value_type& zz, const value_type& ww)
+			    :x(xx), y(yy), z(zz), w(ww)			{}
+    __host__ __device__	constexpr
+			mat4x(T c) :x(c), y(c), z(c), w(c)		{}
+    
+    __host__ __device__
+    mat4x&		operator =(T c)
+			{
+			    x = c;
+			    y = c;
+			    z = c;
+			    w = c;
+			    return *this;
+			}
 
     template <size_t C_=C> __host__ __device__
     std::enable_if_t<C_ == 2, mat2x<T, 4> >
@@ -378,16 +416,6 @@ struct mat4x
     {
 	return {{x.x, y.x, z.x, w.x}, {x.y, y.y, z.y, w.y},
 		{x.z, y.z, z.z, w.z}, {x.w, y.w, z.w, w.w}};
-    }
-
-    __host__ __device__ mat4x&
-    operator =(T c)
-    {
-	x = c;
-	y = c;
-	z = c;
-	w = c;
-	return *this;
     }
 
     value_type	x, y, z, w;

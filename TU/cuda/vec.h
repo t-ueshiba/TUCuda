@@ -883,34 +883,66 @@ namespace device
 /************************************************************************
 *  atomic operations							*
 ************************************************************************/
-template <class T, class OP> __device__ inline void
-atomicOp(T& dst, const T& src, OP op)
+template <class T> __device__
+inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+atomicOp(T* p, const T& val, std::nullptr_t)
 {
-    op(&dst, src);
+    return ::atomicExch(p, val);
 }
     
-template <class T, size_t C, class OP> __device__ inline void
-atomicOp(mat2x<T, C>& dst, const mat2x<T, C>& src, OP op)
+template <class T> __device__
+inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+atomicOp(T* p, const T& val, std::plus<>)
 {
-    atomicOp(dst.x, src.x, op);
-    atomicOp(dst.y, src.y, op);
+    return ::atomicAdd(p, val);
 }
     
-template <class T, size_t C, class OP> __device__ inline void
-atomicOp(mat3x<T, C>& dst, const mat3x<T, C>& src, OP op)
+template <class T> __device__
+inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+atomicOp(T* p, const T& val, std::minus<>)
 {
-    atomicOp(dst.x, src.x, op);
-    atomicOp(dst.y, src.y, op);
-    atomicOp(dst.z, src.z, op);
+    return ::atomicSub(p, val);
 }
     
-template <class T, size_t C, class OP> __device__ inline void
-atomicOp(mat4x<T, C>& dst, const mat4x<T, C>& src, OP op)
+template <class T> __device__
+inline std::enable_if_t<std::is_integral<T>::value, T>
+atomicOp(T* p, const T& val, std::bit_and<>)
 {
-    atomicOp(dst.x, src.x, op);
-    atomicOp(dst.y, src.y, op);
-    atomicOp(dst.z, src.z, op);
-    atomicOp(dst.w, src.w, op);
+    return ::atomicAnd(p, val);
+}
+    
+template <class T> __device__
+inline std::enable_if_t<std::is_integral<T>::value, T>
+atomicOp(T* p, const T& val, std::bit_or<>)
+{
+    return ::atomicOr(p, val);
+}
+    
+template <class T> __device__
+inline std::enable_if_t<std::is_integral<T>::value, T>
+atomicOp(T* p, const T& val, std::bit_xor<>)
+{
+    return ::atomicXor(p, val);
+}
+    
+template <class T, size_t C, class OP> __device__ inline mat2x<T, C>
+atomicOp(mat2x<T, C>* p, const mat2x<T, C>& val, OP op)
+{
+    return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op)};
+}
+    
+template <class T, size_t C, class OP> __device__ inline mat3x<T, C>
+atomicOp(mat3x<T, C>* p, const mat3x<T, C>& val, OP op)
+{
+    return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),
+	    atomicOp(&p->z, val.z, op)};
+}
+    
+template <class T, size_t C, class OP> __device__ inline mat4x<T, C>
+atomicOp(mat4x<T, C>* p, const mat4x<T, C>& val, OP op)
+{
+    return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),
+	    atomicOp(&p->z, val.z, op), atomicOp(&p->w, val.w, op)};
 }
     
 }	// namespace device

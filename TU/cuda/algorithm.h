@@ -392,27 +392,47 @@ transform2(IN in, IN ie, OUT out, OP op)
 #endif
 
 /************************************************************************
-*  fill<BLOCK_TRAITS>(OUT out, OUT oe, T val)				*
+*  generate2<BLOCK_TRAITS>(OUT out, OUT oe, GEN gen)			*
 ************************************************************************/
-template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class T> void
-fill(OUT out, OUT oe, T val)						;
+template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class GEN> void
+generate(OUT out, OUT oe, GEN gen)					;
 
 #if defined(__NVCC__)
 namespace device
 {
-  template <class OUT, class T> __global__ void
-  fill(range<range_iterator<OUT> > out, T val)
+  template <class OUT, class GEN> __global__ static void
+  generate2(range<range_iterator<OUT> > out, GEN gen, std::true_type)
   {
       const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
       if (y < out.size() && x < out.begin().size())
-	  out[y][x] = val;
+	  out[y][x] = gen();
+  }
+    
+  template <class OUT, class GEN> __global__ static void
+  generate2(range<range_iterator<OUT> > out, GEN gen, std::false_type)
+  {
+      const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+      const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+      if (y < out.size() && x < out.begin().size())
+	  out[y][x] = gen(y, x);
   }
 }	// namespace cuda
 
-template <class BLOCK_TRAITS, class OUT, class T> void
-fill(OUT out, OUT oe, T val)
+namespace detail
+{
+  template <class GEN>
+  static auto	check_noargs(GEN gen) -> decltype(gen(), std::true_type());
+  template <class GEN>
+  static auto	check_noargs(GEN gen) -> decltype(gen(0, 0), std::false_type());
+  template <class GEN>
+  using noargs = decltype(check_noargs(std::declval<GEN>()));
+}
+    
+template <class BLOCK_TRAITS, class OUT, class GEN> void
+generate2(OUT out, OUT oe, GEN gen)
 {
     const int	nrow = std::distance(out, oe);
     if (nrow < 1)
@@ -424,8 +444,21 @@ fill(OUT out, OUT oe, T val)
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
-    device::fill<<<blocks, threads>>>(cuda::make_range(out, nrow), val);
+    device::generate2<<<blocks, threads>>>(
+    	cuda::make_range(out, nrow), gen,
+    	std::integral_constant<bool, detail::noargs<GEN>::value>());
 }
 #endif
+
+/************************************************************************
+*  fill2<BLOCK_TRAITS>(OUT out, OUT oe, T val)				*
+************************************************************************/
+template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class T> void
+fill2(OUT out, OUT oe, T val)
+{
+    generate2<BLOCK_TRAITS>(out, oe,
+			    [val] __host__ __device__ (){ return val; });
+}
+
 }	// namespace cuda
 }	// namespace TU

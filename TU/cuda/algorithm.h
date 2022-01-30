@@ -395,7 +395,7 @@ transform2(IN in, IN ie, OUT out, OP op)
 *  generate2<BLOCK_TRAITS>(OUT out, OUT oe, GEN gen)			*
 ************************************************************************/
 template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class GEN> void
-generate(OUT out, OUT oe, GEN gen)					;
+generate2(OUT out, OUT oe, GEN gen)					;
 
 #if defined(__NVCC__)
 namespace device
@@ -429,7 +429,7 @@ namespace detail
   static auto	check_noargs(GEN gen) -> decltype(gen(0, 0), std::false_type());
   template <class GEN>
   using noargs = decltype(check_noargs(std::declval<GEN>()));
-}
+}	// namespace detail
     
 template <class BLOCK_TRAITS, class OUT, class GEN> void
 generate2(OUT out, OUT oe, GEN gen)

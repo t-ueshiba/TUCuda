@@ -175,6 +175,8 @@ namespace device
 template <class BLOCK_TRAITS, class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
+    using	std::size;
+    
     const int	nrow = std::distance(in, ie);
     if (nrow < 2)
 	return;
@@ -237,6 +239,8 @@ namespace device
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 opNxM(IN in, IN ie, OUT out, OP op)
 {
+    using	std::size;
+    
     const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
@@ -290,6 +294,8 @@ namespace detail
   template <size_t BLOCK_DIM, class IN, class OUT> static void
   transpose(IN in, IN ie, OUT out, size_t i, size_t j)
   {
+      using	std::size;
+      
       size_t	r = std::distance(in, ie);
       if (r < 1)
 	  return;
@@ -371,6 +377,7 @@ namespace detail
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)
 {
+    using std::size;
     using value_type	= typename std::iterator_traits<IN>::value_type
 							   ::value_type;
 
@@ -434,6 +441,8 @@ namespace detail
 template <class BLOCK_TRAITS, class OUT, class GEN> void
 generate2(OUT out, OUT oe, GEN gen)
 {
+    using	std::size;
+    
     const int	nrow = std::distance(out, oe);
     if (nrow < 1)
 	return;

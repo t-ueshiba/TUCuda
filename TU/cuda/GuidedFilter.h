@@ -230,7 +230,8 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-
+    using	std::size;
+    
     if (ib == ie)
 	return;
 
@@ -294,14 +295,15 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
     using	std::cbegin;
     using	std::cend;
     using	std::begin;
-
+    using	std::size;
+    
     if (ib == ie)
 	return;
 
     profiler_t::start(0);
     const auto	n     = winSizeV() * winSizeH();
     const auto	nrows = std::distance(ib, ie);
-    const auto	ncols = TU::size(*ib);
+    const auto	ncols = size(*ib);
 
     _c.resize(nrows + 1 - winSizeV(), ncols + 1 - winSizeH());
 

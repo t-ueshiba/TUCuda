@@ -266,7 +266,7 @@ template <size_t L, class IN, class OUT> void
 FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
 {
     const int	nrow = std::distance(in, ie);
-    const int	ncol = TU::size(*in);
+    const int	ncol = std::size(*in);
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
@@ -278,7 +278,7 @@ template <size_t L, class IN, class OUT> void
 FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
 {
     const int	nrow = std::distance(in, ie);
-    const int	ncol = TU::size(*in);
+    const int	ncol = std::size(*in);
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
@@ -304,7 +304,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
     if (nrow < 4*(_lobeSizeV/2) + 1)
 	return;
 
-    const size_t	ncol = TU::size(*in);
+    const size_t	ncol = std::size(*in);
     if (ncol < 4*(_lobeSizeH/2) + 1)
 	return;
 

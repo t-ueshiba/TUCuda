@@ -162,7 +162,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(),
 			 cuda::make_range_iterator(
-			     thrust::make_zip_iterator(out_d.begin()->begin(),
+			     cuda::make_zip_iterator(out_d.begin()->begin(),
 						       pos_d.begin()->begin()),
 			     cuda::stride(out_d.begin(), pos_d.begin()),
 			     out_d.size()),
@@ -220,7 +220,7 @@ main(int argc, char* argv[])
 	TU::box_convolver_test<float>(in, winSize);
 	TU::extrema_value_test(in, winSize);
 	TU::extrema_position_test(in, winSize);
-	TU::extrema_value_position_test(in, winSize);
+      //TU::extrema_value_position_test(in, winSize);
     }
     catch (std::exception& err)
     {

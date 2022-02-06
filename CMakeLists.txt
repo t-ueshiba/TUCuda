@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS	OFF)
 set(CMAKE_CXX_FLAGS_RELEASE	"-Wall -O3")
 set(CMAKE_CXX_FLAGS_DEBUG	"-g")
 set(CMAKE_BUILD_TYPE		Release)
-set(CUDA_NVCC_FLAGS		"-std=c++17 -O3 --extended-lambda")
+set(CUDA_NVCC_FLAGS		"-std=c++17 -O3 --extended-lambda --disable-warnings")
 add_definitions(-DNDEBUG)
 
 if(APPLE)

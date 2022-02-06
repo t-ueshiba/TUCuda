@@ -120,7 +120,7 @@ template <class COMP>
 struct extrema_position_base : public COMP
 {
     using argument_type	= typename COMP::first_argument_type;
-    using value_type	= thrust::tuple<argument_type, int>;
+    using value_type	= ::cuda::std::tuple<argument_type, int>;
     using COMP::operator ();
 
     __device__
@@ -131,7 +131,8 @@ struct extrema_position_base : public COMP
     __device__
     bool	operator ()(const value_type& v, const value_type& w) const
 		{
-		    return operator ()(thrust::get<0>(v), thrust::get<0>(w));
+		    return operator ()(::cuda::std::get<0>(v),
+				       ::cuda::std::get<0>(w));
 		}
 };
 }	// namespace detail
@@ -147,7 +148,7 @@ struct extrema_position : public detail::extrema_position_base<COMP>
     __device__
     result_type	operator ()(const value_type& v, int pos) const
 		{
-		    return {pos, thrust::get<1>(v)};
+		    return {pos, ::cuda::std::get<1>(v)};
 		}
 };
     
@@ -157,13 +158,14 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
     using super		= detail::extrema_position_base<COMP>;
     using typename super::argument_type;
     using typename super::value_type;
-    using result_type	= thrust::tuple<argument_type, vec<int, 2> >;
+    using result_type	= ::cuda::std::tuple<argument_type, vec<int, 2> >;
     using super::operator ();
 
     __device__
     result_type	operator ()(const value_type& v, int pos) const
 		{
-		    return {thrust::get<0>(v), {pos, thrust::get<1>(v)}};
+		    return {::cuda::std::get<0>(v),
+			    {pos, ::cuda::std::get<1>(v)}};
 		}
 };
     
@@ -249,7 +251,8 @@ box_filter(range<range_iterator<IN> > in,
     using convolver_type = typename FILTER::convolver_type;
     using value_type	 = typename convolver_type::value_type;
     using result_type	 = typename convolver_type::result_type;
-    using in_type	 = typename std::iterator_traits<IN>::value_type;
+  //using in_type	 = typename std::iterator_traits<IN>::value_type;
+    using in_type	 = TU::cuda::decayed_iterator_value<IN>;
     using out_type	 = std::conditional_t<
 				std::is_same<in_type, value_type>::value,
 				result_type, value_type>;

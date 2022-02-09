@@ -17,12 +17,12 @@ template <class CONVOLVER, class IN, class OUT> void
 cudaJob(IN in, IN ie, OUT out, size_t winSize, bool shift)
 {
     const cu::BoxFilter2<CONVOLVER, cu::BlockTraits<32, 16> >
-				filter(winSize, winSize);
+			filter(winSize, winSize);
     filter.convolve(in, ie, out, shift);
     cudaDeviceSynchronize();
 
     Profiler<cu::clock>	cuProfiler(1);
-    constexpr size_t		NITER = 1000;
+    constexpr size_t	NITER = 1000;
     for (size_t n = 0; n < NITER; ++n)
     {
 	cuProfiler.start(0);
@@ -39,10 +39,10 @@ box_convolver_test(const Image<T>& in, size_t winSize)
 
     std::cerr << "=== box_convolver_test ===\n[GPU] ";
     const cu::Array2<T>	in_d(in);
-    cu::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), out_d.begin(),
 			 winSize, false);
-    Image<T>			out(out_d);
+    Image<T>		out(out_d);
     out *= float(1)/float(winSize*winSize);
     out.save(std::cout);				// 結果画像をセーブ
 
@@ -70,11 +70,11 @@ extrema_value_test(const Image<T>& in, size_t winSize)
 
   // GPUによって計算する．
     std::cerr << "=== extrema_value_test ===\n[GPU] ";
-    const cu::Array2<T>		in_d(in);
-    cu::Array2<T>		out_d(in_d.nrow(), in_d.ncol());
+    const cu::Array2<T>	in_d(in);
+    cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(), out_d.begin(),
 			 winSize, false);
-    const Image<T>		out(out_d);
+    const Image<T>	out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
 
   // CPUによって計算する．
@@ -156,14 +156,14 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 				thrust::greater<T> > >;
     
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";
-    const cu::Array2<T>		in_d(in);
+    const cu::Array2<T>			in_d(in);
     cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
     cu::Array2<cu::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
 
     cudaJob<convolver_t>(in_d.cbegin(), in_d.cend(),
 			 cu::make_range_iterator(
-			     cu::make_zip_iterator(out_d.begin()->begin(),
-						   pos_d.begin()->begin()),
+			     thrust::make_zip_iterator(out_d.begin()->begin(),
+						       pos_d.begin()->begin()),
 			     cu::stride(out_d.begin(), pos_d.begin()),
 			     out_d.size()),
 			 winSize, true);
@@ -199,7 +199,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 int
 main(int argc, char* argv[])
 {
-    size_t		winSize = 10;
+    size_t		winSize = 3;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "w:")) != -1; )
 	switch (c)

@@ -112,10 +112,10 @@ class trans_guides
     trans_guides(size_t n)	:_n(n)					{}
 
     template <class GUIDE_, class OUT_> __host__ __device__
-    void	operator ()(cuda::std::tuple<GUIDE_, OUT_>&& t,
+    void	operator ()(thrust::tuple<GUIDE_, OUT_>&& t,
 			    const vec<T, 2>& coeffs) const
 		{
-		    using	cuda::std::get;
+		    using	thrust::get;
 
 		    get<1>(t) = (coeffs.x*get<0>(t) + coeffs.y)/_n;
 		}

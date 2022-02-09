@@ -21,14 +21,14 @@ doJob(const Array2<T>& in, size_t winSize)
 				thrust::greater<T> > >;
     
     const cu::BoxFilter2<convolver_t>	filter(winSize, winSize);
-    const cu::Array2<T>		in_d(in);
+    const cu::Array2<T>			in_d(in);
     cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
     cu::Array2<cu::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
 	
     filter.convolve(in_d.cbegin(), in_d.cend(),
 		    cu::make_range_iterator(
-			cu::make_zip_iterator(out_d.begin()->begin(),
-					      pos_d.begin()->begin()),
+			thrust::make_zip_iterator(out_d.begin()->begin(),
+						  pos_d.begin()->begin()),
 			cu::stride(out_d.begin(), pos_d.begin()),
 			out_d.size()),
 		    false);

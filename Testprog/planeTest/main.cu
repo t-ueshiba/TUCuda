@@ -4,11 +4,11 @@
 #include <vector>
 #include <iostream>
 #include <thrust/device_vector.h>
-#include "TU/cuda/functional.h"
+#include "TU/cu/functional.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 namespace device
 {
@@ -63,12 +63,12 @@ doJob()
 	std::cerr << "---- plane ----\n" << plane << std::endl << std::endl;
     }
 }
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU
 
 int
 main()
 {
-    TU::cuda::doJob<float>();
+    TU::cu::doJob<float>();
     return 0;
 }

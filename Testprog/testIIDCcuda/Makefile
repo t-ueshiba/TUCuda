@@ -38,9 +38,11 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/allocator.h \
-		../../TU/cuda/chrono.h \
+EXTHDRS		= ../../TU/cu/Array++.h \
+		../../TU/cu/allocator.h \
+		../../TU/cu/chrono.h \
+		../../TU/cu/iterator.h \
+		../../TU/cu/tuple.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -76,8 +78,9 @@ cuda_image_interpolate.o: /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	/usr/local/include/TU/Profiler.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/allocator.h ../../TU/cuda/chrono.h
+	/usr/local/include/TU/Profiler.h ../../TU/cu/Array++.h \
+	../../TU/cu/allocator.h ../../TU/cu/iterator.h ../../TU/cu/tuple.h \
+	../../TU/cu/chrono.h
 main.o: /usr/local/include/TU/IIDCCameraArray.h \
 	/usr/local/include/TU/IIDC++.h /usr/local/include/TU/Image++.h \
 	/usr/local/include/TU/pair.h /usr/local/include/TU/type_traits.h \
@@ -86,4 +89,5 @@ main.o: /usr/local/include/TU/IIDCCameraArray.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h
+	../../TU/cu/Array++.h ../../TU/cu/allocator.h ../../TU/cu/iterator.h \
+	../../TU/cu/tuple.h

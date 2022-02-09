@@ -39,13 +39,13 @@
 */
 #pragma once
 
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/Array++.h"
+#include "TU/cu/algorithm.h"
+#include "TU/cu/Array++.h"
 #include <cuda_texture_types.h>
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  class Texture<T>							*
@@ -203,9 +203,9 @@ warp(const Array2<T>& a, OUT out, MAP map)
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::warp<T><<<blocks, threads>>>(tex.get(),
-					 cuda::make_range(out, nrow), map);
+					 cu::make_range(out, nrow), map);
 }
 #endif
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

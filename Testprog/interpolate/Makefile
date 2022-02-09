@@ -15,7 +15,7 @@ MOCHDRS		=
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -O3
-NVCCFLAGS	= -O
+NVCCFLAGS	= -O2
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else
@@ -23,7 +23,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= -lTUCuda -lTUTools -ltbb -lintlc
+LIBS		= -lTUCuda -lTUTools -ltbb
 LINKER		= $(NVCC)
 
 BINDIR		= $(PREFIX)/bin
@@ -34,9 +34,11 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/allocator.h \
-		../../TU/cuda/chrono.h \
+EXTHDRS		= ../../TU/cu/Array++.h \
+		../../TU/cu/allocator.h \
+		../../TU/cu/chrono.h \
+		../../TU/cu/iterator.h \
+		../../TU/cu/tuple.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -49,7 +51,8 @@ EXTHDRS		= ../../TU/cuda/Array++.h \
 		/usr/local/include/TU/iterator.h \
 		/usr/local/include/TU/pair.h \
 		/usr/local/include/TU/range.h \
-		/usr/local/include/TU/tuple.h
+		/usr/local/include/TU/tuple.h \
+		/usr/local/include/TU/type_traits.h
 HDRS		=
 SRCS		= cuda_image_interpolate.cu \
 		main.cu
@@ -63,18 +66,20 @@ OBJS		= cuda_image_interpolate.o \
 include $(PROJECT)/lib/common.mk
 ###
 cuda_image_interpolate.o: /usr/local/include/TU/Image++.h \
-	/usr/local/include/TU/pair.h /usr/local/include/TU/Manip.h \
-	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
-	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
-	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/chrono.h
-main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/pair.h /usr/local/include/TU/type_traits.h \
 	/usr/local/include/TU/Manip.h /usr/local/include/TU/Camera++.h \
 	/usr/local/include/TU/Geometry++.h /usr/local/include/TU/Minimize.h \
 	/usr/local/include/TU/Vector++.h /usr/local/include/TU/Array++.h \
 	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
 	/usr/local/include/TU/tuple.h /usr/local/include/TU/algorithm.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h
+	/usr/local/include/TU/Profiler.h ../../TU/cu/Array++.h \
+	../../TU/cu/allocator.h ../../TU/cu/iterator.h ../../TU/cu/tuple.h \
+	../../TU/cu/chrono.h
+main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
+	/usr/local/include/TU/type_traits.h /usr/local/include/TU/Manip.h \
+	/usr/local/include/TU/Camera++.h /usr/local/include/TU/Geometry++.h \
+	/usr/local/include/TU/Minimize.h /usr/local/include/TU/Vector++.h \
+	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
+	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
+	/usr/local/include/TU/algorithm.h ../../TU/cu/Array++.h \
+	../../TU/cu/allocator.h ../../TU/cu/iterator.h ../../TU/cu/tuple.h

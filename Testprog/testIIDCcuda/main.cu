@@ -9,11 +9,11 @@
 #include <fstream>
 #include <stdexcept>
 #include "TU/IIDCCameraArray.h"
-#include "TU/cuda/Array++.h"
+#include "TU/cu/Array++.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 template <class T> void
 interpolate(const Array2<T>& d_image0,
@@ -53,7 +53,7 @@ doJob(IIDCCameraArray& cameras)
     }
 
   // デバイス画像の確保
-    cuda::Array2<T>	d_images[3];
+    cu::Array2<T>	d_images[3];
     
   // カメラ出力の開始．
     for (size_t i = 0; i < cameras.size(); ++i)
@@ -82,8 +82,8 @@ doJob(IIDCCameraArray& cameras)
 	for (size_t i = 0; i < cameras.size(); ++i)
 	    d_images[i] = images[i];			// デバイスへの転送
 
-	cuda::interpolate(d_images[0],
-			  d_images[1], d_images[2]);	// CUDAによる補間
+	cu::interpolate(d_images[0],
+			d_images[1], d_images[2]);	// CUDAによる補間
 	images[2] = d_images[2];			// ホストへの転送
 
 	for (size_t i = 0; i < images.size(); ++i)

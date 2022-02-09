@@ -4,11 +4,11 @@
 #include <fstream>
 #include <stdexcept>
 #include "TU/Image++.h"
-#include "TU/cuda/Array++.h"
+#include "TU/cu/Array++.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 template <class T> void
 interpolate(const Array2<T>& d_image0,
@@ -45,9 +45,9 @@ main(int argc, char *argv[])
 	in.close();
 
       // Do main job.
-	cuda::Array2<pixel_type>	d_image0(image0),
-					d_image1(image1), d_image2;
-	cuda::interpolate(d_image0, d_image1, d_image2);
+	cu::Array2<pixel_type>	d_image0(image0),
+				d_image1(image1), d_image2;
+	cu::interpolate(d_image0, d_image1, d_image2);
 
       // Save the obtained results.
 	Image<pixel_type>	image2(d_image2);

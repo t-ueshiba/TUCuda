@@ -3,16 +3,16 @@
  */
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/functional.h"
-#include "TU/cuda/chrono.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/algorithm.h"
+#include "TU/cu/functional.h"
+#include "TU/cu/chrono.h"
 
-//#define OP	cuda::det3x3
-//#define OP	cuda::laplacian3x3
-//#define OP	cuda::sobelAbs3x3
-#define OP	cuda::maximal3x3
-//#define OP	cuda::minimal3x3
+//#define OP	cu::det3x3
+//#define OP	cu::laplacian3x3
+//#define OP	cu::sobelAbs3x3
+#define OP	cu::maximal3x3
+//#define OP	cu::minimal3x3
 
 namespace TU
 {
@@ -59,19 +59,19 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::Array2<in_t>	in_d(in);
-	cuda::Array2<out_t>	out_d(in.nrow(), in.ncol());
-	cuda::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		    cuda::maximal8<in_t>());
+	cu::Array2<in_t>	in_d(in);
+	cu::Array2<out_t>	out_d(in.nrow(), in.ncol());
+	cu::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		  cu::maximal8<in_t>());
 	cudaDeviceSynchronize();
 
-	Profiler<cuda::clock>	cuProfiler(1);
+	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cuda::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
-			cuda::maximal8<in_t>());
+	    cu::opNxM(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		      cu::maximal8<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);

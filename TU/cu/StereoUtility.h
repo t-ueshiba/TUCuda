@@ -41,11 +41,11 @@
 #pragma once
 
 #include <limits>
-#include "TU/cuda/Array++.h"
+#include "TU/cu/Array++.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 #if defined(__NVCC__)
 namespace device
@@ -213,5 +213,5 @@ DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 						  _dminR.stride());
 }
 
-}	// namespace cuda
+}	// namespace cu
 }	// namepsace TU

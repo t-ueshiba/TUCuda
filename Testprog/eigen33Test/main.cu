@@ -1,7 +1,7 @@
 /*
  * $Id$
  */
-#include "TU/cuda/algorithm.h"
+#include "TU/cu/algorithm.h"
 #include "eigen33_gpu.h"
 #include "eigen33_cpu.h"
 
@@ -11,7 +11,7 @@ template <class T> void
 doJob()
 {
     std::cerr << ">> ";
-    for (cuda::mat<T, 3, 3> A; std::cin >> A.x.x; )
+    for (cu::mat<T, 3, 3> A; std::cin >> A.x.x; )
     {
 	std::cin >> A.x.y >> A.x.z >> A.y.y >> A.y.z >> A.z.z;
 	A.y.x = A.x.y;
@@ -19,10 +19,10 @@ doJob()
 	A.z.y = A.y.z;
 	std::cerr << "  A = " << A << std::endl << std::endl;
 
-	cuda::mat<T, 3, 3>	Qt;
-	cuda::vec<T, 3>		d;
-	cuda::vec<T, 3>		e;
-	cuda::tridiagonal33(A, Qt, d, e);
+	cu::mat<T, 3, 3>	Qt;
+	cu::vec<T, 3>		d;
+	cu::vec<T, 3>		e;
+	cu::tridiagonal33(A, Qt, d, e);
 
 	std::cerr << "  d  = " << d << std::endl;
 	std::cerr << "  e  = " << e << std::endl;
@@ -32,7 +32,7 @@ doJob()
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
 		  << std::endl << std::endl;
 
-	auto	w = cuda::qr33(A, Qt);
+	auto	w = cu::qr33(A, Qt);
 
 	std::cerr << "  w = " << w << std::endl;
 	std::cerr << "  Qt = " << Qt << std::endl;

@@ -44,37 +44,37 @@
   ライブラリである．以下のようなクラスおよび関数が実装されている．
 
   <b>デバイス側のグローバルメモリを確保するアロケータ
-  - #TU::cuda::allocator
+  - #TU::cu::allocator
 
   <b>デバイス側のグローバルメモリ領域にマップされるホスト側メモリを確保するアロケータ
-  - #TU::cuda::mapped_allocator
+  - #TU::cu::mapped_allocator
 
   <b>デバイス側のグローバルメモリ領域にとられる1/2/3次元配列</b>
-  - #TU::cuda::Array
-  - #TU::cuda::Array2
-  - #TU::cuda::Array3
+  - #TU::cu::Array
+  - #TU::cu::Array2
+  - #TU::cu::Array3
 
   <b>デバイス側のグローバルメモリ領域にマップされるホスト側1/2/3次元配列</b>
-  - #TU::cuda::MappedArray
-  - #TU::cuda::MappedArray2
-  - #TU::cuda::MappedArray3
+  - #TU::cu::MappedArray
+  - #TU::cu::MappedArray2
+  - #TU::cu::MappedArray3
 
   <b>デバイス側のテクスチャメモリ</b>
-  - #TU::cuda::Texture
+  - #TU::cu::Texture
 
   <b>フィルタリング</b>
-  - #TU::cuda::FIRFilter2
-  - #TU::cuda::FIRGaussianConvolver2
-  - #TU::cuda::BoxFilter2
-  - #TU::cuda::GuidedFilter2
+  - #TU::cu::FIRFilter2
+  - #TU::cu::FIRGaussianConvolver2
+  - #TU::cu::BoxFilter2
+  - #TU::cu::GuidedFilter2
 
   <b>アルゴリズム</b>
-  - #TU::cuda::copyToConstantMemory(ITER, ITER, T*)
-  - #TU::cuda::subsample(IN, IN, OUT)
-  - #TU::cuda::op3x3(IN, IN, OUT, OP)
+  - #TU::cu::copyToConstantMemory(ITER, ITER, T*)
+  - #TU::cu::subsample(IN, IN, OUT)
+  - #TU::cu::op3x3(IN, IN, OUT, OP)
 
   <b>時間計測</b>
-  - #TU::cuda::clock
+  - #TU::cu::clock
 
   \file		Array++.h
   \brief	CUDAデバイス上の配列に関連するクラスの定義と実装
@@ -83,8 +83,8 @@
 
 #include <thrust/copy.h>
 #include <thrust/fill.h>
-#include "TU/cuda/allocator.h"
-#include "TU/cuda/iterator.h"
+#include "TU/cu/allocator.h"
+#include "TU/cu/iterator.h"
 #include "TU/Array++.h"
 
 //! thrust::device_ptr<S> 型の引数に対しADLによって名前解決を行う関数を収める名前空間
@@ -126,11 +126,11 @@ namespace TU
 *  specialization for BufTraits<T, ALLOC> for CUDA			*
 ************************************************************************/
 template <class T>
-class BufTraits<T, cuda::allocator<T> >
-    : public std::allocator_traits<cuda::allocator<T> >
+class BufTraits<T, cu::allocator<T> >
+    : public std::allocator_traits<cu::allocator<T> >
 {
   private:
-    using super			= std::allocator_traits<cuda::allocator<T> >;
+    using super			= std::allocator_traits<cu::allocator<T> >;
 
   public:
     using iterator		= typename super::pointer;
@@ -152,12 +152,12 @@ class BufTraits<T, cuda::allocator<T> >
 };
 
 template <class T>
-class BufTraits<T, cuda::mapped_allocator<T> >
-    : public std::allocator_traits<cuda::mapped_allocator<T> >
+class BufTraits<T, cu::mapped_allocator<T> >
+    : public std::allocator_traits<cu::mapped_allocator<T> >
 {
   private:
     using super			= std::allocator_traits<
-					cuda::mapped_allocator<T> >;
+					cu::mapped_allocator<T> >;
 
   public:
     using iterator		= typename super::pointer;
@@ -179,34 +179,34 @@ class BufTraits<T, cuda::mapped_allocator<T> >
 };
 
 //! 本ライブラリで定義されたクラスおよび関数を納める名前空間
-namespace cuda
+namespace cu
 {
 /************************************************************************
-*  cuda::Array<T> and cuda::Array2<T> type aliases			*
+*  cu::Array<T> and cu::Array2<T> type aliases			*
 ************************************************************************/
 //! 1次元CUDA配列
 template <class T>
-using Array = array<T, cuda::allocator<T>, 0>;
+using Array = array<T, cu::allocator<T>, 0>;
 
 //! 2次元CUDA配列
 template <class T>
-using Array2 = array<T, cuda::allocator<T>, 0, 0>;
+using Array2 = array<T, cu::allocator<T>, 0, 0>;
 
 //! 3次元CUDA配列
 template <class T>
-using Array3 = array<T, cuda::allocator<T>, 0, 0, 0>;
+using Array3 = array<T, cu::allocator<T>, 0, 0, 0>;
 
 //! CUDAデバイス空間にマップされた1次元配列
 template <class T>
-using MappedArray = array<T, cuda::mapped_allocator<T>, 0>;
+using MappedArray = array<T, cu::mapped_allocator<T>, 0>;
 
 //! CUDAデバイス空間にマップされた2次元配列
 template <class T>
-using MappedArray2 = array<T, cuda::mapped_allocator<T>, 0, 0>;
+using MappedArray2 = array<T, cu::mapped_allocator<T>, 0, 0>;
 
 //! CUDAデバイス空間にマップされた3次元配列
 template <class T>
-using MappedArray3 = array<T, cuda::mapped_allocator<T>, 0, 0, 0>;
+using MappedArray3 = array<T, cu::mapped_allocator<T>, 0, 0, 0>;
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

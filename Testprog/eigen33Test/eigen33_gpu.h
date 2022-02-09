@@ -1,11 +1,11 @@
 #pragma once
 
-#include "TU/cuda/functional.h"
+#include "TU/cu/functional.h"
 #include <thrust/device_vector.h>
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 #if defined(__NVCC__)
 namespace device
@@ -94,5 +94,5 @@ eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt)
     return w;
 }
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

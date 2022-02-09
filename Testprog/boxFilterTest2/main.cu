@@ -3,11 +3,11 @@
  */
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/functional.h"
-#include "TU/cuda/chrono.h"
-#include "TU/cuda/BoxFilter.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/algorithm.h"
+#include "TU/cu/functional.h"
+#include "TU/cu/chrono.h"
+#include "TU/cu/BoxFilter.h"
 #include <thrust/functional.h>
 #include <cstdlib>
 
@@ -16,20 +16,20 @@ namespace TU
 template <class T> void
 doJob(const Array2<T>& in, size_t winSize)
 {
-    using convolver_t = cuda::device::extrema_finder<
-			    cuda::device::extrema_value_position<
+    using convolver_t = cu::device::extrema_finder<
+			    cu::device::extrema_value_position<
 				thrust::greater<T> > >;
     
-    const cuda::BoxFilter2<convolver_t>	filter(winSize, winSize);
-    const cuda::Array2<T>		in_d(in);
-    cuda::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
-    cuda::Array2<cuda::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
+    const cu::BoxFilter2<convolver_t>	filter(winSize, winSize);
+    const cu::Array2<T>		in_d(in);
+    cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
+    cu::Array2<cu::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
 	
     filter.convolve(in_d.cbegin(), in_d.cend(),
-		    cuda::make_range_iterator(
-			thrust::make_zip_iterator(out_d.begin()->begin(),
-						  pos_d.begin()->begin()),
-			cuda::stride(out_d.begin(), pos_d.begin()),
+		    cu::make_range_iterator(
+			cu::make_zip_iterator(out_d.begin()->begin(),
+					      pos_d.begin()->begin()),
+			cu::stride(out_d.begin(), pos_d.begin()),
 			out_d.size()),
 		    false);
 
@@ -43,7 +43,7 @@ doJob(const Array2<T>& in, size_t winSize)
     }
     std::cerr << std::endl;
 
-    Array2<cuda::vec<int, 2> >	pos(pos_d);
+    Array2<cu::vec<int, 2> >	pos(pos_d);
     for (size_t v = 0; v < out.nrow(); ++v)
     {
 	std::cerr << "v=" << v << ':';

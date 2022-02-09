@@ -1,12 +1,12 @@
 /*
  * $Id$
  */
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/fp16.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/fp16.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 namespace device
 {
@@ -35,7 +35,7 @@ halfTest(const Array2<T>& in, Array2<T>& out)
 					  in.stride(), out.stride());
 }
     
-}	// namespace cuda
+}	// namespace cu
 
 template <class T> void
 doJob()
@@ -45,8 +45,8 @@ doJob()
   //Array<T>		a({1, 2, 3, 4});
     std::cout << a;
     
-    cuda::Array2<__half>	in(a), out(in.nrow(), in.ncol());
-    cuda::halfTest(in, out);
+    cu::Array2<__half>	in(a), out(in.nrow(), in.ncol());
+    cu::halfTest(in, out);
 
     Array2<T>			b(out);
     std::cout << b;

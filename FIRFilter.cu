@@ -37,11 +37,11 @@
   \file		FIRFilter.cu
   \brief	finite impulse responseフィルタの実装
 */
-#include "TU/cuda/FIRFilter.h"
+#include "TU/cu/FIRFilter.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  instantiations							*

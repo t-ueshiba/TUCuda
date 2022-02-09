@@ -41,11 +41,11 @@
 
 #include <cmath>
 #include <thrust/functional.h>
-#include "TU/cuda/vec.h"
+#include "TU/cu/vec.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  1x3, 3x1 and 3x3  operators						*
@@ -472,7 +472,7 @@ struct undistort
       // compensate distortion iteratively
 	for (int n = 0; n < MAX_ITER; ++n)
 	{
-	    const auto	r2 = cuda::square(xy);
+	    const auto	r2 = cu::square(xy);
 	    const auto	k  = T(1) + (_d[0] + _d[1]*r2)*r2;
 	    if (k < T(0))
 		break;
@@ -482,7 +482,7 @@ struct undistort
 			      _d[2]*(r2 + T(2)*xy.y*xy.y) + _d[3]*a};
 	    const auto	uv_proj = _flen*(k*xy + delta) + _uv0;
 
-	    if (cuda::square(uv_proj - uv) < MAX_ERR)
+	    if (cu::square(uv_proj - uv) < MAX_ERR)
 		break;
 
 	    xy = (xy0 - delta)/k;	// compensate lens distortion
@@ -890,5 +890,5 @@ struct colored_normal
     }
 };
 #endif
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

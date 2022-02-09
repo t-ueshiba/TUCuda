@@ -35,14 +35,14 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/algorithm.h \
-		../../TU/cuda/allocator.h \
-		../../TU/cuda/chrono.h \
-		../../TU/cuda/functional.h \
-		../../TU/cuda/iterator.h \
-		../../TU/cuda/tuple.h \
-		../../TU/cuda/vec.h \
+EXTHDRS		= ../../TU/cu/Array++.h \
+		../../TU/cu/algorithm.h \
+		../../TU/cu/allocator.h \
+		../../TU/cu/chrono.h \
+		../../TU/cu/functional.h \
+		../../TU/cu/iterator.h \
+		../../TU/cu/tuple.h \
+		../../TU/cu/vec.h \
 		/usr/local/include/TU/Array++.h \
 		/usr/local/include/TU/Camera++.h \
 		/usr/local/include/TU/Geometry++.h \
@@ -74,7 +74,6 @@ main.o: /usr/local/include/TU/Image++.h /usr/local/include/TU/pair.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
 	/usr/local/include/TU/algorithm.h /usr/local/include/TU/Profiler.h \
-	../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	../../TU/cuda/functional.h ../../TU/cuda/vec.h \
-	../../TU/cuda/algorithm.h ../../TU/cuda/iterator.h \
-	../../TU/cuda/tuple.h ../../TU/cuda/chrono.h
+	../../TU/cu/Array++.h ../../TU/cu/allocator.h ../../TU/cu/iterator.h \
+	../../TU/cu/tuple.h ../../TU/cu/functional.h ../../TU/cu/vec.h \
+	../../TU/cu/algorithm.h ../../TU/cu/chrono.h

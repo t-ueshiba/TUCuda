@@ -40,12 +40,12 @@
 #pragma once
 
 #include "TU/Profiler.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/algorithm.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/algorithm.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 #if defined(__NVCC__)
 namespace device
@@ -120,7 +120,7 @@ template <class COMP>
 struct extrema_position_base : public COMP
 {
     using argument_type	= typename COMP::first_argument_type;
-    using value_type	= ::cuda::std::tuple<argument_type, int>;
+    using value_type	= cuda::std::tuple<argument_type, int>;
     using COMP::operator ();
 
     __device__
@@ -131,8 +131,8 @@ struct extrema_position_base : public COMP
     __device__
     bool	operator ()(const value_type& v, const value_type& w) const
 		{
-		    return operator ()(::cuda::std::get<0>(v),
-				       ::cuda::std::get<0>(w));
+		    return operator ()(cuda::std::get<0>(v),
+				       cuda::std::get<0>(w));
 		}
 };
 }	// namespace detail
@@ -148,7 +148,7 @@ struct extrema_position : public detail::extrema_position_base<COMP>
     __device__
     result_type	operator ()(const value_type& v, int pos) const
 		{
-		    return {pos, ::cuda::std::get<1>(v)};
+		    return {pos, cuda::std::get<1>(v)};
 		}
 };
     
@@ -158,14 +158,14 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
     using super		= detail::extrema_position_base<COMP>;
     using typename super::argument_type;
     using typename super::value_type;
-    using result_type	= ::cuda::std::tuple<argument_type, vec<int, 2> >;
+    using result_type	= cuda::std::tuple<argument_type, vec<int, 2> >;
     using super::operator ();
 
     __device__
     result_type	operator ()(const value_type& v, int pos) const
 		{
-		    return {::cuda::std::get<0>(v),
-			    {pos, ::cuda::std::get<1>(v)}};
+		    return {cuda::std::get<0>(v),
+			    {pos, cuda::std::get<1>(v)}};
 		}
 };
     
@@ -251,8 +251,7 @@ box_filter(range<range_iterator<IN> > in,
     using convolver_type = typename FILTER::convolver_type;
     using value_type	 = typename convolver_type::value_type;
     using result_type	 = typename convolver_type::result_type;
-  //using in_type	 = typename std::iterator_traits<IN>::value_type;
-    using in_type	 = TU::cuda::decayed_iterator_value<IN>;
+    using in_type	 = typename std::iterator_traits<IN>::value_type;
     using out_type	 = std::conditional_t<
 				std::is_same<in_type, value_type>::value,
 				result_type, value_type>;
@@ -561,8 +560,8 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     const dim3	threads(BlockDim, BlockDim);
     dim3	blocks(divUp(ncols, threads.x), divUp(nrows, threads.y));
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cuda::make_range(row, nrows),
-	cuda::make_range(_buf.begin(), _buf.nrow()), _winSizeV);
+	cu::make_range(row, nrows),
+	cu::make_range(_buf.begin(), _buf.nrow()), _winSizeV);
 
   // Accumulate horizontally.
     cudaDeviceSynchronize();
@@ -570,8 +569,8 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     blocks.x = divUp(_buf.ncol(), threads.x);
     blocks.y = divUp(_buf.nrow(), threads.y);
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
-	cuda::make_range(_buf.cbegin(), _buf.nrow()),
-	cuda::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
+	cu::make_range(_buf.cbegin(), _buf.nrow()),
+	cu::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
 			  (shift ? offsetH() : 0), outSizeH(ncols)),
 	_winSizeH);
 
@@ -730,5 +729,5 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     profiler_t::nextFrame();
 }
 #endif	// __NVCC__
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

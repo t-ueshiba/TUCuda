@@ -39,13 +39,13 @@
 */
 #pragma once
 
-#include "TU/cuda/allocator.h"
-#include "TU/cuda/iterator.h"
-#include "TU/cuda/vec.h"
+#include "TU/cu/allocator.h"
+#include "TU/cu/iterator.h"
+#include "TU/cu/vec.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  struct BlockTraits							*
@@ -187,8 +187,8 @@ subsample(IN in, IN ie, OUT out)
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol/2, threads.x), divUp(nrow/2, threads.y));
-    device::subsample<<<blocks, threads>>>(cuda::make_range(in,  nrow),
-					   cuda::make_range(out, nrow/2));
+    device::subsample<<<blocks, threads>>>(cu::make_range(in,  nrow),
+					   cu::make_range(out, nrow/2));
 }
 #endif
 
@@ -252,7 +252,7 @@ opNxM(IN in, IN ie, OUT out, OP op)
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::opNxM<BLOCK_TRAITS><<<blocks, threads>>>(
-	cuda::make_range(in, nrow), cuda::make_range(out, nrow), op);
+	cu::make_range(in, nrow), cu::make_range(out, nrow), op);
 }
 #endif
 
@@ -307,8 +307,8 @@ namespace detail
       const auto	blockDim = std::min({BLOCK_DIM, r, c});
       const dim3	threads(blockDim, blockDim);
       const dim3	blocks(c/threads.x, r/threads.y);
-      cuda::device::transpose<BLOCK_DIM><<<blocks, threads>>>(
-	  cuda::slice(in, 0, r, j, c), cuda::slice(out, 0, c, i, r));	// 左上
+      cu::device::transpose<BLOCK_DIM><<<blocks, threads>>>(
+	  cu::slice(in, 0, r, j, c), cu::slice(out, 0, c, i, r));	// 左上
 
       r = blocks.y*threads.y;
       c = blocks.x*threads.x;
@@ -392,7 +392,7 @@ transform2(IN in, IN ie, OUT out, OP op)
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::transform2<<<blocks, threads>>>(
-	cuda::make_range(in,  nrow), cuda::make_range(out, nrow), op,
+	cu::make_range(in,  nrow), cu::make_range(out, nrow), op,
 	std::integral_constant<bool,
 			       detail::is_unary<OP, value_type>::value>());
 }
@@ -426,7 +426,7 @@ namespace device
       if (y < out.size() && x < out.begin().size())
 	  out[y][x] = gen(y, x);
   }
-}	// namespace cuda
+}	// namespace cu
 
 namespace detail
 {
@@ -454,7 +454,7 @@ generate2(OUT out, OUT oe, GEN gen)
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::generate2<<<blocks, threads>>>(
-    	cuda::make_range(out, nrow), gen,
+    	cu::make_range(out, nrow), gen,
     	std::integral_constant<bool, detail::noargs<GEN>::value>());
 }
 #endif
@@ -469,5 +469,5 @@ fill2(OUT out, OUT oe, T val)
 			    [val] __host__ __device__ (){ return val; });
 }
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

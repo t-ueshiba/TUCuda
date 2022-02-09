@@ -46,7 +46,7 @@
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 #if defined(__NVCC__)
 namespace device
@@ -428,7 +428,7 @@ size1()
 }
 
 // TU::element_t<E> requires begin(std::decval<E>()) be valid.
-// We have to override TU::cuda::begin() defined in tuple.h,
+// We have to override TU::cu::begin() defined in tuple.h,
 template <class T, size_t C> const typename mat2x<T, C>::value_type*
 begin(const mat2x<T, C>&)						;
 
@@ -1172,7 +1172,7 @@ class Rigidity : public Affinity<T, D, D>
 };
 
 /************************************************************************
-*  TU::cuda::get_element_ptr()						*
+*  TU::cu::get_element_ptr()						*
 ************************************************************************/
 template <class T> inline element_t<T>*
 get_element_ptr(thrust::device_ptr<T> p)
@@ -1310,5 +1310,5 @@ struct from_vec<YUV422>
 		    return {elm_t(yuv422.y), elm_t(yuv422.x)};
 		}
 };
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

@@ -3,12 +3,12 @@
  */
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/chrono.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/chrono.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 template <class T> __device__ T
 interpolate_pixel(T s0, T s1, float r0, float r1)

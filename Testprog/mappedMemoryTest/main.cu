@@ -5,10 +5,10 @@
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
 #include "TU/algorithm.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/functional.h"
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/chrono.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/functional.h"
+#include "TU/cu/algorithm.h"
+#include "TU/cu/chrono.h"
 #include <thrust/system/cuda/experimental/pinned_allocator.h>
 
 namespace TU
@@ -26,7 +26,7 @@ range_print(const E& expr)
 #endif
 
 template <class T>
-//using allocator_t = cuda::mapped_allocator<T>;
+//using allocator_t = cu::mapped_allocator<T>;
 using allocator_t = thrust::system::cuda::experimental::pinned_allocator<T>;
     
 template <class T>
@@ -75,17 +75,17 @@ main(int argc, char *argv[])
 
       // GPUによって計算する．
 	Image<out_t, allocator_t<out_t> >	out(in.width(), in.height());
-	cuda::opNxM(in.cbegin(), in.cend(), out.begin(),
-		    cuda::maximal8<in_t>());
+	cu::opNxM(in.cbegin(), in.cend(), out.begin(),
+		  cu::maximal8<in_t>());
 	cudaDeviceSynchronize();
 
-	Profiler<cuda::clock>	cuProfiler(1);
+	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cuda::opNxM(in.cbegin(), in.cend(), out.begin(),
-			cuda::maximal8<in_t>());
+	    cu::opNxM(in.cbegin(), in.cend(), out.begin(),
+		      cu::maximal8<in_t>());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);

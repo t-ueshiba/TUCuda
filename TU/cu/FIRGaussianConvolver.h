@@ -39,11 +39,11 @@
 */
 #pragma once
 
-#include "TU/cuda/FIRFilter.h"
+#include "TU/cu/FIRFilter.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 namespace detail
 {

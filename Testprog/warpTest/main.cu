@@ -3,19 +3,19 @@
  */
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/Texture.h"
-#include "TU/cuda/vec.h"
-#include "TU/cuda/chrono.h"
+#include "TU/cu/Texture.h"
+#include "TU/cu/vec.h"
+#include "TU/cu/chrono.h"
 
-//#define OP	cuda::det3x3
-//#define OP	cuda::laplacian3x3
-//#define OP	cuda::sobelAbs3x3
-#define OP	cuda::maximal3x3
-//#define OP	cuda::minimal3x3
+//#define OP	cu::det3x3
+//#define OP	cu::laplacian3x3
+//#define OP	cu::sobelAbs3x3
+#define OP	cu::maximal3x3
+//#define OP	cu::minimal3x3
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 template <class T> Rigidity<T, 2>
 createRigidity(T u0, T v0, T theta)
@@ -77,18 +77,18 @@ main(int argc, char *argv[])
 	    v0 = in.height()/2;
 
       // GPUによって計算する．
-	cuda::Array2<mid_t>	in_d(in);
-	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
-	const auto		op = cuda::createRigidity(u0, v0, theta);
-	cuda::warp(in_d, out_d.begin(), op);
+	cu::Array2<mid_t>	in_d(in);
+	cu::Array2<mid_t>	out_d(in.nrow(), in.ncol());
+	const auto		op = cu::createRigidity(u0, v0, theta);
+	cu::warp(in_d, out_d.begin(), op);
 	cudaDeviceSynchronize();
 
-	Profiler<cuda::clock>	cuProfiler(1);
+	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cuda::warp(in_d, out_d.begin(), op);
+	    cu::warp(in_d, out_d.begin(), op);
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);

@@ -45,7 +45,7 @@
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  class allocator<T>							*
@@ -176,5 +176,5 @@ class mapped_allocator
 		}
 };
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

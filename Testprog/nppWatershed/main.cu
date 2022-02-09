@@ -3,11 +3,11 @@
  */
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/algorithm.h"
-#include "TU/cuda/chrono.h"
-#include "TU/cuda/vec.h"
-#include "TU/cuda/npp.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/algorithm.h"
+#include "TU/cu/chrono.h"
+#include "TU/cu/vec.h"
+#include "TU/cu/npp.h"
 
 /************************************************************************
 *  Global fucntions							*
@@ -25,18 +25,18 @@ main(int argc, char *argv[])
 	Image<pixel_t>	image;
 	image.restore(std::cin);		// 原画像を読み込む
 
-	cuda::Array2<pixel_t>	in_d(image), out_d(in_d.nrow(), in_d.ncol());
-	cuda::nppiFilterGauss(in_d.cbegin(), in_d.cend(), out_d.begin(),
-			      NPP_MASK_SIZE_15_X_15);
+	cu::Array2<pixel_t>	in_d(image), out_d(in_d.nrow(), in_d.ncol());
+	cu::nppiFilterGauss(in_d.cbegin(), in_d.cend(), out_d.begin(),
+			    NPP_MASK_SIZE_15_X_15);
 
-	Profiler<cuda::clock>	cuProfiler(1);
+	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 
 	for (size_t n = 0; n < NITER; ++n)
 	{
 	    cuProfiler.start(0);
-	    cuda::nppiFilterGauss(in_d.cbegin(), in_d.cend(), out_d.begin(),
-				  NPP_MASK_SIZE_15_X_15);
+	    cu::nppiFilterGauss(in_d.cbegin(), in_d.cend(), out_d.begin(),
+				NPP_MASK_SIZE_15_X_15);
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);

@@ -40,16 +40,16 @@
 */
 #pragma once
 
-#include "TU/cuda/tuple.h"
-#include "TU/cuda/vec.h"
-#include "TU/cuda/BoxFilter.h"
-#include "TU/cuda/iterator.h"
+#include "TU/cu/tuple.h"
+#include "TU/cu/vec.h"
+#include "TU/cu/BoxFilter.h"
+#include "TU/cu/iterator.h"
 
 namespace TU
 {
 template <class T>	class TD;
     
-namespace cuda
+namespace cu
 {
 namespace device
 {
@@ -112,10 +112,10 @@ class trans_guides
     trans_guides(size_t n)	:_n(n)					{}
 
     template <class GUIDE_, class OUT_> __host__ __device__
-    void	operator ()(::cuda::std::tuple<GUIDE_, OUT_>&& t,
+    void	operator ()(cuda::std::tuple<GUIDE_, OUT_>&& t,
 			    const vec<T, 2>& coeffs) const
 		{
-		    using	::cuda::std::get;
+		    using	cuda::std::get;
 
 		    get<1>(t) = (coeffs.x*get<0>(t) + coeffs.y)/_n;
 		}
@@ -249,13 +249,13 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ib),
 						 cbegin(*gb)),
-			       cuda::stride(ib, gb),
+			       cu::stride(ib, gb),
 			       size(*ib)),
 			   make_range_iterator(
 			       make_map_iterator(device::init_params<T>(),
 						 cbegin(*ie),
 						 cbegin(*ge)),
-			       cuda::stride(ie, ge),
+			       cu::stride(ie, ge),
 			       size(*ie)),
 			   make_range_iterator(
 			       make_assignment_iterator(
@@ -275,7 +275,7 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 				   device::trans_guides<T>(n),
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			       cuda::stride(gb, out),
+			       cu::stride(gb, out),
 			       size(*out)));
     profiler_t::nextFrame();
 }
@@ -334,10 +334,10 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 				   device::trans_guides<T>(n),
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
-			       cuda::stride(ib, out),
+			       cu::stride(ib, out),
 			       size(*out)));
     profiler_t::nextFrame();
 }
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

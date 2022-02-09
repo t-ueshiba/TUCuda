@@ -37,12 +37,12 @@
   \file		FIRGaussianConvolver.cc
   \brief	Gauss核による畳み込みに関連するクラスの実装
 */
-#include "TU/cuda/FIRGaussianConvolver.h"
+#include "TU/cu/FIRGaussianConvolver.h"
 #include <cmath>
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 namespace detail
 {
@@ -98,5 +98,5 @@ lobeSize(const float lobe[], bool even)
 }
     
 }	// namespace detail
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

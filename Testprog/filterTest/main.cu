@@ -4,9 +4,9 @@
 #include "TU/Image++.h"
 #include "TU/GaussianConvolver.h"
 #include "TU/Profiler.h"
-#include "TU/cuda/FIRFilter.h"
-#include "TU/cuda/chrono.h"
-#include "TU/cuda/vec.h"
+#include "TU/cu/FIRFilter.h"
+#include "TU/cu/chrono.h"
+#include "TU/cu/vec.h"
 #include "filterImageGold.h"
 
 namespace TU
@@ -87,15 +87,15 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cuda::FIRFilter2<mid_t>	cudaFilter;
+	cu::FIRFilter2<mid_t>	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
     
-	cuda::Array2<mid_t>	in_d(in);
-	cuda::Array2<mid_t>	out_d(in.nrow(), in.ncol());
+	cu::Array2<mid_t>	in_d(in);
+	cu::Array2<mid_t>	out_d(in.nrow(), in.ncol());
 	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
 	cudaDeviceSynchronize();
 
-	Profiler<cuda::clock>	cuProfiler(1);
+	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{

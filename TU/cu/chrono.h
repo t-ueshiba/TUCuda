@@ -44,7 +44,7 @@
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 //! GPUデバイスのクロックを表すクラス
 class clock
@@ -95,5 +95,5 @@ class clock
     static Event	_event;
 };
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

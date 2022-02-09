@@ -36,19 +36,19 @@
 /*!
   \file		ICIA.h
   \author	Toshio UESHIBA
-  \brief	クラス TU::cuda::ICIA の定義と実装
+  \brief	クラス TU::cu::ICIA の定義と実装
 */
 #pragma once
 
 #include "TU/Geometry++.h"
 #include "TU/Image++.h"
-#include "TU/cuda/FIRGaussianConvolver.h"
-#include "TU/cuda/chrono.h"
+#include "TU/cu/FIRGaussianConvolver.h"
+#include "TU/cu/chrono.h"
 #include <iomanip>
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 #if defined(__NVCC__)
 namespace device
@@ -513,5 +513,5 @@ ICIA<MAP, CLOCK>::moment(size_t u0, size_t v0, size_t w, size_t h) const
     return val;
 }
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

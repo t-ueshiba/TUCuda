@@ -95,7 +95,7 @@
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 template <size_t N, class T> NppStatus
 nppiFilterGauss(const T* src, int src_type, T* dst, int dst_step,
@@ -186,5 +186,5 @@ NPP_FILTER(nppiFilterGauss, float, 4)
 	     type, nchannels, false, true, false, true)
 
 
-}	// namespace cuda
+}	// namespace cu
 }	// namespace TU

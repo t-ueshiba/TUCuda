@@ -37,11 +37,11 @@
   \file		chrono.cc
   \brief	GPUクロックの実装
 */
-#include "TU/cuda/chrono.h"
+#include "TU/cu/chrono.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 clock::Event    clock::_event;
 }

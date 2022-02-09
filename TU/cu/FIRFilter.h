@@ -4,12 +4,12 @@
 */
 #pragma once
 
-#include "TU/cuda/Array++.h"
-#include "TU/cuda/algorithm.h"
+#include "TU/cu/Array++.h"
+#include "TU/cu/algorithm.h"
 
 namespace TU
 {
-namespace cuda
+namespace cu
 {
 /************************************************************************
 *  class FIRFilter2<T>							*
@@ -270,7 +270,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
-	cuda::make_range(in, nrow), cuda::make_range(out, nrow));
+	cu::make_range(in, nrow), cu::make_range(out, nrow));
 }
 
 template <class T, class BLOCK_TRAITS>
@@ -282,8 +282,8 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
-	cuda::make_range(in, nrow),
-	cuda::slice(out, (shift ? offsetV() : 0), outSizeV(nrow),
+	cu::make_range(in, nrow),
+	cu::slice(out, (shift ? offsetV() : 0), outSizeV(nrow),
 			 (shift ? offsetH() : 0), outSizeH(ncol)));
 }
 #endif	// __NVCC__

@@ -12,7 +12,7 @@ VPATH		=
 IDLS		=
 MOCHDRS		=
 
-INCDIRS		= -I../.. -I$(HOME)/src/TUTools++ -I$(PREFIX)/include -I$(CUDAHOME)/include
+INCDIRS		= -I../.. -I$(HOME)/src/TUTools -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
@@ -37,28 +37,33 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/algorithm.h \
-		../../TU/cuda/allocator.h \
-		../../TU/cuda/chrono.h \
-		../../TU/cuda/tuple.h \
-		/home/ueshiba/src/TUTools++/TU/Array++.h \
-		/home/ueshiba/src/TUTools++/TU/Camera++.h \
-		/home/ueshiba/src/TUTools++/TU/Geometry++.h \
-		/home/ueshiba/src/TUTools++/TU/Image++.h \
-		/home/ueshiba/src/TUTools++/TU/Manip.h \
-		/home/ueshiba/src/TUTools++/TU/Minimize.h \
-		/home/ueshiba/src/TUTools++/TU/Profiler.h \
-		/home/ueshiba/src/TUTools++/TU/Vector++.h \
-		/home/ueshiba/src/TUTools++/TU/algorithm.h \
-		/home/ueshiba/src/TUTools++/TU/iterator.h \
-		/home/ueshiba/src/TUTools++/TU/pair.h \
-		/home/ueshiba/src/TUTools++/TU/range.h \
-		/home/ueshiba/src/TUTools++/TU/tuple.h \
-		/home/ueshiba/src/TUTools++/TU/type_traits.h
+EXTHDRS		= ../../TU/cu/Array++.h \
+		../../TU/cu/algorithm.h \
+		../../TU/cu/allocator.h \
+		../../TU/cu/chrono.h \
+		../../TU/cu/iterator.h \
+		../../TU/cu/npp.h \
+		../../TU/cu/tuple.h \
+		../../TU/cu/vec.h \
+		/home/artuser/src/TUTools/TU/Array++.h \
+		/home/artuser/src/TUTools/TU/Camera++.h \
+		/home/artuser/src/TUTools/TU/Geometry++.h \
+		/home/artuser/src/TUTools/TU/Image++.h \
+		/home/artuser/src/TUTools/TU/Manip.h \
+		/home/artuser/src/TUTools/TU/Minimize.h \
+		/home/artuser/src/TUTools/TU/Profiler.h \
+		/home/artuser/src/TUTools/TU/Vector++.h \
+		/home/artuser/src/TUTools/TU/algorithm.h \
+		/home/artuser/src/TUTools/TU/iterator.h \
+		/home/artuser/src/TUTools/TU/pair.h \
+		/home/artuser/src/TUTools/TU/range.h \
+		/home/artuser/src/TUTools/TU/tuple.h \
+		/home/artuser/src/TUTools/TU/type_traits.h
 HDRS		=
-SRCS		= main.cu
-OBJS		= main.o
+SRCS		= main.cu \
+		watershedSegmentationNPP.cpp
+OBJS		= main.o \
+		watershedSegmentationNPP.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
 #include $(PROJECT)/lib/qt.mk		# MOCSRCS, OBJS
@@ -66,19 +71,20 @@ OBJS		= main.o
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-main.o: /home/ueshiba/src/TUTools++/TU/Image++.h \
-	/home/ueshiba/src/TUTools++/TU/pair.h \
-	/home/ueshiba/src/TUTools++/TU/type_traits.h \
-	/home/ueshiba/src/TUTools++/TU/Manip.h \
-	/home/ueshiba/src/TUTools++/TU/Camera++.h \
-	/home/ueshiba/src/TUTools++/TU/Geometry++.h \
-	/home/ueshiba/src/TUTools++/TU/Minimize.h \
-	/home/ueshiba/src/TUTools++/TU/Vector++.h \
-	/home/ueshiba/src/TUTools++/TU/Array++.h \
-	/home/ueshiba/src/TUTools++/TU/range.h \
-	/home/ueshiba/src/TUTools++/TU/iterator.h \
-	/home/ueshiba/src/TUTools++/TU/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/algorithm.h ../../TU/cuda/tuple.h \
-	/home/ueshiba/src/TUTools++/TU/Profiler.h ../../TU/cuda/Array++.h \
-	../../TU/cuda/allocator.h ../../TU/cuda/algorithm.h \
-	../../TU/cuda/chrono.h
+main.o: /home/artuser/src/TUTools/TU/Image++.h \
+	/home/artuser/src/TUTools/TU/pair.h \
+	/home/artuser/src/TUTools/TU/type_traits.h \
+	/home/artuser/src/TUTools/TU/Manip.h \
+	/home/artuser/src/TUTools/TU/Camera++.h \
+	/home/artuser/src/TUTools/TU/Geometry++.h \
+	/home/artuser/src/TUTools/TU/Minimize.h \
+	/home/artuser/src/TUTools/TU/Vector++.h \
+	/home/artuser/src/TUTools/TU/Array++.h \
+	/home/artuser/src/TUTools/TU/range.h \
+	/home/artuser/src/TUTools/TU/iterator.h \
+	/home/artuser/src/TUTools/TU/tuple.h \
+	/home/artuser/src/TUTools/TU/algorithm.h \
+	/home/artuser/src/TUTools/TU/Profiler.h ../../TU/cu/Array++.h \
+	../../TU/cu/allocator.h ../../TU/cu/iterator.h ../../TU/cu/tuple.h \
+	../../TU/cu/algorithm.h ../../TU/cu/vec.h ../../TU/cu/chrono.h \
+	../../TU/cu/npp.h

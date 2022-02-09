@@ -12,7 +12,7 @@ VPATH		=
 IDLS		=
 MOCHDRS		=
 
-INCDIRS		= -I. -I../.. -I$(HOME)/src/TUTools++ -I$(CUDAHOME)/include 
+INCDIRS		= -I. -I../.. -I$(HOME)/src/TUTools -I$(CUDAHOME)/include 
 CPPFLAGS	= -DNDEBUG
 CFLAGS		= -g
 NVCCFLAGS	= -g -G -arch=sm_53 -Xcompiler -mf16c
@@ -34,17 +34,17 @@ INCDIR		= $(PREFIX)/include
 #  Macros set by mkmf	#
 #########################
 SUFFIX		= .cc:sC .cpp:sC .cu:sC
-EXTHDRS		= ../../TU/cuda/Array++.h \
-		../../TU/cuda/allocator.h \
-		../../TU/cuda/fp16.h \
-		../../TU/cuda/iterator.h \
-		../../TU/cuda/tuple.h \
-		/home/artuser/src/TUTools++/TU/Array++.h \
-		/home/artuser/src/TUTools++/TU/algorithm.h \
-		/home/artuser/src/TUTools++/TU/iterator.h \
-		/home/artuser/src/TUTools++/TU/range.h \
-		/home/artuser/src/TUTools++/TU/tuple.h \
-		/home/artuser/src/TUTools++/TU/type_traits.h
+EXTHDRS		= ../../TU/cu/Array++.h \
+		../../TU/cu/allocator.h \
+		../../TU/cu/fp16.h \
+		../../TU/cu/iterator.h \
+		../../TU/cu/tuple.h \
+		/home/artuser/src/TUTools/TU/Array++.h \
+		/home/artuser/src/TUTools/TU/algorithm.h \
+		/home/artuser/src/TUTools/TU/iterator.h \
+		/home/artuser/src/TUTools/TU/range.h \
+		/home/artuser/src/TUTools/TU/tuple.h \
+		/home/artuser/src/TUTools/TU/type_traits.h
 HDRS		=
 SRCS		= main.cu
 OBJS		= main.o
@@ -55,11 +55,10 @@ OBJS		= main.o
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-main.o: ../../TU/cuda/Array++.h ../../TU/cuda/allocator.h \
-	/home/artuser/src/TUTools++/TU/Array++.h \
-	/home/artuser/src/TUTools++/TU/range.h \
-	/home/artuser/src/TUTools++/TU/iterator.h \
-	/home/artuser/src/TUTools++/TU/tuple.h \
-	/home/artuser/src/TUTools++/TU/type_traits.h \
-	/home/artuser/src/TUTools++/TU/algorithm.h ../../TU/cuda/fp16.h \
-	../../TU/cuda/iterator.h ../../TU/cuda/tuple.h
+main.o: ../../TU/cu/Array++.h ../../TU/cu/allocator.h \
+	../../TU/cu/iterator.h /home/artuser/src/TUTools/TU/range.h \
+	/home/artuser/src/TUTools/TU/iterator.h \
+	/home/artuser/src/TUTools/TU/tuple.h \
+	/home/artuser/src/TUTools/TU/type_traits.h \
+	/home/artuser/src/TUTools/TU/algorithm.h ../../TU/cu/tuple.h \
+	/home/artuser/src/TUTools/TU/Array++.h ../../TU/cu/fp16.h

@@ -1,0 +1,368 @@
+/*!
+  \file		Labeling.h
+  \brief	labelingフィルタの定義と実装
+*/
+#pragma once
+
+#include <TU/Profiler.h>
+#include <TU/cu/Array++.h>
+#include <TU/cu/algorithm.h>
+#include <TU/cu/functional.h>
+#include <TU/cu/chrono.h>
+#include <cuda/std/tuple>
+
+namespace TU
+{
+namespace cu
+{
+#if defined(__NVCC__)
+namespace device
+{
+/************************************************************************
+*  __device__ functions							*
+************************************************************************/
+template <class LABEL> __device__ __forceinline__ LABEL
+root(const LABEL* labels, LABEL label)
+{
+    while (label > labels[label])
+	label = labels[label];
+    return label;
+}
+
+template <class LABEL> __device__ __forceinline__ void
+merge(range<range_iterator<LABEL> > labels,
+      iterator_value<LABEL> label0, iterator_value<LABEL> label1,
+      int& changed)
+{
+    const auto	labels_p = &labels[0][0];
+    
+    const auto	root0 = root(labels_p, label0);
+    const auto	root1 = root(labels_p, label1);
+
+    if (root0 != root1)
+    {
+	const auto	root_min = ::min(root0, root1);
+	const auto	root_max = ::max(root0, root1);
+
+      // Replace label of root_max with root_min.
+	atomicMin(&labels_p[root_max], root_min);
+
+	changed = 1;
+    }
+}
+
+/************************************************************************
+*  __global__ functions							*
+************************************************************************/
+template<class LABELING, class LINK, class LABEL>
+__global__ void
+label_tiles(range<range_iterator<LINK> >  links,
+	    range<range_iterator<LABEL> > labels)
+{
+    using link_type	= typename std::iterator_traits<LINK>::value_type;
+    using label_type	= typename std::iterator_traits<LABEL>::value_type;
+
+    const int	tu = threadIdx.x;
+    const int	tv = threadIdx.y;
+    const int	u0 = blockIdx.x * blockDim.x;
+    const int	v0 = blockIdx.y * blockDim.y;
+    const int	u  = u0 + tu;
+    const int	v  = v0 + tv;
+    
+    if (v >= links.size() || u >= links.begin().size())
+	return;
+
+    constexpr int		Stride_s = LABELING::BlockDimX + 1;
+    __shared__ link_type	links_s[ LABELING::BlockDimY][Stride_s];
+    __shared__ label_type	labels_s[LABELING::BlockDimY][Stride_s];
+    
+  // Load links and disable connections at right/bottom tile borders.
+    auto	link = links[v][u];
+    if (tu == blockDim.x - 1)
+    	link &= ~LABELING::RIGHT;
+    if (tv == blockDim.y - 1)
+	link &= ~LABELING::LOWER;
+    links_s[tv][tu] = link;
+	
+  // Initialize labels within a local tile block.
+    labels_s[tv][tu] = tv * Stride_s + tu;
+    __syncthreads();
+    
+  // Update local labels iteratively.
+    for (;;)
+    {
+      // 1. Check connections to 4-neighbors.
+	const auto	old_label = labels_s[tv][tu];
+	auto		label	  = old_label;
+	
+	if (links_s[tv][tu] & LABELING::RIGHT)
+	    label = ::min(label, labels_s[tv][tu+1]);
+	if (links_s[tv][tu] & LABELING::LOWER)
+	    label = ::min(label, labels_s[tv+1][tu]);
+	if (0 < tu && links_s[tv][tu-1] & LABELING::RIGHT)
+	    label = ::min(label, labels_s[tv][tu-1]);
+	if (0 < tv && links_s[tv-1][tu] & LABELING::LOWER)
+	    label = ::min(label, labels_s[tv-1][tu]);
+	
+      // 2. Is any value changed?
+	int	changed = 0;
+	if (label < old_label)
+	{
+	    labels_s[tv][tu] = label;
+	    changed = 1;
+	}
+
+	if (!__syncthreads_or(changed))
+	    break;
+
+      // 3. Flatten equivalence trees.
+	label = root(&labels_s[0][0], label);
+	__syncthreads();
+
+      // 4. Save flatten trees.
+	labels_s[tv][tu] = label;
+	__syncthreads();
+    }
+
+  // Convert labels from local tile space to global image space.
+    const int	dv = labels_s[tv][tu] / Stride_s;
+    const int	du = labels_s[tv][tu] - dv * Stride_s;
+    labels[v][u] = (v0 + dv) * labels.begin().stride() + (u0 + du);
+}
+
+template <class LABELING, class LINK, class LABEL> __global__ void
+merge_tiles(range<range_iterator<LINK> >  links,
+	    range<range_iterator<LABEL> > labels,
+	    int tileSize)
+{
+    const int	u0 = __mul24(blockIdx.x, 2*tileSize);
+    const int	v0 = __mul24(blockIdx.y, 2*tileSize);
+    const int	u1 = ::min(u0 + tileSize,   links.begin().size());
+    const int	v1 = ::min(v0 + tileSize,   links.size());
+    const int	u2 = ::min(u0 + 2*tileSize, links.begin().size());
+    const int	v2 = ::min(v0 + 2*tileSize, links.size());
+    
+    int		changed;
+    do
+    {
+	changed = 0;
+
+	if (u1 < u2)
+	{
+	  // Merge upper-left and upper-right tiles.
+	    for (int v = v0 + threadIdx.x; v < v1; v += blockDim.x)
+		if (links[v][u1-1] & LABELING::RIGHT)
+		    merge(labels, labels[v][u1-1], labels[v][u1], changed);
+	}
+	
+	if (v1 < v2)
+	{
+	  // Merge upper-left and lower-left tiles.
+	    for (int u = u0 + threadIdx.x; u < u1; u += blockDim.x)
+		if (links[v1-1][u] & LABELING::LOWER)
+		    merge(labels, labels[v1-1][u], labels[v1][u], changed);
+
+	    if (u1 < u2)
+	    {
+	      // Merge upper-right and lower-right tiles.
+		for (int u = u1 + threadIdx.x; u < u2; u += blockDim.x)
+		    if (links[v1-1][u] & LABELING::LOWER)
+			merge(labels, labels[v1-1][u], labels[v1][u], changed);
+
+	      // Merge lower-left and lower-right tiles.
+		for (int v = v1 + threadIdx.x; v < v2; v += blockDim.x)
+		    if (links[v][u1-1] & LABELING::RIGHT)
+			merge(labels, labels[v][u1-1], labels[v][u1], changed);
+	    }
+	}
+    } while (__syncthreads_or(changed));
+}
+
+template <class LABEL> __global__ void
+flatten_labels(range<range_iterator<LABEL> > labels)
+{
+    const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+    if (y < labels.size() && x < labels.begin().size())
+	labels[y][x] = root(&labels[0][0], labels[y][x]);
+}
+
+}	// namespace device
+#endif	// __NVCC__
+
+/************************************************************************
+*  class Labeling<BLOCK_TRAITS, CLOCK>					*
+************************************************************************/
+//! CUDAによる2次元boxフィルタを表すクラス
+template <class BLOCK_TRAITS=BlockTraits<16, 16>, class CLOCK=cu::clock>
+class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
+{
+  public:
+    using profiler_t	= Profiler<CLOCK>;
+    using link_type	= uint32_t;
+
+    template <class IS_LINKED>
+    struct link_detector : public OperatorTraits<2, 2>
+    {
+	using op_type	= IS_LINKED;
+
+	__host__ __device__
+	link_detector(op_type is_linked) :_is_linked(is_linked)		{}
+    
+	template <class T_, size_t W_> __host__ __device__ link_type
+	operator ()(int v, int u, int nrow, int ncol, T_ in[][W_]) const
+	{
+	    link_type	result = 0;
+	    if (u + 1 < ncol)
+		result |= _is_linked(in[v][u], in[v][u + 1]);
+	    if (v + 1 < nrow)
+		result |= (_is_linked(in[v][u], in[v + 1][u]) << 1);
+	    return result;
+	}
+
+      private:
+	const op_type	_is_linked;
+    };
+
+    template <class LABEL, class IS_BACKGROUND>
+    class background_setter
+    {
+      public:
+	using labels_type = range<range_iterator<thrust::device_ptr<LABEL> > >;
+    
+      public:
+	__host__ __device__
+		background_setter(labels_type labels,
+				  IS_BACKGROUND is_background)
+		    :_labels(labels), _is_background(is_background)	{}
+
+	template <class T_> __host__ __device__
+	LABEL	operator ()(int v, int u, T_ pixel) const
+		{
+		    return (_is_background(pixel) ? 0 : _labels[v][u] + 1);
+		}
+    
+      private:
+	const labels_type	_labels;
+	const IS_BACKGROUND	_is_background;
+    };
+
+  public:
+    using BLOCK_TRAITS::BlockDimX;
+    using BLOCK_TRAITS::BlockDimY;
+
+    constexpr static link_type	RIGHT = 0x01;
+    constexpr static link_type	LOWER = 0x02;
+    
+  public:
+		Labeling()	:profiler_t(4)				{}
+    
+    template <class IN, class OUT, class IS_LINKED>
+    void	label(IN row, IN rowe, OUT rowL, IS_LINKED is_linked)	;
+    template <class IN, class OUT, class IS_BACKGROUND>
+    void	set_background(IN row, IN rowe, OUT rowL,
+			       IS_BACKGROUND is_background)	const	;
+
+  private:
+    template <class LABEL>
+    void	label_tiles(LABEL rowL)					;
+    template <class LABEL>
+    void	merge_tiles(LABEL rowL)					;
+    template <class LABEL>
+    void	flatten_labels(LABEL rowL)				;
+    
+  private:
+    Array2<link_type>	_links;
+};
+
+#if defined(__NVCC__)
+template<class BLOCK_TRAITS, class CLOCK>
+template <class IN, class OUT, class IS_LINKED> void
+Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
+				     IS_LINKED is_linked)
+{
+    using std::size;
+
+  // Detect links between 4-neighboring pixels.
+    profiler_t::start(0);
+    _links.resize(std::distance(row, rowe), size(*row));
+    opNxM<BLOCK_TRAITS>(row, rowe, _links.begin(),
+			link_detector<IS_LINKED>(is_linked));
+
+  // Perform labeling for each tile.
+    profiler_t::start(1);
+    label_tiles(rowL);
+    
+  // Iteratively merge tiles.
+    profiler_t::start(2);
+    merge_tiles(rowL);
+    
+  // Flatten labels.
+    profiler_t::start(3);
+    flatten_labels(rowL);
+
+    cudaDeviceSynchronize();
+    profiler_t::nextFrame();
+}
+
+template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
+Labeling<BLOCK_TRAITS, CLOCK>::label_tiles(LABEL rowL)
+{
+    const dim3	threads(BlockDimX, BlockDimY);
+    const dim3	blocks(divUp(_links.ncol(), threads.x),
+		       divUp(_links.nrow(), threads.y));
+    device::label_tiles<Labeling><<<blocks, threads>>>(
+	cu::make_range(_links.cbegin(), _links.nrow()),
+	cu::make_range(rowL,		_links.nrow()));
+}
+
+template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
+Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL)
+{
+    dim3	threads(BlockDimX, 1);
+    dim3	blocks(divUp(_links.ncol(), BlockDimX),
+		       divUp(_links.nrow(), BlockDimX));
+    int		tileSize = BlockDimX;		// initial tile size in x-axis
+    while (blocks.x > 1 || blocks.y > 1)
+    {
+	const dim3	blocks_prev = blocks;
+	blocks.x = divUp(blocks_prev.x, 2);
+	blocks.y = divUp(blocks_prev.y, 2);
+	device::merge_tiles<Labeling><<<blocks, threads>>>(
+	    cu::make_range(_links.cbegin(), _links.nrow()),
+	    cu::make_range(rowL,	    _links.nrow()),
+	    tileSize);
+
+	threads.x = std::min(threads.x << 1, uint32_t(BlockDimX * BlockDimX));
+	tileSize <<= 1;
+    }
+}
+
+template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
+Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(LABEL rowL)
+{
+    const dim3	threads(BlockDimX, BlockDimY);
+    const dim3	blocks(divUp(_links.ncol(), threads.x),
+		       divUp(_links.ncol(), threads.y));
+    device::flatten_labels<<<blocks, threads>>>(
+	cu::make_range(rowL, _links.nrow()));
+}
+
+template<class BLOCK_TRAITS, class CLOCK>
+template <class IN, class OUT, class IS_BACKGROUND> void
+Labeling<BLOCK_TRAITS, CLOCK>::
+set_background(IN row, IN rowe, OUT rowL, IS_BACKGROUND is_background) const
+{
+    using label_type = typename std::iterator_traits<OUT>::value_type
+							 ::value_type;
+    using std::size;
+    
+    transform2(row, rowe, rowL,
+	       background_setter<label_type, IS_BACKGROUND>(
+		   cu::make_range(rowL, size(*rowL)), is_background));
+}
+    
+#endif	// __NVCC__
+}	// namespace cu
+}	// namespace TU

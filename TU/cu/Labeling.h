@@ -265,12 +265,14 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 			       IS_BACKGROUND is_background)	const	;
 
   private:
+    template <class IN, class IS_LINKED>
+    void	create_links(IN row, IN rowe, IS_LINKED is_linked)	;
     template <class LABEL>
-    void	label_tiles(LABEL rowL)					;
+    void	label_tiles(LABEL rowL)				const	;
     template <class LABEL>
-    void	merge_tiles(LABEL rowL)					;
+    void	merge_tiles(LABEL rowL)				const	;
     template <class LABEL>
-    void	flatten_labels(LABEL rowL)				;
+    void	flatten_labels(LABEL rowL)			const	;
     
   private:
     Array2<link_type>	_links;
@@ -282,13 +284,9 @@ template <class IN, class OUT, class IS_LINKED> void
 Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
 				     IS_LINKED is_linked)
 {
-    using std::size;
-
   // Detect links between 4-neighboring pixels.
     profiler_t::start(0);
-    _links.resize(std::distance(row, rowe), size(*row));
-    opNxM<BLOCK_TRAITS>(row, rowe, _links.begin(),
-			link_detector<IS_LINKED>(is_linked));
+    create_links(row, rowe, is_linked);
 
   // Perform labeling for each tile.
     profiler_t::start(1);
@@ -306,8 +304,20 @@ Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
     profiler_t::nextFrame();
 }
 
+template<class BLOCK_TRAITS, class CLOCK>
+template <class IN, class IS_LINKED> void
+Labeling<BLOCK_TRAITS, CLOCK>::create_links(IN row, IN rowe,
+					    IS_LINKED is_linked)
+{
+    using std::size;
+
+    _links.resize(std::distance(row, rowe), size(*row));
+    opNxM<BLOCK_TRAITS>(row, rowe, _links.begin(),
+			link_detector<IS_LINKED>(is_linked));
+}
+
 template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
-Labeling<BLOCK_TRAITS, CLOCK>::label_tiles(LABEL rowL)
+Labeling<BLOCK_TRAITS, CLOCK>::label_tiles(LABEL rowL) const
 {
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(_links.ncol(), threads.x),
@@ -318,7 +328,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::label_tiles(LABEL rowL)
 }
 
 template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
-Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL)
+Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL) const
 {
     dim3	threads(BlockDimX, 1);
     dim3	blocks(divUp(_links.ncol(), BlockDimX),
@@ -326,9 +336,8 @@ Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL)
     int		tileSize = BlockDimX;		// initial tile size in x-axis
     while (blocks.x > 1 || blocks.y > 1)
     {
-	const dim3	blocks_prev = blocks;
-	blocks.x = divUp(blocks_prev.x, 2);
-	blocks.y = divUp(blocks_prev.y, 2);
+	blocks.x = divUp(blocks.x, 2);
+	blocks.y = divUp(blocks.y, 2);
 	device::merge_tiles<Labeling><<<blocks, threads>>>(
 	    cu::make_range(_links.cbegin(), _links.nrow()),
 	    cu::make_range(rowL,	    _links.nrow()),
@@ -340,7 +349,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL)
 }
 
 template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
-Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(LABEL rowL)
+Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(LABEL rowL) const
 {
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(_links.ncol(), threads.x),

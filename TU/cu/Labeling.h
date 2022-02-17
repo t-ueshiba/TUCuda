@@ -30,14 +30,10 @@ root(const LABEL* labels, LABEL label)
 }
 
 template <class LABEL> __device__ __forceinline__ void
-merge(range<range_iterator<LABEL> > labels,
-      iterator_value<LABEL> label0, iterator_value<LABEL> label1,
-      int& changed)
+merge(LABEL* labels, LABEL label0, LABEL label1, int& changed)
 {
-    const auto	labels_p = &labels[0][0];
-    
-    const auto	root0 = root(labels_p, label0);
-    const auto	root1 = root(labels_p, label1);
+    const auto	root0 = root(labels, label0);
+    const auto	root1 = root(labels, label1);
 
     if (root0 != root1)
     {
@@ -45,7 +41,7 @@ merge(range<range_iterator<LABEL> > labels,
 	const auto	root_max = ::max(root0, root1);
 
       // Replace label of root_max with root_min.
-	atomicMin(&labels_p[root_max], root_min);
+	atomicMin(&labels[root_max], root_min);
 
 	changed = 1;
     }
@@ -141,7 +137,8 @@ merge_tiles(range<range_iterator<LINK> >  links,
     const int	v1 = ::min(v0 + tileSize,   links.size());
     const int	u2 = ::min(u0 + 2*tileSize, links.begin().size());
     const int	v2 = ::min(v0 + 2*tileSize, links.size());
-    
+
+    const auto	lp = &labels[0][0];
     int		changed;
     do
     {
@@ -152,7 +149,7 @@ merge_tiles(range<range_iterator<LINK> >  links,
 	  // Merge upper-left and upper-right tiles.
 	    for (int v = v0 + threadIdx.x; v < v1; v += blockDim.x)
 		if (links[v][u1-1] & LABELING::RIGHT)
-		    merge(labels, labels[v][u1-1], labels[v][u1], changed);
+		    merge(lp, labels[v][u1-1], labels[v][u1], changed);
 	}
 	
 	if (v1 < v2)
@@ -160,19 +157,19 @@ merge_tiles(range<range_iterator<LINK> >  links,
 	  // Merge upper-left and lower-left tiles.
 	    for (int u = u0 + threadIdx.x; u < u1; u += blockDim.x)
 		if (links[v1-1][u] & LABELING::LOWER)
-		    merge(labels, labels[v1-1][u], labels[v1][u], changed);
+		    merge(lp, labels[v1-1][u], labels[v1][u], changed);
 
 	    if (u1 < u2)
 	    {
 	      // Merge upper-right and lower-right tiles.
 		for (int u = u1 + threadIdx.x; u < u2; u += blockDim.x)
 		    if (links[v1-1][u] & LABELING::LOWER)
-			merge(labels, labels[v1-1][u], labels[v1][u], changed);
+			merge(lp, labels[v1-1][u], labels[v1][u], changed);
 
 	      // Merge lower-left and lower-right tiles.
 		for (int v = v1 + threadIdx.x; v < v2; v += blockDim.x)
 		    if (links[v][u1-1] & LABELING::RIGHT)
-			merge(labels, labels[v][u1-1], labels[v][u1], changed);
+			merge(lp, labels[v][u1-1], labels[v][u1], changed);
 	    }
 	}
     } while (__syncthreads_or(changed));

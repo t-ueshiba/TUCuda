@@ -57,17 +57,15 @@ label_image(const cv::Mat& in, cv::Mat& out, bool set_bg)
 	for (int v = 0; v < out.rows; ++v)
 	    for (int u = 0; u < out.cols; ++u)
 		if (in.at<T>(v, u) == 0)
-		    out.at<L>(v, u) = 0;
-		else
-		    ++out.at<L>(v, u);
+		    out.at<L>(v, u) = -1;
     }
     
   // Pass 4: relabel extracted regions sequentially
-    L			relabel = 1;
+    L			relabel = 0;
     std::map<L, L>	lookup;
     for (int v = 0; v < out.rows; ++v)
 	for (int u = 0; u < out.cols; ++u)
-	    if (out.at<L>(v, u) != 0)
+	    if (out.at<L>(v, u) >= 0)
 	    {
 		const auto	result = lookup.emplace(out.at<L>(v, u),
 							relabel);
@@ -76,7 +74,7 @@ label_image(const cv::Mat& in, cv::Mat& out, bool set_bg)
 		    ++relabel;
 	    }
     
-    return 1 + lookup.size();
+    return lookup.size();
 }
 }
     

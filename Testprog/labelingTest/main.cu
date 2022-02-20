@@ -8,56 +8,57 @@ namespace TU
 namespace cu
 {
 template <class T, class L> int
-label_image(const cv::Mat& in, cv::Mat& out, bool set_bg)
+label_image(const cv::Mat& image, cv::Mat& labels, bool set_bg)
 {
     Labeling<>	labeling;
-    Array2<T>	in_d(TU::Array2<T>(const_cast<T*>(in.ptr<T>()),
-				   in.rows, in.cols));
-    Array2<L>	out_d(in_d.nrow(), in_d.ncol());
+    Array2<T>	image_d(TU::Array2<T>(const_cast<T*>(image.ptr<T>()),
+				   image.rows, image.cols));
+    Array2<L>	labels_d(image_d.nrow(), image_d.ncol());
 
-    labeling.label(in_d.cbegin(), in_d.cend(), out_d.begin(),
+    labeling.label(image_d.cbegin(), image_d.cend(), labels_d.begin(),
 		   thrust::equal_to<T>());
     if (set_bg)
-      labeling.set_background(in_d.cbegin(), in_d.cend(), out_d.begin(),
+      labeling.set_background(image_d.cbegin(), image_d.cend(),
+			      labels_d.begin(),
 			      [] __device__ (auto pixel)
 			      { return pixel == 0; });
     labeling.print(std::cerr);
     
-    TU::Array2<L>(out.ptr<L>(), out.rows, out.cols) = out_d;
+    TU::Array2<L>(labels.ptr<L>(), labels.rows, labels.cols) = labels_d;
 
   // Relabel extracted regions sequentially
-    L			relabel = 1;
+    L			relabel = 0;
     std::map<L, L>	lookup;
-    for (int v = 0; v < out.rows; ++v)
-	for (int u = 0; u < out.cols; ++u)
-	    if (out.at<L>(v, u) != 0)
+    for (int v = 0; v < labels.rows; ++v)
+	for (int u = 0; u < labels.cols; ++u)
+	    if (labels.at<L>(v, u) >= 0)
 	    {
-		const auto	result = lookup.emplace(out.at<L>(v, u),
+		const auto	result = lookup.emplace(labels.at<L>(v, u),
 							relabel);
-		out.at<L>(v, u) = (result.first)->second;
+		labels.at<L>(v, u) = (result.first)->second;
 		if (result.second)
 		    ++relabel;
 	    }
     
-    return 1 + lookup.size();
+    return lookup.size();
 }
 }	// namespace cuda
     
 template <class T> cv::Mat
 color_encode(const cv::Mat& labels, int nlabels)
 {
-    std::vector<cv::Vec3b>	colors(nlabels);
+    std::vector<cv::Vec3b>	colors(1 + nlabels);
 
     colors[0] = cv::Vec3b(0, 0, 0);
-    for (int i = 1; i < nlabels; ++i)
+    for (int i = 1; i < colors.size(); ++i)
         colors[i] = cv::Vec3b(32 + rand() % 224,
 			      32 + rand() % 224,
 			      32 + rand() % 224);
-
+    
     cv::Mat	result(labels.size(), CV_8UC3);
     for (int v = 0; v < result.rows; ++v)
 	for (int u = 0; u < result.cols; ++u)
-	    result.at<cv::Vec3b>(v, u) = colors[labels.at<T>(v, u)];
+	    result.at<cv::Vec3b>(v, u) = colors[1 + labels.at<T>(v, u)];
 
     return result;
 }
@@ -111,7 +112,7 @@ main(int argc, char* argv[])
 	break;
       case 2:
 	nlabels = TU::cu::label_image<pixel_type, label_type>(bin, labels,
-								set_bg);
+							      set_bg);
 	break;
     }
     std::cerr << nlabels << " regions found." << std::endl;

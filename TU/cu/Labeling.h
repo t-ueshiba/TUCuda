@@ -237,7 +237,7 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 	template <class T_> __host__ __device__
 	LABEL	operator ()(int v, int u, T_ pixel) const
 		{
-		    return (_is_background(pixel) ? 0 : _labels[v][u] + 1);
+		    return (_is_background(pixel) ? -1 : _labels[v][u]);
 		}
     
       private:

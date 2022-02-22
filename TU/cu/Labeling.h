@@ -366,7 +366,8 @@ set_background(IN row, IN rowe, OUT rowL, IS_BACKGROUND is_background) const
     
     transform2(row, rowe, rowL,
 	       background_setter<label_type, IS_BACKGROUND>(
-		   cu::make_range(rowL, size(*rowL)), is_background));
+		   cu::make_range(rowL, std::distance(row, rowe)),
+		   is_background));
 }
     
 #endif	// __NVCC__

@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.8)
 project(TUCuda)
 
 enable_language(CXX)
+enable_language(CUDA)
+
 set(CMAKE_CXX_STANDARD		17)
 set(CMAKE_CXX_STANDARD_REQUIRED	ON)
 set(CMAKE_CXX_EXTENSIONS	OFF)
@@ -14,9 +16,8 @@ if(APPLE)
   set(MACOSX_RPATH TRUE)
 endif()
 
-set(CMAKE_MODULE_PATH
-    ${CMAKE_MODULE_PATH}
-    "/usr/local/share/cmake/TU")
+set(CMAKE_MODULE_PATH    ${CMAKE_MODULE_PATH} "/usr/local/share/cmake/TU")
+include(BuildType)
 
 find_package(CUDA REQUIRED)
 if(CUDA_FOUND)

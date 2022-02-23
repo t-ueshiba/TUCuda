@@ -185,6 +185,19 @@ flatten_labels(range<range_iterator<LABEL> > labels)
 	labels[y][x] = root(&labels[0][0], labels[y][x]);
 }
 
+template <class IN, class LABEL, class IS_BACKGROUND> __global__ void
+flatten_labels(range<range_iterator<IN> >    in,
+	       range<range_iterator<LABEL> > labels,
+	       IS_BACKGROUND is_background)
+{
+    const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
+    const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
+
+    if (y < labels.size() && x < labels.begin().size())
+	labels[y][x] = (is_background(in[y][x]) ? -1 :
+			root(&labels[0][0], labels[y][x]));
+}
+
 }	// namespace device
 #endif	// __NVCC__
 
@@ -222,29 +235,6 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 	const op_type	_is_linked;
     };
 
-    template <class LABEL, class IS_BACKGROUND>
-    class background_setter
-    {
-      public:
-	using labels_type = range<range_iterator<thrust::device_ptr<LABEL> > >;
-    
-      public:
-	__host__ __device__
-		background_setter(labels_type labels,
-				  IS_BACKGROUND is_background)
-		    :_labels(labels), _is_background(is_background)	{}
-
-	template <class T_> __host__ __device__
-	LABEL	operator ()(int v, int u, T_ pixel) const
-		{
-		    return (_is_background(pixel) ? -1 : _labels[v][u]);
-		}
-    
-      private:
-	const labels_type	_labels;
-	const IS_BACKGROUND	_is_background;
-    };
-
   public:
     using BLOCK_TRAITS::BlockDimX;
     using BLOCK_TRAITS::BlockDimY;
@@ -255,11 +245,10 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
   public:
 		Labeling()	:profiler_t(4)				{}
     
-    template <class IN, class OUT, class IS_LINKED>
-    void	label(IN row, IN rowe, OUT rowL, IS_LINKED is_linked)	;
-    template <class IN, class OUT, class IS_BACKGROUND>
-    void	set_background(IN row, IN rowe, OUT rowL,
-			       IS_BACKGROUND is_background)	const	;
+    template <class IN, class OUT, class IS_LINKED,
+	      class IS_BACKGROUND=std::nullptr_t>
+    void	label(IN row, IN rowe, OUT rowL, IS_LINKED is_linked,
+		      IS_BACKGROUND is_background=nullptr)		;
 
   private:
     template <class IN, class IS_LINKED>
@@ -268,18 +257,22 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
     void	label_tiles(LABEL rowL)				const	;
     template <class LABEL>
     void	merge_tiles(LABEL rowL)				const	;
-    template <class LABEL>
-    void	flatten_labels(LABEL rowL)			const	;
-    
+    template <class IN, class LABEL>
+    void	flatten_labels(IN, LABEL rowL, std::nullptr_t)	const	;
+    template <class IN, class LABEL, class IS_BACKGROUND>
+    void	flatten_labels(IN row, LABEL rowL,
+			       IS_BACKGROUND is_background)	const	;
+
   private:
     Array2<link_type>	_links;
 };
 
 #if defined(__NVCC__)
 template<class BLOCK_TRAITS, class CLOCK>
-template <class IN, class OUT, class IS_LINKED> void
+template <class IN, class OUT, class IS_LINKED, class IS_BACKGROUND> void
 Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
-				     IS_LINKED is_linked)
+				     IS_LINKED is_linked,
+				     IS_BACKGROUND is_background)
 {
   // Detect links between 4-neighboring pixels.
     profiler_t::start(0);
@@ -295,7 +288,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
     
   // Flatten labels.
     profiler_t::start(3);
-    flatten_labels(rowL);
+    flatten_labels(row, rowL, is_background);
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
@@ -330,7 +323,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL) const
     dim3	threads(BlockDimX, 1);
     dim3	blocks(divUp(_links.ncol(), BlockDimX),
 		       divUp(_links.nrow(), BlockDimX));
-    int		tileSize = BlockDimX;		// initial tile size in x-axis
+    int		tileSize = BlockDimX;	// initial tile size in x-axis
     while (blocks.x > 1 || blocks.y > 1)
     {
 	blocks.x = divUp(blocks.x, 2);
@@ -345,8 +338,10 @@ Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL) const
     }
 }
 
-template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
-Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(LABEL rowL) const
+template<class BLOCK_TRAITS, class CLOCK>
+template <class IN, class LABEL> void
+Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(IN, LABEL rowL,
+					      std::nullptr_t) const
 {
     const dim3	threads(BlockDimX, BlockDimY);
     const dim3	blocks(divUp(_links.ncol(), threads.x),
@@ -356,18 +351,17 @@ Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(LABEL rowL) const
 }
 
 template<class BLOCK_TRAITS, class CLOCK>
-template <class IN, class OUT, class IS_BACKGROUND> void
-Labeling<BLOCK_TRAITS, CLOCK>::
-set_background(IN row, IN rowe, OUT rowL, IS_BACKGROUND is_background) const
+template <class IN, class LABEL, class IS_BACKGROUND> void
+Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(IN row, LABEL rowL,
+					      IS_BACKGROUND is_background) const
 {
-    using label_type = typename std::iterator_traits<OUT>::value_type
-							 ::value_type;
-    using std::size;
-    
-    transform2(row, rowe, rowL,
-	       background_setter<label_type, IS_BACKGROUND>(
-		   cu::make_range(rowL, std::distance(row, rowe)),
-		   is_background));
+    const dim3	threads(BlockDimX, BlockDimY);
+    const dim3	blocks(divUp(_links.ncol(), threads.x),
+		       divUp(_links.ncol(), threads.y));
+    device::flatten_labels<<<blocks, threads>>>(
+	cu::make_range(row , _links.nrow()),
+	cu::make_range(rowL, _links.nrow()),
+	is_background);
 }
     
 #endif	// __NVCC__

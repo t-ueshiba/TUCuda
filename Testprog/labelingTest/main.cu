@@ -15,13 +15,13 @@ label_image(const cv::Mat& image, cv::Mat& labels, bool set_bg)
 				   image.rows, image.cols));
     Array2<L>	labels_d(image_d.nrow(), image_d.ncol());
 
-    labeling.label(image_d.cbegin(), image_d.cend(), labels_d.begin(),
-		   thrust::equal_to<T>());
     if (set_bg)
-      labeling.set_background(image_d.cbegin(), image_d.cend(),
-			      labels_d.begin(),
-			      [] __device__ (auto pixel)
-			      { return pixel == 0; });
+	labeling.label(image_d.cbegin(), image_d.cend(), labels_d.begin(),
+		       thrust::equal_to<T>(),
+		       [] __device__ (auto pixel){ return pixel == 0; });
+    else
+	labeling.label(image_d.cbegin(), image_d.cend(), labels_d.begin(),
+		       thrust::equal_to<T>());
     labeling.print(std::cerr);
     
     TU::Array2<L>(labels.ptr<L>(), labels.rows, labels.cols) = labels_d;

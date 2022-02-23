@@ -39,6 +39,7 @@
 */
 #pragma once
 
+#include <cuda/std/cassert>
 #include <type_traits>
 #include <thrust/iterator/iterator_adaptor.h>
 #include "TU/range.h"
@@ -339,7 +340,7 @@ class range
     __host__ __device__
     range&	operator =(const range& r)
 		{
-		  //assert(r.size() == size());
+		    assert(r.size() == size());
 		    copy<0>(r._begin, _size, _begin);
 		    return *this;
 		}
@@ -364,7 +365,7 @@ class range
     decltype(auto)
 		operator [](int i) const
 		{
-		  //assert(i < size());
+		    assert(i < size());
 		    return *(_begin + i);
 		}
 
@@ -390,7 +391,7 @@ class range<thrust::device_ptr<T> >
     __host__ __device__
     range&	operator =(const range& r)
 		{
-		  //assert(r.size() == size());
+		    assert(r.size() == size());
 		    copy<0>(r._begin, _size, _begin);
 		    return *this;
 		}
@@ -415,7 +416,7 @@ class range<thrust::device_ptr<T> >
     decltype(auto)
 		operator [](int i) const
 		{
-		  //assert(i < size());
+		    assert(i < size());
 		    return *(_begin + i);
 		}
 

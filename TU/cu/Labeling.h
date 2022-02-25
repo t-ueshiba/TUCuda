@@ -9,7 +9,6 @@
 #include <TU/cu/algorithm.h>
 #include <TU/cu/functional.h>
 #include <TU/cu/chrono.h>
-#include <cuda/std/tuple>
 
 namespace TU
 {

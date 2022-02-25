@@ -50,8 +50,7 @@ merge(LABEL* labels, LABEL label0, LABEL label1, int& changed)
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-template<class LABELING, class LINK, class LABEL>
-__global__ void
+template<class LABELING, class LINK, class LABEL> __global__ void
 label_tiles(range<range_iterator<LINK> >  links,
 	    range<range_iterator<LABEL> > labels)
 {
@@ -208,17 +207,16 @@ flatten_labels(range<range_iterator<IN> >    in,
 template <class BLOCK_TRAITS=BlockTraits<16, 16>, class CLOCK=cu::clock>
 class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
-  public:
+  private:
     using profiler_t	= Profiler<CLOCK>;
     using link_type	= uint32_t;
 
+  public:
     template <class IS_LINKED>
     struct link_detector : public OperatorTraits<2, 2>
     {
-	using op_type	= IS_LINKED;
-
 	__host__ __device__
-	link_detector(op_type is_linked) :_is_linked(is_linked)		{}
+	link_detector(IS_LINKED is_linked) :_is_linked(is_linked)	{}
     
 	template <class T_, size_t W_> __host__ __device__ link_type
 	operator ()(int v, int u, int nrow, int ncol, T_ in[][W_]) const
@@ -232,10 +230,9 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 	}
 
       private:
-	const op_type	_is_linked;
+	const IS_LINKED	_is_linked;
     };
 
-  public:
     using BLOCK_TRAITS::BlockDimX;
     using BLOCK_TRAITS::BlockDimY;
 

@@ -57,6 +57,8 @@ struct BlockTraits
     constexpr static size_t	BlockDimX = BLOCK_DIM_X;
   //! 1ブロックあたりのスレッド数(y方向)    
     constexpr static size_t	BlockDimY = BLOCK_DIM_Y;
+  //! 1ブロックあたりのスレッド数(1次元)    
+    constexpr static size_t	BlockDim  = BlockDimX * BlockDimY;
 };
     
 /************************************************************************

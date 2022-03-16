@@ -514,8 +514,8 @@ class range_iterator
 		}
 
   private:
-    const stride_t	_stride;
-    const int		_size;
+    stride_t	_stride;
+    int		_size;
 };
     
 template <class ITER> __host__ __device__ inline auto
@@ -600,6 +600,44 @@ slice(const ITER& iter, int idx, int size, IS... is)
 {
     return make_range(cu::detail::make_slice_iterator(iter + idx, is...),
 		      size);
+}
+
+/************************************************************************
+*  class row2col<ROW>							*
+************************************************************************/
+//! 行への参照を与えられると予め指定された列indexに対応する要素への参照を返す関数オブジェクト
+/*!
+  \param ROW	行を指す反復子
+*/ 
+template <class ROW>
+class row2col
+{
+  public:
+    using argument_type	= iterator_reference<ROW>;
+    
+  public:
+    __host__ __device__	row2col(size_t col)	:_col(col)		{}
+
+    __host__ __device__
+    decltype(auto)	operator ()(argument_type row) const
+			{
+			    return *(row.begin() + _col);
+			}
+    
+  private:
+    size_t	_col;	//!< 列を指定するindex
+};
+
+/************************************************************************
+*  alias vertical_iterator<ROW>						*
+************************************************************************/
+template <class ROW>
+using vertical_iterator = map_iterator<row2col<ROW>, ROW>;
+
+template <class ROW> __host__ __device__ inline vertical_iterator<ROW>
+make_vertical_iterator(const ROW& row, size_t col)
+{
+    return {{col}, row};
 }
 
 }	// namespace cu

@@ -58,24 +58,30 @@ namespace device
   template <class T>
   constexpr static T	epsilon = std::numeric_limits<T>::epsilon();
     
-  __device__ inline float  fma(float x,
-			       float y, float z)	{ return fmaf(x, y, z);}
-  __device__ inline float  min(float x, float y)	{ return fminf(x, y); }
-  __device__ inline float  max(float x, float y)	{ return fmaxf(x, y); }
-  __device__ inline float  square(float x)		{ return x*x; }
-  __device__ inline float  abs(float x)			{ return fabsf(x); }
-  __device__ inline float  sqrt(float x)		{ return sqrtf(x); }
-  __device__ inline float  rsqrt(float x)		{ return rsqrtf(x); }
-  __device__ inline float  sin(float x)			{ return sinf(x); }
-  __device__ inline float  cos(float x)			{ return cosf(x); }
-  __device__ inline float  atan2(float y, float x)	{ return atan2f(y, x); }
-  __device__ inline float  floor(float x)		{ return floorf(x); }
-  __device__ inline float  ceil(float x)		{ return ceilf(x); }
+  __device__ __forceinline__ float  fma(float x,
+					float y,
+					float z)	{ return fmaf(x, y, z);}
+  __device__ __forceinline__ float  min(float x,
+					float y)	{ return fminf(x, y); }
+  __device__ __forceinline__ float  max(float x,
+					float y)	{ return fmaxf(x, y); }
+  __device__ __forceinline__ float  square(float x)	{ return x*x; }
+  __device__ __forceinline__ float  abs(float x)	{ return fabsf(x); }
+  __device__ __forceinline__ float  sqrt(float x)	{ return sqrtf(x); }
+  __device__ __forceinline__ float  rsqrt(float x)	{ return rsqrtf(x); }
+  __device__ __forceinline__ float  sin(float x)	{ return sinf(x); }
+  __device__ __forceinline__ float  cos(float x)	{ return cosf(x); }
+  __device__ __forceinline__ float  atan2(float y,
+					  float x)	{ return atan2f(y, x); }
+  __device__ __forceinline__ float  floor(float x)	{ return floorf(x); }
+  __device__ __forceinline__ float  ceil(float x)	{ return ceilf(x); }
 
-  __device__ inline double min(double x, double y)	{ return fmin(x, y); }
-  __device__ inline double max(double x, double y)	{ return fmax(x, y); }
-  __device__ inline double square(double x)		{ return x*x; }
-  __device__ inline double abs(double x)		{ return fabs(x); }
+  __device__ __forceinline__ double min(double x,
+					double y)	{ return fmin(x, y); }
+  __device__ __forceinline__ double max(double x,
+					double y)	{ return fmax(x, y); }
+  __device__ __forceinline__ double square(double x)	{ return x*x; }
+  __device__ __forceinline__ double abs(double x)	{ return fabs(x); }
 }	// namespace device
 #endif	// __NVCC__
 
@@ -448,33 +454,33 @@ using mat = std::conditional_t<R == 1, vec<T, C>,
 *  Access element by its integral index					*
 ************************************************************************/
 template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
-__host__ __device__ inline auto		val(const VM& a)	{ return a.x; }
+__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.x; }
 template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
-__host__ __device__ inline auto		val(const VM& a)	{ return a.y; }
+__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.y; }
 template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
-__host__ __device__ inline auto		val(const VM& a)	{ return a.z; }
+__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.z; }
 template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
-__host__ __device__ inline auto		val(const VM& a)	{ return a.w; }
+__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.w; }
 
 template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
-__host__ __device__ inline auto&	val(VM& a)		{ return a.x; }
+__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.x; }
 template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
-__host__ __device__ inline auto&	val(VM& a)		{ return a.y; }
+__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.y; }
 template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
-__host__ __device__ inline auto&	val(VM& a)		{ return a.z; }
+__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.z; }
 template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
-__host__ __device__ inline auto&	val(VM& a)		{ return a.w; }
+__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.w; }
 
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
 ************************************************************************/
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator -(const mat2x<T, C>& a)
 {
     return {-a.x, -a.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>&
 operator +=(mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     a.x += b.x;
@@ -482,7 +488,7 @@ operator +=(mat2x<T, C>& a, const mat2x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>&
 operator -=(mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     a.x -= b.x;
@@ -490,7 +496,7 @@ operator -=(mat2x<T, C>& a, const mat2x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>&
 operator *=(mat2x<T, C>& a, T c)
 {
     a.x *= c;
@@ -498,49 +504,49 @@ operator *=(mat2x<T, C>& a, T c)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator +(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator -(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator *(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator /(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator *(const mat2x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat2x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat2x<T, C>
 operator /(T c, const mat2x<T, C>& a)
 {
     return {c / a.x, c / a.y};
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator ==(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return a.x == b.x && a.y == b.y;
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator !=(const mat2x<T, C>& a, const mat2x<T, C>& b)
 {
     return !(a == b);
@@ -549,13 +555,13 @@ operator !=(const mat2x<T, C>& a, const mat2x<T, C>& b)
 /************************************************************************
 *  3-dimensional vectors or 3-by-C matrices				*
 ************************************************************************/
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator -(const mat3x<T, C>& a)
 {
     return {-a.x, -a.y, -a.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>&
 operator +=(mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     a.x += b.x;
@@ -564,7 +570,7 @@ operator +=(mat3x<T, C>& a, const mat3x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>&
 operator -=(mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     a.x -= b.x;
@@ -573,7 +579,7 @@ operator -=(mat3x<T, C>& a, const mat3x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>&
 operator *=(mat3x<T, C>& a, T c)
 {
     a.x *= c;
@@ -582,49 +588,49 @@ operator *=(mat3x<T, C>& a, T c)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator +(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator -(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator *(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator /(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator *(const mat3x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c, a.z * c};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat3x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat3x<T, C>
 operator /(T c, const mat3x<T, C>& a)
 {
     return {c / a.x, c / a.y, c / a.z};
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator ==(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator !=(const mat3x<T, C>& a, const mat3x<T, C>& b)
 {
     return !(a == b);
@@ -633,13 +639,13 @@ operator !=(const mat3x<T, C>& a, const mat3x<T, C>& b)
 /************************************************************************
 *  4-dimensional vectors or 4-by-C matrices				*
 ************************************************************************/
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator -(const mat4x<T, C>& a)
 {
     return {-a.x, -a.y, -a.z, -a.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>&
 operator +=(mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     a.x += b.x;
@@ -649,7 +655,7 @@ operator +=(mat4x<T, C>& a, const mat4x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>&
 operator -=(mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     a.x -= b.x;
@@ -659,7 +665,7 @@ operator -=(mat4x<T, C>& a, const mat4x<T, C>& b)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>&
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>&
 operator *=(mat4x<T, C>& a, T c)
 {
     a.x *= c;
@@ -669,49 +675,49 @@ operator *=(mat4x<T, C>& a, T c)
     return a;
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator +(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator -(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator *(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator /(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return {a.x / b.x, a.y / b.y, a.z / b.z, a.w / b.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator *(const mat4x<T, C>& a, T c)
 {
     return {a.x * c, a.y * c, a.z * c, a.w * c};
 }
 
-template <class T, size_t C> __host__ __device__ inline mat4x<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ mat4x<T, C>
 operator /(T c, const mat4x<T, C>& a)
 {
     return {c / a.x, c / a.y, c / a.z, c / a.w};
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator ==(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
-template <class T, size_t C> __host__ __device__ inline bool
+template <class T, size_t C> __host__ __device__ __forceinline__ bool
 operator !=(const mat4x<T, C>& a, const mat4x<T, C>& b)
 {
     return !(a == b);
@@ -720,21 +726,21 @@ operator !=(const mat4x<T, C>& a, const mat4x<T, C>& b)
 /************************************************************************
 *  Multiplication and division by scalar				*
 ************************************************************************/
-template <class VM> __host__ __device__ inline
+template <class VM> __host__ __device__ __forceinline__
 std::enable_if_t<(size0<VM>() > 1), VM&>
 operator /=(VM& a, element_t<VM> c)
 {
     return a *= (element_t<VM>(1)/c);
 }
 
-template <class VM> __host__ __device__ inline
+template <class VM> __host__ __device__ __forceinline__
 std::enable_if_t<(size0<VM>() > 1), VM>
 operator *(element_t<VM> c, const VM& a)
 {
     return a * c;
 }
 
-template <class VM> __host__ __device__ inline
+template <class VM> __host__ __device__ __forceinline__
 std::enable_if_t<(size0<VM>() > 1), VM>
 operator /(const VM& a, element_t<VM> c)
 {
@@ -765,13 +771,13 @@ operator <<(std::ostream& out, const mat4x<T, C>& a)
 /************************************************************************
 *  homogeneous()							*
 ************************************************************************/
-template <class T> __host__ __device__ inline mat3x<T, 1>
+template <class T> __host__ __device__ __forceinline__ mat3x<T, 1>
 homogeneous(const mat2x<T, 1>& a)
 {
     return {a.x, a.y, T(1)};
 }
 
-template <class T> __host__ __device__ inline mat4x<T, 1>
+template <class T> __host__ __device__ __forceinline__ mat4x<T, 1>
 homogeneous(const mat3x<T, 1>& a)
 {
     return {a.x, a.y, a.z, T(1)};
@@ -780,13 +786,13 @@ homogeneous(const mat3x<T, 1>& a)
 /************************************************************************
 *  inhomogeneous()							*
 ************************************************************************/
-template <class T> __host__ __device__ inline mat2x<T, 1>
+template <class T> __host__ __device__ __forceinline__ mat2x<T, 1>
 inhomogeneous(const mat3x<T, 1>& a)
 {
     return {a.x / a.z, a.y / a.z};
 }
 
-template <class T> __host__ __device__ inline mat3x<T, 1>
+template <class T> __host__ __device__ __forceinline__ mat3x<T, 1>
 inhomogeneous(const mat4x<T, 1>& a)
 {
     return {a.x / a.w, a.y / a.w, a.z / a.w};
@@ -795,39 +801,39 @@ inhomogeneous(const mat4x<T, 1>& a)
 /************************************************************************
 *  dot()								*
 ************************************************************************/
-template <class T, size_t C> __host__ __device__ inline vec<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ vec<T, C>
 dot(const mat2x<T, 1>& a, const mat2x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y;
 }
 
-template <class T, size_t C> __host__ __device__ inline vec<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ vec<T, C>
 dot(const mat3x<T, 1>& a, const mat3x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-template <class T, size_t C> __host__ __device__ inline vec<T, C>
+template <class T, size_t C> __host__ __device__ __forceinline__ vec<T, C>
 dot(const mat4x<T, 1>& a, const mat4x<T, C>& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-template <class T, size_t C, class VM> __host__ __device__ inline
+template <class T, size_t C, class VM> __host__ __device__ __forceinline__
 std::enable_if_t<size0<VM>() == C, mat<T, 2, size1<VM>()> >
 dot(const mat2x<T, C>& m, const VM& a)
 {
     return {dot(m.x, a), dot(m.y, a)};
 }
 
-template <class T, size_t C, class VM> __host__ __device__ inline
+template <class T, size_t C, class VM> __host__ __device__ __forceinline__
 std::enable_if_t<size0<VM>() == C, mat<T, 3, size1<VM>()> >
 dot(const mat3x<T, C>& m, const VM& a)
 {
     return {dot(m.x, a), dot(m.y, a), dot(m.z, a)};
 }
 
-template <class T, size_t C, class VM> __host__ __device__ inline
+template <class T, size_t C, class VM> __host__ __device__ __forceinline__
 std::enable_if_t<size0<VM>() == C, mat<T, 4, size1<VM>()> >
 dot(const mat4x<T, C>& m, const VM& a)
 {
@@ -837,7 +843,7 @@ dot(const mat4x<T, C>& m, const VM& a)
 /************************************************************************
 *  square()								*
 ************************************************************************/
-template <class VEC> __host__ __device__ inline
+template <class VEC> __host__ __device__ __forceinline__
 std::enable_if_t<size1<VEC>() == 1, element_t<VEC> >
 square(const VEC& a)
 {
@@ -847,7 +853,7 @@ square(const VEC& a)
 /************************************************************************
 *  cross()								*
 ************************************************************************/
-template <class T> __host__ __device__ inline mat3x<T, 1>
+template <class T> __host__ __device__ __forceinline__ mat3x<T, 1>
 cross(const mat3x<T, 1>& a, const mat3x<T, 1>& b)
 {
     return {a.y * b.z - a.z * b.y,
@@ -857,21 +863,21 @@ cross(const mat3x<T, 1>& a, const mat3x<T, 1>& b)
 /************************************************************************
 *  ext()								*
 ************************************************************************/
-template <class T, class VEC> __host__ __device__ inline
+template <class T, class VEC> __host__ __device__ __forceinline__
 std::enable_if_t<size1<VEC>() == 1, mat2x<T, size1<VEC>()> >
 ext(const mat2x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b};
 }
 
-template <class T, class VEC> __host__ __device__ inline
+template <class T, class VEC> __host__ __device__ __forceinline__
 std::enable_if_t<size1<VEC>() == 1, mat3x<T, size1<VEC>()> >
 ext(const mat3x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b, a.z * b};
 }
 
-template <class T, class VEC> __host__ __device__ inline
+template <class T, class VEC> __host__ __device__ __forceinline__
 std::enable_if_t<size1<VEC>() == 1, mat4x<T, size1<VEC>()> >
 ext(const mat4x<T, 1>& a, const VEC& b)
 {
@@ -883,62 +889,62 @@ namespace device
 /************************************************************************
 *  atomic operations							*
 ************************************************************************/
-template <class T> __device__
-inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_arithmetic<T>::value, T>
 atomicOp(T* p, T val, std::nullptr_t)
 {
     return ::atomicExch(p, val);
 }
     
-template <class T> __device__
-inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_arithmetic<T>::value, T>
 atomicOp(T* p, T val, std::plus<>)
 {
     return ::atomicAdd(p, val);
 }
     
-template <class T> __device__
-inline std::enable_if_t<std::is_arithmetic<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_arithmetic<T>::value, T>
 atomicOp(T* p, T val, std::minus<>)
 {
     return ::atomicSub(p, val);
 }
     
-template <class T> __device__
-inline std::enable_if_t<std::is_integral<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_and<>)
 {
     return ::atomicAnd(p, val);
 }
     
-template <class T> __device__
-inline std::enable_if_t<std::is_integral<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_or<>)
 {
     return ::atomicOr(p, val);
 }
     
-template <class T> __device__
-inline std::enable_if_t<std::is_integral<T>::value, T>
+template <class T> __device__ __forceinline__
+std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_xor<>)
 {
     return ::atomicXor(p, val);
 }
     
-template <class T, size_t C, class OP> __device__ inline mat2x<T, C>
+template <class T, size_t C, class OP> __device__ __forceinline__ mat2x<T, C>
 atomicOp(mat2x<T, C>* p, const mat2x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op)};
 }
     
-template <class T, size_t C, class OP> __device__ inline mat3x<T, C>
+template <class T, size_t C, class OP> __device__ __forceinline__ mat3x<T, C>
 atomicOp(mat3x<T, C>* p, const mat3x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),
 	    atomicOp(&p->z, val.z, op)};
 }
     
-template <class T, size_t C, class OP> __device__ inline mat4x<T, C>
+template <class T, size_t C, class OP> __device__ __forceinline__ mat4x<T, C>
 atomicOp(mat4x<T, C>* p, const mat4x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),

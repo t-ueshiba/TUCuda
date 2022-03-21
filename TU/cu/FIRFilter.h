@@ -64,7 +64,7 @@ __constant__ static float	_lobeV[FIRFilter2<>::LobeSizeMax];
 /************************************************************************
 *  __device__ functions							*
 ************************************************************************/
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 17>)
 {
   // ローブ長が17画素の偶関数畳み込みカーネル
@@ -87,7 +87,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 17>)
 	 + lobe[16] *  in[16];
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 16>)
 {
   // ローブ長が16画素の奇関数畳み込みカーネル
@@ -109,7 +109,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 16>)
 	 + lobe[15] * (in[15] - in[17]);
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 9>)
 {
   // ローブ長が9画素の偶関数畳み込みカーネル
@@ -124,7 +124,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 9>)
 	 + lobe[8] *  in[8];
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 8>)
 {
   // ローブ長が8画素の奇関数畳み込みカーネル
@@ -138,7 +138,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 8>)
 	 + lobe[7] * (in[7] - in[ 9]);
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 5>)
 {
   // ローブ長が5画素の偶関数畳み込みカーネル
@@ -149,7 +149,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 5>)
 	 + lobe[4] *  in[4];
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 4>)
 {
   // ローブ長が4画素の奇関数畳み込みカーネル
@@ -159,7 +159,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 4>)
 	 + lobe[3] * (in[3] - in[5]);
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 3>)
 {
   // ローブ長が3画素の偶関数畳み込みカーネル
@@ -168,7 +168,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 3>)
 	 + lobe[2] *  in[2];
 }
 
-template <class IN, class T> __device__ inline auto
+template <class IN, class T> __device__ __forceinline__ auto
 convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 {
   // ローブ長が2画素の奇関数畳み込みカーネル

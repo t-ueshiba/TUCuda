@@ -510,7 +510,7 @@ struct undistort
 #if defined(__NVCC__)
 namespace device
 {
-  template <class T> __device__ inline vec<T, 3>
+  template <class T> __device__ __forceinline__ vec<T, 3>
   cardano(const mat3x<T, 3>& A)
   {
     // Determine coefficients of characteristic poynomial. We write
@@ -615,7 +615,7 @@ namespace device
 
   namespace detail
   {
-    template <class T> __device__ inline bool
+    template <class T> __device__ __forceinline__ bool
     is_zero(T e, T g)
     {
 	return abs(e) + g == g;
@@ -629,7 +629,7 @@ namespace device
 	return w - w0 + e0/(t + (t > 0 ? r : -r));
     }
 
-    template <size_t I, class T> __device__ inline void
+    template <size_t I, class T> __device__ __forceinline__ void
     diagonalize(vec<T, 3>& w, vec<T, 3>& e,
 		vec<T, 3>& q0, vec<T, 3>& q1, T& c, T& s)
     {
@@ -665,7 +665,7 @@ namespace device
 	(q1 *= c) += s*q0_old;
     }
 
-    template <class T> __device__ inline vec<T, 3>
+    template <class T> __device__ __forceinline__ vec<T, 3>
     eigen_vector(vec<T, 3> a, vec<T, 3> b, T w)
     {
 	a.x -= w;
@@ -730,7 +730,7 @@ namespace device
       return true;
   }
 
-  template <class T> __device__  inline bool
+  template <class T> __device__  __forceinline__ bool
   eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   {
       w = cardano(A);		// Calculate eigenvalues

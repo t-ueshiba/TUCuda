@@ -88,7 +88,7 @@ namespace device
     \param src		コピー元の1次元領域
     \param dst		コピー先の1次元配列
   */
-  template <class IN, class T> __device__ static inline void
+  template <class IN, class T> __device__ __forceinline__ static void
   loadLine(const range<IN>& src, T dst[])
   {
       for (int tx = threadIdx.x; tx < src.size(); tx += blockDim.x)
@@ -100,7 +100,7 @@ namespace device
     \param src		コピー元の2次元領域
     \param dst		コピー先の2次元配列
   */
-  template <class IN, class T, size_t W> __device__ static inline void
+  template <class IN, class T, size_t W> __device__ __forceinline__ static void
   loadTile(const range<range_iterator<IN> >& src, T dst[][W])
   {
       for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)
@@ -116,7 +116,7 @@ namespace device
     \param src		コピー元の2次元領域
     \param dst		コピー先の2次元配列
   */
-  template <class IN, class T, size_t W> __device__ static inline void
+  template <class IN, class T, size_t W> __device__ __forceinline__ static void
   loadTileT(const range<range_iterator<IN> >& src, T dst[][W])
   {
       for (int ty = threadIdx.y; ty < src.size(); ty += blockDim.y)

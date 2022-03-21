@@ -96,17 +96,17 @@ class map_iterator
     FUNC	_func;	//!< 演算子
 };
 
-template <class FUNC, class ITER>
-__host__ __device__ inline map_iterator<FUNC, ITER>
+template <class FUNC, class ITER> __host__ __device__ __forceinline__
+map_iterator<FUNC, ITER>
 make_map_iterator(FUNC&& func, const ITER& iter)
 {
     return {std::forward<FUNC>(func), iter};
 }
 
 template <class FUNC, class ITER0, class ITER1, class... ITERS>
-__host__ __device__
-inline map_iterator<
-	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
+__host__ __device__ __forceinline__
+map_iterator<FUNC,
+	     thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
 make_map_iterator(FUNC&& func,
 		  const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
 {
@@ -248,16 +248,17 @@ class assignment_iterator
 #endif	// __NVCC__
 
 template <class FUNC, class ITER>
-__host__ __device__ inline assignment_iterator<FUNC, ITER>
+__host__ __device__ __forceinline__ assignment_iterator<FUNC, ITER>
 make_assignment_iterator(FUNC&& func, const ITER& iter)
 {
     return {std::forward<FUNC>(func), iter};
 }
 
 template <class FUNC, class ITER0, class ITER1, class... ITERS>
-__host__ __device__
-inline assignment_iterator<
-	FUNC, thrust::zip_iterator<thrust::tuple<ITER0, ITER1, ITERS...> > >
+__host__ __device__ __forceinline__
+assignment_iterator<FUNC,
+		    thrust::zip_iterator<
+			thrust::tuple<ITER0, ITER1, ITERS...> > >
 make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 			 const ITER1& iter1, const ITERS&... iters)
 {
@@ -270,20 +271,20 @@ make_assignment_iterator(FUNC&& func, const ITER0& iter0,
 *  TU::cu::stride(const ITER&, const ITER1&, const ITERS&...)		*
 ************************************************************************/
 template <class ITER0, class ITER1, class... ITERS>
-__host__ __device__ inline auto
+__host__ __device__ __forceinline__ auto
 stride(const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
 {
     return stride(thrust::make_tuple(iter0, iter1, iters...));
 }
 
-template <class FUNC, class ITER> __host__ __device__ inline auto
+template <class FUNC, class ITER> __host__ __device__ __forceinline__ auto
 stride(const map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
 }
 
-template <class FUNC, class ITER> __host__ __device__ inline auto
+template <class FUNC, class ITER> __host__ __device__ __forceinline__ auto
 stride(const assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
@@ -293,7 +294,7 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
 /************************************************************************
 *  TU::cu::advance_stride(ITER&, STRIDE)				*
 ************************************************************************/
-template <class ITER> __host__ __device__ inline auto
+template <class ITER> __host__ __device__ __forceinline__ auto
 advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
     -> void_t<decltype(iter += stride)>
 {
@@ -301,7 +302,7 @@ advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
 }
 
 template <class ITER_TUPLE, class HEAD, class TAIL>
-__host__ __device__ inline auto
+__host__ __device__ __forceinline__ auto
 advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 	       const thrust::detail::cons<HEAD, TAIL>& stride)
 {
@@ -311,7 +312,8 @@ advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
 
-template <class ITER, class HEAD, class TAIL> __host__ __device__ inline auto
+template <class ITER, class HEAD, class TAIL>
+__host__ __device__ __forceinline__ auto
 advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
     -> void_t<decltype(iter.base())>
 {
@@ -518,7 +520,7 @@ class range_iterator
     int		_size;
 };
     
-template <class ITER> __host__ __device__ inline auto
+template <class ITER> __host__ __device__ __forceinline__ auto
 stride(const range_iterator<ITER>& iter)
     -> decltype(stride(iter.base()))
 {
@@ -528,13 +530,13 @@ stride(const range_iterator<ITER>& iter)
 /************************************************************************
 *  TU::cu::make_range_iterator()					*
 ************************************************************************/
-template <class ITER> __host__ __device__ inline range_iterator<ITER>
+template <class ITER> __host__ __device__ __forceinline__ range_iterator<ITER>
 make_range_iterator(const ITER& iter, iterator_stride<ITER> stride, int size)
 {
     return {iter, stride, size};
 }
     
-template <class ITER, class... SS> __host__ __device__ inline auto
+template <class ITER, class... SS> __host__ __device__ __forceinline__ auto
 make_range_iterator(const ITER& iter,
 		    iterator_stride<ITER> stride, int size, SS... ss)
 {
@@ -557,13 +559,13 @@ make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 /************************************************************************
 *  TU::cu::make_range()						*
 ************************************************************************/
-template <class ITER> __host__ __device__ inline range<ITER>
+template <class ITER> __host__ __device__ __forceinline__ range<ITER>
 make_range(const ITER& iter, int size)
 {
     return {iter, size};
 }
 
-template <class ITER, class... SS> __host__ __device__ inline auto
+template <class ITER, class... SS> __host__ __device__ __forceinline__ auto
 make_range(const ITER& iter, int size, SS... ss)
 {
     return make_range(make_range_iterator(iter, ss...), size);
@@ -580,13 +582,13 @@ make_range(const TU::range_iterator<ITER, 0, 0>& iter, int size)
 ************************************************************************/
 namespace detail
 {
-  template <class ITER> __host__ __device__ inline const ITER&
+  template <class ITER> __host__ __device__ __forceinline__ const ITER&
   make_slice_iterator(const ITER& iter)
   {
       return iter;
   }
 
-  template <class ITER, class... IS> __host__ __device__ inline auto
+  template <class ITER, class... IS> __host__ __device__ __forceinline__ auto
   make_slice_iterator(const ITER& iter, int idx, int size, IS... is)
   {
       return make_range_iterator(cu::detail::make_slice_iterator(
@@ -595,7 +597,7 @@ namespace detail
   }
 }	// namespace detail
     
-template <class ITER, class... IS> __host__ __device__ inline auto
+template <class ITER, class... IS> __host__ __device__ __forceinline__ auto
 slice(const ITER& iter, int idx, int size, IS... is)
 {
     return make_range(cu::detail::make_slice_iterator(iter + idx, is...),
@@ -634,7 +636,7 @@ class row2col
 template <class ROW>
 using vertical_iterator = map_iterator<row2col<ROW>, ROW>;
 
-template <class ROW> __host__ __device__ inline vertical_iterator<ROW>
+template <class ROW> __host__ __device__ __forceinline__ vertical_iterator<ROW>
 make_vertical_iterator(const ROW& row, size_t col)
 {
     return {{col}, row};

@@ -498,6 +498,19 @@ struct undistort
 	return {d*xy.x, d*xy.y, d};
     }
 
+    __host__ __device__ vec<T, 2>
+    project(const vec<T, 3>& p) const
+    {
+	const vec<T, 2>	xy(p.x/p.z, p.y/p.z);
+	const auto	r2 = cu::square(xy);
+	const auto	k  = T(1) + (_d[0] + _d[1]*r2)*r2;
+	const auto	a  = T(2)*xy.x*xy.y;
+	vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + T(2)*xy.x*xy.x),
+			      _d[2]*(r2 + T(2)*xy.y*xy.y) + _d[3]*a};
+
+	return _flen*(k*xy + delta) + _uv0;
+    }
+
   private:
     vec<T, 2>	_flen;
     vec<T, 2>	_uv0;

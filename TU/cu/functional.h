@@ -56,7 +56,7 @@ struct OperatorTraits
     constexpr static size_t	OperatorSizeY = OPERATOR_SIZE_Y;
     constexpr static size_t	OperatorSizeX = OPERATOR_SIZE_X;
 };
-    
+
 //! 横方向1階微分オペレータを表す関数オブジェクト
 template <class T>
 struct diffH1x3 : public OperatorTraits<1, 3>
@@ -166,9 +166,9 @@ struct sobelH3x3 : public OperatorTraits<3, 3>
 	return T(0.125)*(in[y-1][x+1] - in[y-1][x-1] +
 			 in[y+1][x+1] - in[y+1][x-1]) +
 	       T(0.250)*(in[y  ][x+1] - in[y  ][x-1]);
-	
+
     }
-    
+
     template <class T_, size_t W_> __host__ __device__ result_type
     operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
     {
@@ -190,7 +190,7 @@ struct sobelV3x3 : public OperatorTraits<3, 3>
 			 in[y+1][x+1] - in[y-1][x+1]) +
 	       T(0.250)*(in[y+1][x  ] - in[y-1][x  ]);
     }
-    
+
     template <class T_, size_t W_> __host__ __device__ result_type
     operator ()(int y, int x, int nrow, int ncol, T_ in[][W_]) const
     {
@@ -368,15 +368,15 @@ class extremal3x3 : public OperatorTraits<3, 3>
     using result_type = T;
 
     __host__ __device__
-    extremal3x3(T false_value=0) 
+    extremal3x3(T false_value=0)
 	:_false_value(false_value), _logical_and()		{}
-    
+
     template <size_t W_> __host__ __device__ result_type
     operator ()(int y, int x, int nrow, int ncol, T in[][W_]) const
     {
 	return (_logical_and(y, x, nrow, ncol, in) ? in[y][x] : _false_value);
     }
-    
+
   private:
     const T		_false_value;
     const LOGICAL_AND	_logical_and;
@@ -425,7 +425,7 @@ class overlay
 
     __host__ __device__
     overlay(T val)	:_val(val)				{}
-    
+
     template <class T_> __host__ __device__ void
     operator ()(T_&& out, bool draw) const
     {
@@ -436,7 +436,7 @@ class overlay
   private:
     const T	_val;
 };
-    
+
 /************************************************************************
 *  undistortion operator						*
 ************************************************************************/
@@ -458,7 +458,7 @@ struct undistort
 	_d[2] = *++d;
 	_d[3] = *++d;
     }
-    
+
     __host__ __device__ vec<T, 2>
     operator ()(T u, T v) const
     {
@@ -813,7 +813,7 @@ struct plane_estimator
     {
 	return _invalid_plane;
     }
-    
+
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {
@@ -862,7 +862,7 @@ struct plane_estimator
       // enforce dot(normal, center) < 0 so normal points towards camera
 	if (dot(plane.x, plane.y) > T(0))
 	    plane.y *= T(-1);
-	
+
 	plane.z = {moment.w.x*sc, moment.w.y*sc, eval_min*sc};
 
 	return plane;
@@ -872,6 +872,28 @@ struct plane_estimator
     constexpr static result_type _invalid_plane{{0, 0, 0},
 						{0, 0, 0},
 						{0, 0, device::maxval<T>}};
+};
+
+template <class T>
+struct normal_estimator : public plane_estimator<T>
+{
+  /*
+   * [nx, ny, nz]		# plane normal
+   */
+    using result_type	= vec<T, 3>;
+    using super		= plane_estimator<T>;
+
+    __host__ __device__ static result_type
+    invalid_normal()
+    {
+	return super::_invalid_plane.y;
+    }
+
+    __host__ __device__ result_type
+    operator ()(const mat4x<T, 3>& moment) const
+    {
+	return super::operator ()(moment).y;
+    }
 };
 
 template <class T=vec<uint8_t, 3> >

@@ -338,7 +338,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 	convolveH< 2>(in, ie, _buf.begin());
 	break;
       default:
-	throw std::runtime_error("FIRFilter2::convolve: unsupported horizontal lobe size!");
+	throw std::runtime_error("FIRFilter2::convolve: unsupported horizontal lobe size[" + std::to_string(_lobeSizeH) + "]!");
     }
 
   // 縦方向に畳み込む．
@@ -369,7 +369,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 	convolveV< 2>(_buf.begin(), _buf.end(), out, shift);
 	break;
       default:
-	throw std::runtime_error("FIRFilter2::convolve: unsupported vertical lobe size!");
+	throw std::runtime_error("FIRFilter2::convolve: unsupported vertical lobe size[" + std::to_string(_lobeSizeV) + "!");
     }
 }
 

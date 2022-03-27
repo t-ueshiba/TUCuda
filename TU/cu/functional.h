@@ -443,16 +443,23 @@ class overlay
 template <class T>
 struct undistort
 {
+    undistort()							= default;
     template <class ITER_K, class ITER_D> __host__ __device__
-    undistort(ITER_K K, ITER_D d)
+    undistort(ITER_K K, ITER_D d, T scale=T(1))
     {
-	_flen.x = *K;
+	initialize(K, d, scale);
+    }
+
+    template <class ITER_K, class ITER_D> __host__ __device__ void
+    initialize(ITER_K K, ITER_D d, T scale=T(1))
+    {
+	_flen.x = scale * *K;
 	std::advance(K, 2);
-	_uv0.x = *K;
+	_uv0.x = scale * *K;
 	std::advance(K, 2);
-	_flen.y = *K;
+	_flen.y = scale * *K;
 	++K;
-	_uv0.y = *K;
+	_uv0.y = scale * *K;
 	_d[0] = *d;
 	_d[1] = *++d;
 	_d[2] = *++d;

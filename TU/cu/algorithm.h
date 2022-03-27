@@ -53,14 +53,14 @@ namespace cu
 template <size_t BLOCK_DIM_X=32, size_t BLOCK_DIM_Y=16>
 struct BlockTraits
 {
-  //! 1ブロックあたりのスレッド数(x方向)    
+  //! 1ブロックあたりのスレッド数(x方向)
     constexpr static size_t	BlockDimX = BLOCK_DIM_X;
-  //! 1ブロックあたりのスレッド数(y方向)    
+  //! 1ブロックあたりのスレッド数(y方向)
     constexpr static size_t	BlockDimY = BLOCK_DIM_Y;
-  //! 1ブロックあたりのスレッド数(1次元)    
+  //! 1ブロックあたりのスレッド数(1次元)
     constexpr static size_t	BlockDim  = BlockDimX * BlockDimY;
 };
-    
+
 /************************************************************************
 *  global functions							*
 ************************************************************************/
@@ -69,14 +69,14 @@ divUp(size_t dim, size_t blockDim)
 {
     return (dim + blockDim - 1)/blockDim;
 }
-    
+
 #if defined(__NVCC__)
 inline std::ostream&
 operator <<(std::ostream& out, const dim3& d)
 {
     return out << '[' << d.x << ' ' << d.y << ' ' << d.z << ']';
 }
-    
+
 //! デバイス関数を納める名前空間
 namespace device
 {
@@ -178,7 +178,7 @@ template <class BLOCK_TRAITS, class IN, class OUT> void
 subsample(IN in, IN ie, OUT out)
 {
     using	std::size;
-    
+
     const int	nrow = std::distance(in, ie);
     if (nrow < 2)
 	return;
@@ -214,12 +214,12 @@ namespace device
       constexpr int	Stride	= BLOCK_TRAITS::BlockDimX + M - 1;
       constexpr int	OffsetX = (M - 1)/2;
       constexpr int	OffsetY = (N - 1)/2;
-      
+
       const int	x0 = __mul24(blockIdx.x, blockDim.x);
       const int	y0 = __mul24(blockIdx.y, blockDim.y);
       const int	xs = ::max(x0 - OffsetX, 0);
       const int	ys = ::max(y0 - OffsetY, 0);
-      
+
     // 原画像のブロック内部およびその外枠1画素分を共有メモリに転送
       __shared__ value_type	in_s[BLOCK_TRAITS::BlockDimY + N - 1][Stride];
       loadTile(slice(in.cbegin(),
@@ -242,7 +242,7 @@ template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 opNxM(IN in, IN ie, OUT out, OP op)
 {
     using	std::size;
-    
+
     const int	nrow = std::distance(in, ie);
     if (nrow < 1)
 	return;
@@ -297,7 +297,7 @@ namespace detail
   transpose(IN in, IN ie, OUT out, size_t i, size_t j)
   {
       using	std::size;
-      
+
       size_t	r = std::distance(in, ie);
       if (r < 1)
 	  return;
@@ -350,7 +350,7 @@ namespace device
       if (y < in.size() && x < in.begin().size())
 	  out[y][x] = op(in[y][x]);
   }
-    
+
   template <class IN, class OUT, class OP> __global__ static void
   transform2(range<range_iterator<IN> > in,
 	     range<range_iterator<OUT> > out, OP op, std::false_type)
@@ -375,7 +375,7 @@ namespace detail
   using is_unary = decltype(check_unarity(std::declval<OP>(),
 					  std::declval<T>()));
 }
-    
+
 template <class BLOCK_TRAITS, class IN, class OUT, class OP> void
 transform2(IN in, IN ie, OUT out, OP op)
 {
@@ -401,6 +401,20 @@ transform2(IN in, IN ie, OUT out, OP op)
 #endif
 
 /************************************************************************
+*  copy2<BLOCK_TRAITS>(IN in, IN ie, OUT out)				*
+************************************************************************/
+template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT> void
+copy2(IN in, IN ie, OUT out)
+{
+    using value_type	= typename std::iterator_traits<IN>::value_type
+							   ::value_type;
+
+    transform2<BLOCK_TRAITS>(in, ie, out,
+			     [] __host__ __device__ (const value_type& val)
+			     { return val; });
+}
+
+/************************************************************************
 *  generate2<BLOCK_TRAITS>(OUT out, OUT oe, GEN gen)			*
 ************************************************************************/
 template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class GEN> void
@@ -418,7 +432,7 @@ namespace device
       if (y < out.size() && x < out.begin().size())
 	  out[y][x] = gen();
   }
-    
+
   template <class OUT, class GEN> __global__ static void
   generate2(range<range_iterator<OUT> > out, GEN gen, std::false_type)
   {
@@ -439,12 +453,12 @@ namespace detail
   template <class GEN>
   using noargs = decltype(check_noargs(std::declval<GEN>()));
 }	// namespace detail
-    
+
 template <class BLOCK_TRAITS, class OUT, class GEN> void
 generate2(OUT out, OUT oe, GEN gen)
 {
     using	std::size;
-    
+
     const int	nrow = std::distance(out, oe);
     if (nrow < 1)
 	return;

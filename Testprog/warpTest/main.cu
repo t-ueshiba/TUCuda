@@ -23,8 +23,7 @@ createRigidity(T u0, T v0, T theta)
     const auto	c = std::cos(theta);
     const auto	s = std::sin(theta);
 
-    return mat<T, 2, 3>{{c, -s, (1 - c)*u0 + s*v0},
-			{s,  c, (1 - c)*v0 - s*u0}};
+    return {{{c, -s}, {s,  c}}, {(1 - c)*u0 + s*v0, (1 - c)*v0 - s*u0}};
 }
 
 }

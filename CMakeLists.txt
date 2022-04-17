@@ -28,7 +28,7 @@ find_package(TULibs REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
-    ${TULIBS_INCLUDE_DIR})
+    ${TULIBS_INCLUDE_DIRS})
 
 link_directories(
     ${TULIBS_LIBRARY_DIR})

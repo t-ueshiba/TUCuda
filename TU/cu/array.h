@@ -51,28 +51,124 @@ class array
 {
   public:
     using value_type		= T;
-    using reference		= thrust::device_reference<T>;
-    using const_reference	= thrust::device_reference<const T>;
+    using reference		= T&;
+    using const_reference	= const T&;
     using pointer		= thrust::device_ptr<T>;
     using const_pointer		= thrust::device_ptr<const T>;
 
   private:
-
+    template <size_t I_, class DUMMY=void>
+    struct for_each
+    {
+	template <class OP_> __device__
+	void	apply(array& a, OP_ op) const
+		{
+		    a[I_] = op(a[I_]);
+		    for_each<I_ + 1>().apply(a, op);
+		}
+	template <class OP_> __device__
+	void	apply(array& a, const array& b, OP_ op) const
+		{
+		    a[I_] = op(a[I_], b[I_]);
+		    for_each<I_ + 1>().apply(a, b, op);
+		}
+    };
+    template <class DUMMY>
+    struct for_each<D, DUMMY>
+    {
+	template <class OP_> __device__
+	void	apply(array& a, OP_ op)			const	{}
+	template <class OP_> __device__
+	void	apply(array& a, const array& b, OP_ op)	const	{}
+    };
+    
   public:
-    __device__ constexpr
-    static size_t	size()				{ return D; }
+    __device__		array(size_t) :array()	{}
+    
+    __device__		array()			= default;
+    __device__		array(const array&)	= default;
+    __device__ array&	operator =(const array&)= default;
+    
+    __host__ __device__ constexpr
+    static size_t	size()			{ return D; }
     __device__
-    const_reference	operator [](int i)	const	{ return _data[i]; }
+    const_reference	operator [](int i)const	{ return _data[i]; }
     __device__
-    reference		operator [](int i)		{ return _data[i]; }
-    __device__
-    const_pointer	data()			const	{ return _data; }
-    __device__
-    pointer		data()				{ return _data; }
+    reference		operator [](int i)	{ return _data[i]; }
+    __host__ __device__
+    const_pointer	data()		  const	{ return const_pointer(_data); }
 
+    __device__ array&	operator +=(const array& b)
+			{
+			    for_each<0>().apply(*this, b,
+						[] __device__ (auto x, auto y)
+						{ return x + y; });
+			    return *this;
+			}
+    __device__ array&	operator -=(const array& b)
+			{
+			    for_each<0>().apply(*this, b,
+						[] __device__ (auto x, auto y)
+						{ return x - y; });
+			    return *this;
+			}
+    __device__ array&	operator *=(value_type c)
+			{
+			    for_each<0>().apply(*this, c,
+						[c] __device__ (auto x)
+						{ return x * c; });
+			    return *this;
+			}
+    __device__ array&	operator /=(value_type c)
+			{
+			    for_each<0>().apply(*this, c,
+						[c] __device__ (auto x)
+						{ return x / c; });
+			    return *this;
+			}
+    
   private:
     value_type	_data[D];
 };
 
+template <class T, size_t D>
+__device__ __forceinline__ array<T, D>
+operator +(const array<T, D>& a, const array<T, D>& b)
+{
+    auto	val(a);
+    return val += b;
+}
+    
+template <class T, size_t D>
+__device__ __forceinline__ array<T, D>
+operator -(const array<T, D>& a, const array<T, D>& b)
+{
+    auto	val(a);
+    return val -= b;
+}
+    
+template <class T, size_t D>
+__device__ __forceinline__ array<T, D>
+operator *(const array<T, D>& a, T c)
+{
+    auto	val(a);
+    return val *= c;
+}
+    
+template <class T, size_t D>
+__device__ __forceinline__ array<T, D>
+operator *(T c, const array<T, D>& a)
+{
+    return a*c;
+}
+    
+template <class T, size_t D>
+__device__ __forceinline__ array<T, D>
+operator /(const array<T, D>& a, T c)
+{
+    auto	val(a);
+    return val /= c;
+}
+    
 }	// namespace cu
 }	// namespace TU

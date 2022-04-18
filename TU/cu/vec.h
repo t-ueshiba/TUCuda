@@ -57,7 +57,7 @@ namespace device
   constexpr static T	maxval  = std::numeric_limits<T>::max();
   template <class T>
   constexpr static T	epsilon = std::numeric_limits<T>::epsilon();
-    
+
   __device__ __forceinline__ float  fma(float x,
 					float y,
 					float z)	{ return fmaf(x, y, z);}
@@ -169,8 +169,11 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
 			    y = c;
 			    return *this;
 			}
+
+    __host__ __device__ constexpr
+    static mat2x	zero()			{ return {T(0), T(0)}; }
 };
-    
+
 template <class T, size_t C>	struct mat3x;
 
 template <class T>
@@ -208,8 +211,11 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
 			    z = c;
 			    return *this;
 			}
+
+    __host__ __device__ constexpr
+    static mat3x	zero()			{ return {T(0), T(0), T(0)}; }
 };
-    
+
 template <class T, size_t C>	struct mat4x;
 
 template <class T>
@@ -234,7 +240,7 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
     __host__ __device__ constexpr
     static size_t	size()			{ return size0(); }
 
-    __host__ __device__	mat4x()			   :super()		{}
+    __host__ __device__	mat4x()			  :super()		{}
     __host__ __device__ constexpr
 			mat4x(T c)		  :super{c, c, c, c}	{}
     __host__ __device__ constexpr
@@ -249,6 +255,9 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 			    w = c;
 			    return *this;
 			}
+
+    __host__ __device__ constexpr
+    static mat4x	zero()		{ return {T(0), T(0), T(0), T(0)}; }
 };
 
 template <class T, size_t D>
@@ -278,7 +287,7 @@ struct mat2x
 			    :x(xx), y(yy)				{}
     __host__ __device__	constexpr
 			mat2x(T c) :x(c), y(c)				{}
-    
+
     __host__ __device__
     mat2x&		operator =(T c)
 			{
@@ -308,6 +317,19 @@ struct mat2x
 	return {{x.x, y.x}, {x.y, y.y}, {x.z, y.z}, {x.w, y.w}};
     }
 
+    __host__ __device__ constexpr static mat2x
+    zero()
+    {
+	return {value_type::zero(), value_type::zero()};
+    }
+
+    template <size_t C_=C> __host__ __device__
+    constexpr static std::enable_if_t<C_ == 2, mat2x<T, 2> >
+    identity()
+    {
+	return {{T(1), T(0)}, {T(0), T(1)}};
+    }
+
     value_type	x, y;
 };
 
@@ -333,7 +355,7 @@ struct mat3x
 			    :x(xx), y(yy), z(zz)			{}
     __host__ __device__	constexpr
 			mat3x(T c) :x(c), y(c), z(c)			{}
-    
+
     __host__ __device__
     mat3x&		operator =(T c)
 			{
@@ -365,6 +387,19 @@ struct mat3x
 		{x.z, y.z, z.z}, {x.w, y.w, z.w}};
     }
 
+    __host__ __device__ constexpr static mat3x
+    zero()
+    {
+	return {value_type::zero(), value_type::zero(), value_type::zero()};
+    }
+
+    template <size_t C_=C> __host__ __device__
+    constexpr static std::enable_if_t<C_ == 3, mat3x<T, 3> >
+    identity()
+    {
+	return {{T(1), T(0), T(0)}, {T(0), T(1), T(0)}, {T(0), T(0), T(1)}};
+    }
+
     value_type	x, y, z;
 };
 
@@ -390,7 +425,7 @@ struct mat4x
 			    :x(xx), y(yy), z(zz), w(ww)			{}
     __host__ __device__	constexpr
 			mat4x(T c) :x(c), y(c), z(c), w(c)		{}
-    
+
     __host__ __device__
     mat4x&		operator =(T c)
 			{
@@ -422,6 +457,21 @@ struct mat4x
     {
 	return {{x.x, y.x, z.x, w.x}, {x.y, y.y, z.y, w.y},
 		{x.z, y.z, z.z, w.z}, {x.w, y.w, z.w, w.w}};
+    }
+
+    __host__ __device__ constexpr static mat4x
+    zero()
+    {
+    	return {value_type::zero(), value_type::zero(),
+    		value_type::zero(), value_type::zero()};
+    }
+
+    template <size_t C_=C> __host__ __device__
+    constexpr static std::enable_if_t<C_ == 4, mat4x<T, 4> >
+    identity()
+    {
+	return {{T(1), T(0), T(0), T(0)}, {T(0), T(1), T(0), T(0)},
+		{T(0), T(0), T(1), T(0)}, {T(0), T(0), T(0), T(1)}};
     }
 
     value_type	x, y, z, w;
@@ -895,62 +945,62 @@ atomicOp(T* p, T val, std::nullptr_t)
 {
     return ::atomicExch(p, val);
 }
-    
+
 template <class T> __device__ __forceinline__
 std::enable_if_t<std::is_arithmetic<T>::value, T>
 atomicOp(T* p, T val, std::plus<>)
 {
     return ::atomicAdd(p, val);
 }
-    
+
 template <class T> __device__ __forceinline__
 std::enable_if_t<std::is_arithmetic<T>::value, T>
 atomicOp(T* p, T val, std::minus<>)
 {
     return ::atomicSub(p, val);
 }
-    
+
 template <class T> __device__ __forceinline__
 std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_and<>)
 {
     return ::atomicAnd(p, val);
 }
-    
+
 template <class T> __device__ __forceinline__
 std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_or<>)
 {
     return ::atomicOr(p, val);
 }
-    
+
 template <class T> __device__ __forceinline__
 std::enable_if_t<std::is_integral<T>::value, T>
 atomicOp(T* p, T val, std::bit_xor<>)
 {
     return ::atomicXor(p, val);
 }
-    
+
 template <class T, size_t C, class OP> __device__ __forceinline__ mat2x<T, C>
 atomicOp(mat2x<T, C>* p, const mat2x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op)};
 }
-    
+
 template <class T, size_t C, class OP> __device__ __forceinline__ mat3x<T, C>
 atomicOp(mat3x<T, C>* p, const mat3x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),
 	    atomicOp(&p->z, val.z, op)};
 }
-    
+
 template <class T, size_t C, class OP> __device__ __forceinline__ mat4x<T, C>
 atomicOp(mat4x<T, C>* p, const mat4x<T, C>& val, OP op)
 {
     return {atomicOp(&p->x, val.x, op), atomicOp(&p->y, val.y, op),
 	    atomicOp(&p->z, val.z, op), atomicOp(&p->w, val.w, op)};
 }
-    
+
 }	// namespace device
 
 /************************************************************************
@@ -965,8 +1015,8 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     constexpr static size_t	NPARAMS = DO1 * DI1;
     constexpr static size_t	DOF	= NPARAMS - 1;
 
-    using matrix_type	= mat<T, DO1, DI1>;
-    using		typename matrix_type::element_type;
+    using element_type	= T;
+    using matrix_type	= mat<element_type, DO1, DI1>;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
 
@@ -975,12 +1025,20 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     constexpr static size_t	nparams()	{ return NPARAMS; }
 
     __host__ __device__
-		Projectivity(const matrix_type& m)	:matrix_type(m)	{}
+		Projectivity()	:_m()				{}
+    __host__ __device__
+		Projectivity(const matrix_type& m)	:_m(m)	{}
+
+    __host__ __device__
+    void	initialize(const matrix_type& m=matrix_type::identity())
+		{
+		    _m = m;
+		}
 
     __host__ __device__
     point_type	operator ()(const vec<T, DI>& p) const
 		{
-		    return (*this)(p);
+		    return inhomogeneous(mapP(p));
 		}
     __host__ __device__
     point_type	operator ()(const vec<T, DI1>& p) const
@@ -1001,12 +1059,12 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     __host__ __device__
     ppoint_type	mapP(const vec<T, DI1>& p) const
 		{
-		    return dot(*this, p);
+		    return dot(_m, p);
 		}
     __host__ __device__
     ppoint_type	mapP(T u, T v) const
     		{
-    		    return dot(*this, vec<T, 3>{u, v, T(1)});
+    		    return dot(_m, vec<T, 3>{u, v, T(1)});
     		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
@@ -1021,34 +1079,37 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
     std::enable_if_t<DO_ == 2&& DI_ == 2>
 		compose(const TU::Array<T, DOF>& dt)
 		{
-		    auto	t0 = this->x.x;
-		    auto	t1 = this->x.y;
-		    auto	t2 = this->x.z;
-		    this->x.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    this->x.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    this->x.z -= (t0*dt[2] + t1*dt[5]);
+		    auto	t0 = _m.x.x;
+		    auto	t1 = _m.x.y;
+		    auto	t2 = _m.x.z;
+		    _m.x.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.x.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.x.z -= (t0*dt[2] + t1*dt[5]);
 
-		    t0 = this->y.x;
-		    t1 = this->y.y;
-		    t2 = this->y.z;
-		    this->y.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    this->y.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    this->y.z -= (t0*dt[2] + t1*dt[5]);
+		    t0 = _m.y.x;
+		    t1 = _m.y.y;
+		    t2 = _m.y.z;
+		    _m.y.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.y.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.y.z -= (t0*dt[2] + t1*dt[5]);
 
-		    t0 = this->z.x;
-		    t1 = this->z.y;
-		    t2 = this->z.z;
-		    this->z.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    this->z.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    this->z.z -= (t0*dt[2] + t1*dt[5]);
+		    t0 = _m.z.x;
+		    t1 = _m.z.y;
+		    t2 = _m.z.z;
+		    _m.z.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.z.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.z.z -= (t0*dt[2] + t1*dt[5]);
 		}
+
+  private:
+    matrix_type	_m;
 };
 
 /************************************************************************
 *  class Affinity<T, DO, DI>						*
 ************************************************************************/
 template <class T, size_t DO, size_t DI>
-class Affinity : public mat<T, DO, DI + 1>
+class Affinity
 {
   public:
     constexpr static size_t	DO1	= DO + 1;
@@ -1056,80 +1117,74 @@ class Affinity : public mat<T, DO, DI + 1>
     constexpr static size_t	NPARAMS = DO * DI1;
     constexpr static size_t	DOF	= NPARAMS;
 
-    using matrix_type	= mat<T, DO, DI1>;
-    using		typename matrix_type::element_type;
+    using element_type	= T;
+    using matrix_type	= mat<element_type, DO, DI>;
     using point_type	= vec<element_type, DO>;
-    using ppoint_type	= vec<element_type, DO1>;
-    using param_type	= matrix_type;
 
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	nparams()	{ return NPARAMS; }
 
     __host__ __device__
-		Affinity(const matrix_type& m)	:matrix_type(m)	{}
+		Affinity() :_A(), _b()		{}
+    __host__ __device__
+		Affinity(const matrix_type& A, const point_type& b)
+		    :_A(A), _b(b)
+		{
+		}
+
+    __host__ __device__
+    void	initialize(const matrix_type& A=matrix_type::identity(),
+			   const point_type&  b=point_type::zero())
+		{
+		    _A = A;
+		    _b = b;
+		}
+
+    __host__ __device__
+    const auto&	A()			const	{ return _A; }
+    __host__ __device__
+    const auto&	b()			const	{ return _b; }
 
     __host__ __device__
     point_type	operator ()(const vec<T, DI>& p) const
 		{
-		    return (*this)(homogeneous(p));
+		    return dot(_A, p) + _b;
 		}
-    __host__ __device__
-    point_type	operator ()(const vec<T, DI1>& p) const
+    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    std::enable_if_t<DO_ == 2 && DI_ == 2, point_type>
+		operator ()(T u, T v) const
 		{
-		    return dot(*this, p);
-		}
-    __host__ __device__
-    point_type	operator ()(T u, T v) const
-    		{
-    		    return (*this)(vec<T, 3>({u, v, T(1)}));
-    		}
-
-    __host__ __device__
-    ppoint_type	mapP(const vec<T, DI>& p) const
-		{
-		    return homogeneous((*this)(p));
-		}
-    __host__ __device__
-    ppoint_type	mapP(const vec<T, DI1>& p) const
-		{
-		    return homogeneous((*this)(p));
-		}
-    __host__ __device__
-    ppoint_type	mapP(T u, T v) const
-    		{
-    		    return homogeneous((*this)(u, v));
-    		}
-
-    __host__ __device__
-    void	update(const param_type& dt)
-		{
-		    *this -= dt;
+		    return (*this)(vec<T, 2>({u, v}));
 		}
 
-    template <size_t DO_=DO, size_t DI_=DI>
-    __host__ __device__ static std::enable_if_t<DO_ == 2&& DI_ == 2, param_type>
+    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, matrix_type>
 		image_derivative0(T eH, T eV, T u, T v)
 		{
 		    return {{eH*u, eH*v}, {eV*u, eV*v}};
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
-    std::enable_if_t<DO_ == 2&& DI_ == 2>
+    std::enable_if_t<DO_ == 2 && DI_ == 2>
 		compose(const TU::Array<T, DOF>& dt)
 		{
-		    auto	t0 = this->x.x;
-		    auto	t1 = this->x.y;
-		    this->x.x -= (t0*dt[0] + t1*dt[3]);
-		    this->x.y -= (t0*dt[1] + t1*dt[4]);
-		    this->x.z -= (t0*dt[2] + t1*dt[5]);
+		    auto	t0 = _A.x.x;
+		    auto	t1 = _A.x.y;
+		    _A.x.x -= (t0*dt[0] + t1*dt[3]);
+		    _A.x.y -= (t0*dt[1] + t1*dt[4]);
+		    _b.x   -= (t0*dt[2] + t1*dt[5]);
 
-		    t0 = this->y.x;
-		    t1 = this->y.y;
-		    this->y.x -= (t0*dt[0] + t1*dt[3]);
-		    this->y.y -= (t0*dt[1] + t1*dt[4]);
-		    this->y.z -= (t0*dt[2] + t1*dt[5]);
+		    t0 = _A.y.x;
+		    t1 = _A.y.y;
+		    _A.y.x -= (t0*dt[0] + t1*dt[3]);
+		    _A.y.y -= (t0*dt[1] + t1*dt[4]);
+		    _b.y   -= (t0*dt[2] + t1*dt[5]);
 		}
+
+  private:
+    matrix_type	_A;
+    point_type	_b;
 };
 
 /************************************************************************
@@ -1143,22 +1198,42 @@ class Rigidity : public Affinity<T, D, D>
     constexpr static size_t	DOF	= NPARAMS;
 
     using base_type	= Affinity<T, D, D>;
+    using		typename base_type::element_type;
     using		typename base_type::matrix_type;
+    using		typename base_type::point_type;
+    using normal_type	= vec<T, D>;
 
     constexpr static size_t	dim()		{ return D; }
 
   public:
     __host__ __device__
-		Rigidity(const matrix_type& m)	:base_type(m)	{}
+		Rigidity() :base_type()		{}
+    __host__ __device__
+		Rigidity(const matrix_type& R, const point_type& t)
+		    :base_type(R, t)
+		{
+		}
 
-    template <size_t D_=D>
-    __host__ __device__ static std::enable_if_t<D_ == 2, vec<T, 3> >
+    __host__ __device__
+    const auto&	R()			const	{ return base_type::A(); }
+    __host__ __device__
+    const auto&	t()			const	{ return base_type::b(); }
+
+    __host__ __device__
+    normal_type	map_normal(const normal_type& n) const
+		{
+		    return dot(n, R());
+		}
+
+    template <size_t D_=D> __host__ __device__
+    static std::enable_if_t<D_ == 2, vec<T, 3> >
 		image_derivative0(T eH, T eV, T u, T v)
 		{
 		    return {eH, eV, eV*u - eH*v};
 		}
 
-    template <size_t D_=D> __host__ std::enable_if_t<D_ == 2>
+    template <size_t D_=D> __host__
+    std::enable_if_t<D_ == 2>
 		compose(const TU::Array<T, DOF>& dt)
 		{
 		    const auto	Rt = rotation(dt[2]);
@@ -1215,7 +1290,7 @@ template <class T>
 struct to_vec<mat3x<T, 1> >
 {
     using result_type	= mat3x<T, 1>;
-    
+
     template <class S_>
     result_type	operator ()(const S_& val) const
 		{
@@ -1232,7 +1307,7 @@ template <class T>
 struct to_vec<mat4x<T, 1> >
 {
     using result_type	= mat4x<T, 1>;
-    
+
     template <class S_>
     result_type	operator ()(const S_& val) const
 		{
@@ -1252,7 +1327,7 @@ template <class T>
 struct from_vec
 {
     using result_type	= T;
-    
+
     template <class T_>
     result_type	operator ()(const T_& val) const
 		{

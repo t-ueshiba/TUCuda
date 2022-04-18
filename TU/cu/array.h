@@ -43,8 +43,10 @@ namespace TU
 {
 namespace cu
 {
+namespace device
+{
 /************************************************************************
-*  TU::cu::array<T, D>							*
+*  TU::cu::device::array<T, D>						*
 ************************************************************************/
 template <class T, size_t D>
 class array
@@ -90,16 +92,16 @@ class array
     __device__ array&	operator =(const array&)= default;
 
     __host__ __device__ constexpr
-    static size_t	size()			{ return D; }
+    static int		size()			{ return D; }
     __device__
     const_reference	operator [](int i)const	{ return _data[i]; }
     __device__
     reference		operator [](int i)	{ return _data[i]; }
     __host__ __device__
-    const_pointer	data()		  const	{ return const_pointer(_data); }
+    const_pointer	data()		const	{ return const_pointer(_data); }
     __host__ __device__
     pointer		data()			{ return pointer(_data); }
-
+    
     __device__ array&	operator +=(const array& b)
 			{
 			    for_each<0>().apply(*this, b,
@@ -175,5 +177,6 @@ operator /(const array<T, D>& a, const T& c)
     return val /= c;
 }
 
+}	// namespace device
 }	// namespace cu
 }	// namespace TU

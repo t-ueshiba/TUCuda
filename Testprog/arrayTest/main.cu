@@ -1,3 +1,4 @@
+#include "TU/cu/Array++.h"
 #include "TU/cu/array.h"
 
 namespace TU
@@ -30,7 +31,8 @@ doJob()
 {
     std::cerr << "OK" << std::endl;
 
-    array<T, D>	a;
+    Array<device::array<T, D> >	A(1);
+    auto&		a = A[0];
     for (size_t i = 0; i < a.size(); ++i)
 	a[i] = i;
     device::arrayTest<<<1, D>>>(a);

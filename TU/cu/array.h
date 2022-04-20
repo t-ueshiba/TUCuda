@@ -242,6 +242,15 @@ class array
 			    return *this;
 			}
     __host__ __device__
+    array&		operator &=(const array& b)
+			{
+			    for_each<>::apply(*this, b,
+					      [] __host__ __device__
+					      (auto&& x, const auto& y)
+					      { x &= y; });
+			    return *this;
+			}
+    __host__ __device__
     array&		operator &=(const value_type& c)
 			{
 			    for_each<>::apply(*this,
@@ -250,11 +259,29 @@ class array
 			    return *this;
 			}
     __host__ __device__
+    array&		operator |=(const array& b)
+			{
+			    for_each<>::apply(*this, b,
+					      [] __host__ __device__
+					      (auto&& x, const auto& y)
+					      { x |= y; });
+			    return *this;
+			}
+    __host__ __device__
     array&		operator |=(const value_type& c)
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
 					      (auto&& x){ x |= c; });
+			    return *this;
+			}
+    __host__ __device__
+    array&		operator ^=(const array& b)
+			{
+			    for_each<>::apply(*this, b,
+					      [] __host__ __device__
+					      (auto&& x, const auto& y)
+					      { x ^= y; });
 			    return *this;
 			}
     __host__ __device__
@@ -344,6 +371,73 @@ operator /(const array<T, D>& a, const T& c)
 {
     auto	val(a);
     return val /= c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator %(const array<T, D>& a, const T& c)
+{
+    auto	val(a);
+    return val %= c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator &(const array<T, D>& a, const array<T, D>& b)
+{
+    auto	val(a);
+    return val &= b;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator &(const array<T, D>& a, const T& c)
+{
+    auto	val(a);
+    return val &= c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator &(const T& c, const array<T, D>& a)
+{
+    return a & c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator |(const array<T, D>& a, const array<T, D>& b)
+{
+    auto	val(a);
+    return val |= b;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator |(const array<T, D>& a, const T& c)
+{
+    auto	val(a);
+    return val |= c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator |(const T& c, const array<T, D>& a)
+{
+    return a | c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator ^(const array<T, D>& a, const array<T, D>& b)
+{
+    auto	val(a);
+    return val ^= b;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator ^(const array<T, D>& a, const T& c)
+{
+    auto	val(a);
+    return val ^= c;
+}
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator ^(const T& c, const array<T, D>& a)
+{
+    return a ^ c;
 }
 
 template <class T, size_t D> __host__ __device__ __forceinline__ T

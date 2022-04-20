@@ -37,7 +37,7 @@
 */
 #pragma once
 
-#include "TU/cu/Array++.h"
+#include <utility>
 
 namespace TU
 {
@@ -63,16 +63,16 @@ class array
     struct for_each
     {
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(array& a, OP_ op)
+	static void	apply(array& a, OP_&& op)
 			{
 			    op(a[I]);
-			    for_each<I + 1>::apply(a, op);
+			    for_each<I + 1>::apply(a, std::forward<OP_>(op));
 			}
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(array& a, const array& b, OP_ op)
+	static void	apply(array& a, const array& b, OP_&& op)
 			{
 			    op(a[I], b[I]);
-			    for_each<I + 1>::apply(a, b, op);
+			    for_each<I + 1>::apply(a, b, std::forward<OP_>(op));
 			}
 	__host__ __device__ __forceinline__
 	static T	dot(const array& a, const array& b)
@@ -84,58 +84,120 @@ class array
     struct for_each<D, DUMMY>
     {
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(array& a, OP_ op)			{}
+	static void	apply(array& a, OP_&& op)			{}
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(array& a, const array& b, OP_ op)	{}
+	static void	apply(array& a, const array& b, OP_&& op)	{}
 	__host__ __device__ __forceinline__
 	static T	dot(const array& a, const array& b)	{ return T(0); }
     };
 
     template <size_t I=0, size_t J=0, class DUMMY=void>
-    struct outpro
+    struct sqoutpro
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
 			{
 			    out[D*I + J - (I*(I+1))/2] = in[I] * in[J];
-			    outpro<I, J+1>::apply(in, out);
+			    sqoutpro<I, J+1>::apply(in, out);
 			}
-	
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+			{
+			    out[D*I + J - (I*(I+1))/2] = op(in[I], in[J]);
+			    sqoutpro<I, J+1>::apply(in, out,
+						    std::forward<OP_>(op));
+			}
     };
     template <size_t I, class DUMMY>
-    struct outpro<I, D, DUMMY>
+    struct sqoutpro<I, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
 			{
-			    outpro<I+1, I+1>::apply(in, out);
+			    sqoutpro<I+1, I+1>::apply(in, out);
+			}
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+			{
+			    sqoutpro<I+1, I+1>::apply(in, out,
+						      std::forward<OP_>(op));
 			}
     };
     template <class DUMMY>
-    struct outpro<D, D, DUMMY>
+    struct sqoutpro<D, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
+			{
+			}
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+			{
+			}
+    };
+
+    template <size_t D1, size_t I=0, size_t J=0>
+    struct outpro
+    {
+	__host__ __device__ __forceinline__
+	static void	apply(const array& in,
+			      const array<T, D1>& in1, array<T, D*D1>& out)
+			{
+			    out[I*D1 + J] = in[I] * in1[J];
+			    outpro<D1, I, J+1>::apply(in, in1, out);
+			}
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, const array<T, D1>& in1,
+			      array<T, D*D1>& out, OP_&& op)
+			{
+			    out[I*D1 + J] = op(in[I], in1[J]);
+			    outpro<D1, I, J+1>::apply(in, in1, out,
+						      std::forward<OP_>(op));
+			}
+    };
+    template <size_t D1, size_t I>
+    struct outpro<D1, I, D1>
+    {
+	__host__ __device__ __forceinline__
+	static void	apply(const array& in,
+			      const array<T, D1>& in1, array<T, D*D1>& out)
+			{
+			    outpro<D1, I+1, 0>::apply(in, in1, out);
+			}
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, const array<T, D1>& in1,
+			      array<T, D*D1>& out, OP_&& op)
+			{
+			    outpro<D1, I+1, 0>::apply(in, in1, out,
+						      std::forward<OP_>(op));
+			}
+    };
+    template <size_t D1>
+    struct outpro<D1, D, D1>
+    {
+	__host__ __device__ __forceinline__
+	static void	apply(const array& in,
+			      const array<T, D1>& in1, array<T, D*D1>& out)
+			{
+			}
+	template <class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, const array<T, D1>& in1,
+			      array<T, D*D1>& out, OP_&& op)
 			{
 			}
     };
 
   public:
-    // __host__ __device__
-    // explicit		array(size_t) :array()	{}
-    // 			array()			= default;
-
     __host__ __device__ constexpr
-    static int		size()			{ return D; }
-
+    static int		size()				{ return D; }
     __host__ __device__
-    const_reference	operator [](int i)const	{ return _data[i]; }
+    const_reference	operator [](int i)	const	{ return _data[i]; }
     __host__ __device__
-    reference		operator [](int i)	{ return _data[i]; }
+    reference		operator [](int i)		{ return _data[i]; }
     __host__ __device__
-    const_pointer	data()		const	{ return _data; }
+    const_pointer	data()			const	{ return _data; }
     __host__ __host__ __device__
-    pointer		data()			{ return _data; }
+    pointer		data()				{ return _data; }
     
     __host__ __device__
     array&		operator +=(const array& b)
@@ -172,6 +234,38 @@ class array
 			    return *this;
 			}
     __host__ __device__
+    array&		operator %=(const value_type& c)
+			{
+			    for_each<>::apply(*this,
+					      [c] __host__ __device__
+					      (auto&& x){ x %= c; });
+			    return *this;
+			}
+    __host__ __device__
+    array&		operator &=(const value_type& c)
+			{
+			    for_each<>::apply(*this,
+					      [c] __host__ __device__
+					      (auto&& x){ x &= c; });
+			    return *this;
+			}
+    __host__ __device__
+    array&		operator |=(const value_type& c)
+			{
+			    for_each<>::apply(*this,
+					      [c] __host__ __device__
+					      (auto&& x){ x |= c; });
+			    return *this;
+			}
+    __host__ __device__
+    array&		operator ^=(const value_type& c)
+			{
+			    for_each<>::apply(*this,
+					      [c] __host__ __device__
+					      (auto&& x){ x ^= c; });
+			    return *this;
+			}
+    __host__ __device__
     void		fill(const value_type& c)
 			{
 			    for_each<>::apply(*this,
@@ -187,7 +281,30 @@ class array
     array<T, D_SQOP>	outer_product() const
 			{
 			    array<T, D_SQOP>	val;
-			    outpro<>::apply(*this, val);
+			    sqoutpro<>::apply(*this, val);
+			    return val;
+			}
+    template <class OP_> __host__ __device__
+    array<T, D_SQOP>	outer_product(OP_&& op) const
+			{
+			    array<T, D_SQOP>	val;
+			    sqoutpro<>::apply(*this, val, std::forward<OP_>(op));
+			    return val;
+			}
+
+    template <size_t D1_> __host__ __device__
+    array<T, D*D1_>	outer_product(const array<T, D1_>& b) const
+			{
+			    array<T, D*D1_>	val;
+			    outpro<D1_>::apply(*this, b, val);
+			    return val;
+			}
+    template <size_t D1_, class OP_> __host__ __device__
+    array<T, D*D1_>	outer_product(const array<T, D1_>& b, OP_&& op) const
+			{
+			    array<T, D*D1_>	val;
+			    outpro<D1_>::apply(*this, b, val,
+					       std::forward<OP_>(op));
 			    return val;
 			}
 

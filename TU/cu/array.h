@@ -92,39 +92,39 @@ class array
     };
 
     template <size_t I=0, size_t J=0, class DUMMY=void>
-    struct sqoutpro
+    struct sqextpro
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
 			{
 			    out[D*I + J - (I*(I+1))/2] = in[I] * in[J];
-			    sqoutpro<I, J+1>::apply(in, out);
+			    sqextpro<I, J+1>::apply(in, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
 			{
 			    out[D*I + J - (I*(I+1))/2] = op(in[I], in[J]);
-			    sqoutpro<I, J+1>::apply(in, out,
+			    sqextpro<I, J+1>::apply(in, out,
 						    std::forward<OP_>(op));
 			}
     };
     template <size_t I, class DUMMY>
-    struct sqoutpro<I, D, DUMMY>
+    struct sqextpro<I, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
 			{
-			    sqoutpro<I+1, I+1>::apply(in, out);
+			    sqextpro<I+1, I+1>::apply(in, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
 			{
-			    sqoutpro<I+1, I+1>::apply(in, out,
+			    sqextpro<I+1, I+1>::apply(in, out,
 						      std::forward<OP_>(op));
 			}
     };
     template <class DUMMY>
-    struct sqoutpro<D, D, DUMMY>
+    struct sqextpro<D, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in, array<T, D_SQOP>& out)
@@ -137,43 +137,43 @@ class array
     };
 
     template <size_t D1, size_t I=0, size_t J=0>
-    struct outpro
+    struct extpro
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in,
 			      const array<T, D1>& in1, array<T, D*D1>& out)
 			{
 			    out[I*D1 + J] = in[I] * in1[J];
-			    outpro<D1, I, J+1>::apply(in, in1, out);
+			    extpro<D1, I, J+1>::apply(in, in1, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
 	static void	apply(const array& in, const array<T, D1>& in1,
 			      array<T, D*D1>& out, OP_&& op)
 			{
 			    out[I*D1 + J] = op(in[I], in1[J]);
-			    outpro<D1, I, J+1>::apply(in, in1, out,
+			    extpro<D1, I, J+1>::apply(in, in1, out,
 						      std::forward<OP_>(op));
 			}
     };
     template <size_t D1, size_t I>
-    struct outpro<D1, I, D1>
+    struct extpro<D1, I, D1>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in,
 			      const array<T, D1>& in1, array<T, D*D1>& out)
 			{
-			    outpro<D1, I+1, 0>::apply(in, in1, out);
+			    extpro<D1, I+1, 0>::apply(in, in1, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
 	static void	apply(const array& in, const array<T, D1>& in1,
 			      array<T, D*D1>& out, OP_&& op)
 			{
-			    outpro<D1, I+1, 0>::apply(in, in1, out,
+			    extpro<D1, I+1, 0>::apply(in, in1, out,
 						      std::forward<OP_>(op));
 			}
     };
     template <size_t D1>
-    struct outpro<D1, D, D1>
+    struct extpro<D1, D, D1>
     {
 	__host__ __device__ __forceinline__
 	static void	apply(const array& in,
@@ -305,32 +305,32 @@ class array
 			    return for_each<>::dot(*this, b);
 			}
     __host__ __device__
-    array<T, D_SQOP>	outer_product() const
+    array<T, D_SQOP>	ext() const
 			{
 			    array<T, D_SQOP>	val;
-			    sqoutpro<>::apply(*this, val);
+			    sqextpro<>::apply(*this, val);
 			    return val;
 			}
     template <class OP_> __host__ __device__
-    array<T, D_SQOP>	outer_product(OP_&& op) const
+    array<T, D_SQOP>	ext(OP_&& op) const
 			{
 			    array<T, D_SQOP>	val;
-			    sqoutpro<>::apply(*this, val, std::forward<OP_>(op));
+			    sqextpro<>::apply(*this, val, std::forward<OP_>(op));
 			    return val;
 			}
 
     template <size_t D1_> __host__ __device__
-    array<T, D*D1_>	outer_product(const array<T, D1_>& b) const
+    array<T, D*D1_>	ext(const array<T, D1_>& b) const
 			{
 			    array<T, D*D1_>	val;
-			    outpro<D1_>::apply(*this, b, val);
+			    extpro<D1_>::apply(*this, b, val);
 			    return val;
 			}
     template <size_t D1_, class OP_> __host__ __device__
-    array<T, D*D1_>	outer_product(const array<T, D1_>& b, OP_&& op) const
+    array<T, D*D1_>	ext(const array<T, D1_>& b, OP_&& op) const
 			{
 			    array<T, D*D1_>	val;
-			    outpro<D1_>::apply(*this, b, val,
+			    extpro<D1_>::apply(*this, b, val,
 					       std::forward<OP_>(op));
 			    return val;
 			}

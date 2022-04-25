@@ -41,6 +41,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cmath>
 #include <thrust/device_ptr.h>
 #include "TU/Image++.h"		// for TU::RGB_<E>
 
@@ -914,24 +915,54 @@ cross(const mat3x<T, 1>& a, const mat3x<T, 1>& b)
 *  ext()								*
 ************************************************************************/
 template <class T, class VEC> __host__ __device__ __forceinline__
-std::enable_if_t<size1<VEC>() == 1, mat2x<T, size1<VEC>()> >
+std::enable_if_t<size1<VEC>() == 1, mat2x<T, size0<VEC>()> >
 ext(const mat2x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b};
 }
 
 template <class T, class VEC> __host__ __device__ __forceinline__
-std::enable_if_t<size1<VEC>() == 1, mat3x<T, size1<VEC>()> >
+std::enable_if_t<size1<VEC>() == 1, mat3x<T, size0<VEC>()> >
 ext(const mat3x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b, a.z * b};
 }
 
 template <class T, class VEC> __host__ __device__ __forceinline__
-std::enable_if_t<size1<VEC>() == 1, mat4x<T, size1<VEC>()> >
+std::enable_if_t<size1<VEC>() == 1, mat4x<T, size0<VEC>()> >
 ext(const mat4x<T, 1>& a, const VEC& b)
 {
     return {a.x * b, a.y * b, a.z * b, a.w * b};
+}
+
+/************************************************************************
+*  rotation()								*
+************************************************************************/
+template <class T> __host__ __device__ __forceinline__ mat2x<T, 2>
+rotation(T theta)
+{
+    return {{cos(theta), -sin(theta)}, {sin(theta), cos(theta)}};
+}
+
+template <class T> __host__ __device__ __forceinline__ mat3x<T, 3>
+rotation(const mat3x<T, 1>& axis)
+{
+    const auto	theta  = sqrt(square(axis));
+    const auto	normal = axis / theta;
+    const auto	c = cos(theta);
+    const auto	s = sin(theta);
+    auto	R = ext(normal, normal)*(T(1) - c);
+    R.x.x += c;
+    R.y.y += c;
+    R.z.z += c;
+    R.x.y -= normal.z * s;
+    R.x.z += normal.y * s;
+    R.y.x += normal.z * s;
+    R.y.z -= normal.x * s;
+    R.z.x -= normal.y * s;
+    R.z.y += normal.x * s;
+    
+    return R;
 }
 
 namespace device
@@ -1182,7 +1213,7 @@ class Affinity
 		    _b.y   -= (t0*dt[2] + t1*dt[5]);
 		}
 
-  private:
+  protected:
     matrix_type	_A;
     point_type	_b;
 };
@@ -1218,7 +1249,12 @@ class Rigidity : public Affinity<T, D, D>
     const auto&	R()			const	{ return base_type::A(); }
     __host__ __device__
     const auto&	t()			const	{ return base_type::b(); }
-
+    __host__ __device__
+    Rigidity	inv() const
+		{
+		    return {R().transpose(), -dot(t(), R())};
+		}
+    
     using	base_type::operator ();
     
     __host__ __device__
@@ -1227,12 +1263,12 @@ class Rigidity : public Affinity<T, D, D>
 		    return dot(R(), n);
 		}
     __host__ __device__
-    point_type	invet(const point_type& p) const
+    point_type	invert(const point_type& p) const
 		{
 		    return dot(p - t(), R());
 		}
     __host__ __device__
-    point_type	invet_normal(const normal_type& n) const
+    point_type	invert_normal(const normal_type& n) const
 		{
 		    return dot(n, R());
 		}
@@ -1244,23 +1280,20 @@ class Rigidity : public Affinity<T, D, D>
 		    return {eH, eV, eV*u - eH*v};
 		}
 
-    template <size_t D_=D> __host__
+    template <size_t D_=D> __host__ __device__
     std::enable_if_t<D_ == 2>
-		compose(const TU::Array<T, DOF>& dt)
+		compose(const vec<T, 3>& dt)
 		{
-		    const auto	Rt = rotation(dt[2]);
+		    base_type::_b += dot(R(), vec<T, 2>{dt.x, dt.y});
+		    base_type::_A  = dot(R(), rotation(dt.z));
+		}
 
-		    auto	r0 = this->x.x;
-		    auto	r1 = this->x.y;
-		    this->x.x  = r0*Rt[0][0] + r1*Rt[1][0];
-		    this->x.y  = r0*Rt[0][1] + r1*Rt[1][1];
-		    this->x.z -= (this->x.x*dt[0] + this->x.y*dt[1]);
-
-		    r0 = this->y.x;
-		    r1 = this->y.y;
-		    this->y.x  = r0*Rt[0][0] + r1*Rt[1][0];
-		    this->y.y  = r0*Rt[0][1] + r1*Rt[1][1];
-		    this->y.z -= (this->y.x*dt[0] + this->y.y*dt[1]);
+    template <size_t D_=D> __host__ __device__
+    std::enable_if_t<D_ == 3>
+		compose(const mat2x<T, 3>& dt)
+		{
+		    base_type::_b += dot(R(), dt.x);
+		    base_type::_A  = dot(R(), rotation(dt.y));
 		}
 };
 

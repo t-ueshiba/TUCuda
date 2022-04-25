@@ -1219,8 +1219,20 @@ class Rigidity : public Affinity<T, D, D>
     __host__ __device__
     const auto&	t()			const	{ return base_type::b(); }
 
+    using	base_type::operator ();
+    
     __host__ __device__
     normal_type	map_normal(const normal_type& n) const
+		{
+		    return dot(R(), n);
+		}
+    __host__ __device__
+    point_type	invet(const point_type& p) const
+		{
+		    return dot(p - t(), R());
+		}
+    __host__ __device__
+    point_type	invet_normal(const normal_type& n) const
 		{
 		    return dot(n, R());
 		}

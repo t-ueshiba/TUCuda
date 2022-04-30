@@ -42,6 +42,7 @@
 #include "TU/Profiler.h"
 #include "TU/cu/Array++.h"
 #include "TU/cu/algorithm.h"
+#include "TU/cu/vec.h"
 
 namespace TU
 {

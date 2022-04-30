@@ -56,7 +56,7 @@ class array
     using pointer		= T*;
     using const_pointer		= const T*;
 
-    constexpr static size_t	D_SQOP = (D*(D+1))/2;
+    constexpr static size_t	D_SQEP = (D*(D+1))/2;
     
   private:
     template <size_t I=0, class DUMMY=void>
@@ -95,13 +95,13 @@ class array
     struct sqextpro
     {
 	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out)
+	static void	apply(const array& in, array<T, D_SQEP>& out)
 			{
 			    out[D*I + J - (I*(I+1))/2] = in[I] * in[J];
 			    sqextpro<I, J+1>::apply(in, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
 			{
 			    out[D*I + J - (I*(I+1))/2] = op(in[I], in[J]);
 			    sqextpro<I, J+1>::apply(in, out,
@@ -112,12 +112,12 @@ class array
     struct sqextpro<I, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out)
+	static void	apply(const array& in, array<T, D_SQEP>& out)
 			{
 			    sqextpro<I+1, I+1>::apply(in, out);
 			}
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
 			{
 			    sqextpro<I+1, I+1>::apply(in, out,
 						      std::forward<OP_>(op));
@@ -127,11 +127,11 @@ class array
     struct sqextpro<D, D, DUMMY>
     {
 	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out)
+	static void	apply(const array& in, array<T, D_SQEP>& out)
 			{
 			}
 	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQOP>& out, OP_&& op)
+	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
 			{
 			}
     };
@@ -305,16 +305,16 @@ class array
 			    return for_each<>::dot(*this, b);
 			}
     __host__ __device__
-    array<T, D_SQOP>	ext() const
+    array<T, D_SQEP>	ext() const
 			{
-			    array<T, D_SQOP>	val;
+			    array<T, D_SQEP>	val;
 			    sqextpro<>::apply(*this, val);
 			    return val;
 			}
     template <class OP_> __host__ __device__
-    array<T, D_SQOP>	ext(OP_&& op) const
+    array<T, D_SQEP>	ext(OP_&& op) const
 			{
-			    array<T, D_SQOP>	val;
+			    array<T, D_SQEP>	val;
 			    sqextpro<>::apply(*this, val, std::forward<OP_>(op));
 			    return val;
 			}

@@ -1228,11 +1228,11 @@ class Rigidity : public Affinity<T, D, D>
     constexpr static size_t	NPARAMS = D*(D+1)/2;
     constexpr static size_t	DOF	= NPARAMS;
 
-    using base_type	= Affinity<T, D, D>;
-    using		typename base_type::element_type;
-    using		typename base_type::matrix_type;
-    using		typename base_type::point_type;
-    using normal_type	= vec<T, D>;
+    using base_type		= Affinity<T, D, D>;
+    using			typename base_type::element_type;
+    using			typename base_type::matrix_type;
+    using			typename base_type::point_type;
+    using direction_type	= vec<T, D>;
 
     constexpr static size_t	dim()		{ return D; }
 
@@ -1258,9 +1258,10 @@ class Rigidity : public Affinity<T, D, D>
     using	base_type::operator ();
     
     __host__ __device__
-    normal_type	map_normal(const normal_type& n) const
+    direction_type
+		direction(const direction_type& d) const
 		{
-		    return dot(R(), n);
+		    return dot(R(), d);
 		}
     __host__ __device__
     point_type	invert(const point_type& p) const
@@ -1268,9 +1269,10 @@ class Rigidity : public Affinity<T, D, D>
 		    return dot(p - t(), R());
 		}
     __host__ __device__
-    point_type	invert_normal(const normal_type& n) const
+    direction_type
+		invert_direction(const direction_type& d) const
 		{
-		    return dot(n, R());
+		    return dot(d, R());
 		}
 
     template <size_t D_=D> __host__ __device__
@@ -1280,20 +1282,32 @@ class Rigidity : public Affinity<T, D, D>
 		    return {eH, eV, eV*u - eH*v};
 		}
 
-    template <size_t D_=D> __host__ __device__
+    template <class ITER, size_t D_=D> __host__ __device__
     std::enable_if_t<D_ == 2>
-		compose(const vec<T, 3>& dt)
+		compose(ITER delta)
 		{
-		    base_type::_b += dot(R(), vec<T, 2>{dt.x, dt.y});
-		    base_type::_A  = dot(R(), rotation(dt.z));
+		    point_type	dt;
+		    dt.x = *delta;
+		    dt.y = *++delta;
+		    const element_type	dtheta = *++delta;
+		    base_type::_b += dot(R(), dt);
+		    base_type::_A  = dot(R(), rotation(dtheta));
 		}
 
-    template <size_t D_=D> __host__ __device__
+    template <class ITER, size_t D_=D> __host__ __device__
     std::enable_if_t<D_ == 3>
-		compose(const mat2x<T, 3>& dt)
+		compose(ITER delta)
 		{
-		    base_type::_b += dot(R(), dt.x);
-		    base_type::_A  = dot(R(), rotation(dt.y));
+		    point_type	dt;
+		    dt.x = *delta;
+		    dt.y = *++delta;
+		    dt.z = *++delta;
+		    point_type	dtheta;
+		    dtheta.x = *++delta;
+		    dtheta.y = *++delta;
+		    dtheta.z = *++delta;
+		    base_type::_b += dot(R(), dt);
+		    base_type::_A  = dot(R(), rotation(dtheta));
 		}
 };
 

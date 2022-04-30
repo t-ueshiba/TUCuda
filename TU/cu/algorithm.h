@@ -41,7 +41,6 @@
 
 #include "TU/cu/allocator.h"
 #include "TU/cu/iterator.h"
-#include "TU/cu/vec.h"
 
 namespace TU
 {

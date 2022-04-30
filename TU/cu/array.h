@@ -335,7 +335,7 @@ class array
 			    return val;
 			}
 
-  private:
+  public:	// Should be public as std::array<T, D>
     value_type	_data[D];
 };
 

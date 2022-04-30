@@ -506,7 +506,7 @@ struct undistort
     }
 
     __host__ __device__ vec<T, 2>
-    project(const mat3x<T, 1>& p) const
+    project(const vec<T, 3>& p) const
     {
 	const vec<T, 2>	xy(p.x/p.z, p.y/p.z);
 	const auto	r2 = cu::square(xy);
@@ -569,7 +569,7 @@ namespace device
 
   template <class T> __device__ void
   tridiagonal33(const mat3x<T, 3>& A,
-		mat3x<T, 3>& Qt, mat3x<T, 1>& d, mat3x<T, 1>& e)
+		mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 3>& e)
   {
     // ----------------------------------------------------------------------
     // Reduces a symmetric 3x3 matrix to tridiagonal form by applying
@@ -650,8 +650,8 @@ namespace device
     }
 
     template <size_t I, class T> __device__ __forceinline__ void
-    diagonalize(mat3x<T, 1>& w, mat3x<T, 1>& e,
-		mat3x<T, 1>& q0, mat3x<T, 1>& q1, T& c, T& s)
+    diagonalize(vec<T, 3>& w, vec<T, 3>& e,
+		vec<T, 3>& q0, vec<T, 3>& q1, T& c, T& s)
     {
 	const auto	x = val<I+1>(e);
 	const auto	y = s*val<I>(e);
@@ -686,7 +686,7 @@ namespace device
     }
 
     template <class T> __device__ __forceinline__ vec<T, 3>
-    eigen_vector(mat3x<T, 1> a, mat3x<T, 1> b, T w)
+    eigen_vector(vec<T, 3> a, vec<T, 3> b, T w)
     {
 	a.x -= w;
 	b.y -= w;
@@ -695,7 +695,7 @@ namespace device
   }	// namespace detail
 
   template <class T> __device__ bool
-  qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, mat3x<T, 1>& w)
+  qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   {
     // Transform A to real tridiagonal form by the Householder method
       vec<T, 3>	e;	// The third element is used only as temporary
@@ -751,7 +751,7 @@ namespace device
   }
 
   template <class T> __device__  __forceinline__ bool
-  eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, mat3x<T, 1>& w)
+  eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   {
       w = cardano(A);		// Calculate eigenvalues
 
@@ -793,7 +793,7 @@ struct plane_moment
 
     template <bool POINT_ARG_=POINT_ARG>
     __host__ __device__ std::enable_if_t<!POINT_ARG_, result_type>
-    operator ()(const mat3x<T, 1>& point) const
+    operator ()(const vec<T, 3>& point) const
     {
 	return (point.z > T(0) ?
 	        result_type(
@@ -806,7 +806,7 @@ struct plane_moment
 
     template <bool POINT_ARG_=POINT_ARG>
     __host__ __device__ std::enable_if_t<POINT_ARG_, result_type>
-    operator ()(int v, int u, const mat3x<T, 1>& point) const
+    operator ()(int v, int u, const vec<T, 3>& point) const
     {
 	return (point.z > T(0) ?
 	        result_type(
@@ -922,7 +922,7 @@ struct colored_normal
     using result_type	= T;
 
     __host__ __device__ result_type
-    operator ()(const mat3x<float, 1>& normal) const
+    operator ()(const vec<float, 3>& normal) const
     {
 	return {uint8_t(128 + 127*normal.x),
 		uint8_t(128 + 127*normal.y),

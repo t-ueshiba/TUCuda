@@ -1107,7 +1107,7 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
-    std::enable_if_t<DO_ == 2&& DI_ == 2>
+    std::enable_if_t<DO_ == 2&& DI_ == 2, Projectivity&>
 		compose(const TU::Array<T, DOF>& dt)
 		{
 		    auto	t0 = _m.x.x;
@@ -1130,6 +1130,8 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		    _m.z.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
 		    _m.z.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
 		    _m.z.z -= (t0*dt[2] + t1*dt[5]);
+
+		    return *this;
 		}
 
   private:
@@ -1197,7 +1199,7 @@ class Affinity
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__
-    std::enable_if_t<DO_ == 2 && DI_ == 2>
+    std::enable_if_t<DO_ == 2 && DI_ == 2, Affinity&>
 		compose(const TU::Array<T, DOF>& dt)
 		{
 		    auto	t0 = _A.x.x;
@@ -1211,6 +1213,8 @@ class Affinity
 		    _A.y.x -= (t0*dt[0] + t1*dt[3]);
 		    _A.y.y -= (t0*dt[1] + t1*dt[4]);
 		    _b.y   -= (t0*dt[2] + t1*dt[5]);
+
+		    return *this;
 		}
 
   protected:
@@ -1282,8 +1286,17 @@ class Rigidity : public Affinity<T, D, D>
 		    return {eH, eV, eV*u - eH*v};
 		}
 
+    __host__ __device__
+    Rigidity&	compose(const Rigidity& rigidity)
+		{
+		    base_type::_b += dot(R(), rigidity.t());
+		    base_type::_A  = dot(R(), rigidity.R());
+
+		    return *this;
+		}
+    
     template <class ITER, size_t D_=D> __host__ __device__
-    std::enable_if_t<D_ == 2>
+    std::enable_if_t<D_ == 2, Rigidity&>
 		compose(ITER delta)
 		{
 		    point_type	dt;
@@ -1292,10 +1305,12 @@ class Rigidity : public Affinity<T, D, D>
 		    const element_type	dtheta = *++delta;
 		    base_type::_b += dot(R(), dt);
 		    base_type::_A  = dot(R(), rotation(dtheta));
+
+		    return *this;
 		}
 
     template <class ITER, size_t D_=D> __host__ __device__
-    std::enable_if_t<D_ == 3>
+    std::enable_if_t<D_ == 3, Rigidity&>
 		compose(ITER delta)
 		{
 		    point_type	dt;
@@ -1308,6 +1323,8 @@ class Rigidity : public Affinity<T, D, D>
 		    dtheta.z = *++delta;
 		    base_type::_b += dot(R(), dt);
 		    base_type::_A  = dot(R(), rotation(dtheta));
+
+		    return *this;
 		}
 };
 

@@ -174,9 +174,11 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
     __host__ __device__ constexpr
     static mat2x	zero()			{ return {T(0), T(0)}; }
 
-    __device__ void	print()	const
+    __device__ void	print() const
 			{
-			    printf("[%f,%f]", x, y);
+			    constexpr auto fmt = (std::is_integral<T>::value ?
+						  "[%d,%d]" : "[%f,%f]");
+			    printf(fmt, x, y);
 			}
 };
 
@@ -223,7 +225,9 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
 
     __device__ void	print() const
 			{
-			    printf("[%f,%f,%f]", x, y, z);
+			    constexpr auto fmt = (std::is_integral<T>::value ?
+						  "[%d,%d,%d]" : "[%f,%f,%f]");
+			    printf(fmt, x, y);
 			}
 };
 
@@ -272,7 +276,10 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 
     __device__ void	print() const
 			{
-			    printf("[%f,%f,%f,%f]", x, y, z, w);
+			    constexpr auto fmt = (std::is_integral<T>::value ?
+						  "[%d,%d,%d,%d]" :
+						  "[%f,%f,%f,%f]");
+			    printf(fmt, x, y);
 			}
 };
 
@@ -350,9 +357,9 @@ struct mat2x
 			{
 			    printf("[");
 			    x.print();
-			    printf("\n ");
+			    printf(",");
 			    y.print();
-			    printf("]\n");
+			    printf("]");
 			}
 
     value_type	x, y;
@@ -429,11 +436,11 @@ struct mat3x
 			{
 			    printf("[");
 			    x.print();
-			    printf("\n ");
+			    printf(",");
 			    y.print();
-			    printf("\n ");
+			    printf(",");
 			    z.print();
-			    printf("]\n");
+			    printf("]");
 			}
 
     value_type	x, y, z;
@@ -514,13 +521,13 @@ struct mat4x
 			{
 			    printf("[");
 			    x.print();
-			    printf("\n ");
+			    printf(",");
 			    y.print();
-			    printf("\n ");
+			    printf(",");
 			    z.print();
-			    printf("\n ");
+			    printf(",");
 			    w.print();
-			    printf("]\n");
+			    printf("]");
 			}
 
     value_type	x, y, z, w;
@@ -852,19 +859,19 @@ operator /(const VM& a, element_t<VM> c)
 template <class T, size_t C> std::ostream&
 operator <<(std::ostream& out, const mat2x<T, C>& a)
 {
-    return out << '[' << a.x << ' ' << a.y << ']';
+    return out << '[' << a.x << ',' << a.y << ']';
 }
 
 template <class T, size_t C> std::ostream&
 operator <<(std::ostream& out, const mat3x<T, C>& a)
 {
-    return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ']';
+    return out << '[' << a.x << ',' << a.y << ',' << a.z << ']';
 }
 
 template <class T, size_t C> std::ostream&
 operator <<(std::ostream& out, const mat4x<T, C>& a)
 {
-    return out << '[' << a.x << ' ' << a.y << ' ' << a.z << ' ' << a.w << ']';
+    return out << '[' << a.x << ',' << a.y << ',' << a.z << ',' << a.w << ']';
 }
 
 /************************************************************************
@@ -996,7 +1003,7 @@ template <class T> __host__ __device__ __forceinline__ mat3x<T, 3>
 rotation(const mat3x<T, 1>& axis)
 {
     const auto	theta  = sqrt(square(axis));
-    const auto	normal = axis / theta;
+    const auto	normal = (theta > 0 ? axis / theta : mat3x<T, 1>{1, 0, 0});
     const auto	c = cos(theta);
     const auto	s = sin(theta);
     auto	R = ext(normal, normal)*(T(1) - c);
@@ -1086,7 +1093,7 @@ atomicOp(mat4x<T, C>* p, const mat4x<T, C>& val, OP op)
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/
 template <class T, size_t DO, size_t DI>
-class Projectivity : public mat<T, DO + 1, DI + 1>
+class Projectivity
 {
   public:
     constexpr static size_t	DO1	= DO + 1;
@@ -1182,6 +1189,12 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		    return *this;
 		}
 
+    friend std::ostream&
+		operator <<(std::ostream& out, const Projectivity& proj)
+		{
+		    return out << proj._m;
+		}
+    
     __device__
     void	print() const
 		{
@@ -1271,12 +1284,18 @@ class Affinity
 		    return *this;
 		}
 
+    friend std::ostream&
+		operator <<(std::ostream& out, const Affinity& affinity)
+		{
+		    return out << affinity._A << ',' << affinity._b;
+		}
+    
     __device__
     void	print() const
 		{
 		    _A.print();
+		    printf(",");
 		    _b.print();
-		    printf("\n");
 		}
 
   protected:

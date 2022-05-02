@@ -173,6 +173,11 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
 
     __host__ __device__ constexpr
     static mat2x	zero()			{ return {T(0), T(0)}; }
+
+    __device__ void	print()	const
+			{
+			    printf("[%f,%f]", x, y);
+			}
 };
 
 template <class T, size_t C>	struct mat3x;
@@ -215,6 +220,11 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
 
     __host__ __device__ constexpr
     static mat3x	zero()			{ return {T(0), T(0), T(0)}; }
+
+    __device__ void	print() const
+			{
+			    printf("[%f,%f,%f]", x, y, z);
+			}
 };
 
 template <class T, size_t C>	struct mat4x;
@@ -259,6 +269,11 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 
     __host__ __device__ constexpr
     static mat4x	zero()		{ return {T(0), T(0), T(0), T(0)}; }
+
+    __device__ void	print() const
+			{
+			    printf("[%f,%f,%f,%f]", x, y, z, w);
+			}
 };
 
 template <class T, size_t D>
@@ -331,6 +346,15 @@ struct mat2x
 	return {{T(1), T(0)}, {T(0), T(1)}};
     }
 
+    __device__ void	print() const
+			{
+			    printf("[");
+			    x.print();
+			    printf("\n ");
+			    y.print();
+			    printf("]\n");
+			}
+
     value_type	x, y;
 };
 
@@ -400,6 +424,17 @@ struct mat3x
     {
 	return {{T(1), T(0), T(0)}, {T(0), T(1), T(0)}, {T(0), T(0), T(1)}};
     }
+
+    __device__ void	print() const
+			{
+			    printf("[");
+			    x.print();
+			    printf("\n ");
+			    y.print();
+			    printf("\n ");
+			    z.print();
+			    printf("]\n");
+			}
 
     value_type	x, y, z;
 };
@@ -474,6 +509,19 @@ struct mat4x
 	return {{T(1), T(0), T(0), T(0)}, {T(0), T(1), T(0), T(0)},
 		{T(0), T(0), T(1), T(0)}, {T(0), T(0), T(0), T(1)}};
     }
+
+    __device__ void	print() const
+			{
+			    printf("[");
+			    x.print();
+			    printf("\n ");
+			    y.print();
+			    printf("\n ");
+			    z.print();
+			    printf("\n ");
+			    w.print();
+			    printf("]\n");
+			}
 
     value_type	x, y, z, w;
 };
@@ -1134,6 +1182,12 @@ class Projectivity : public mat<T, DO + 1, DI + 1>
 		    return *this;
 		}
 
+    __device__
+    void	print() const
+		{
+		    _m.print();
+		}
+
   private:
     matrix_type	_m;
 };
@@ -1215,6 +1269,14 @@ class Affinity
 		    _b.y   -= (t0*dt[2] + t1*dt[5]);
 
 		    return *this;
+		}
+
+    __device__
+    void	print() const
+		{
+		    _A.print();
+		    _b.print();
+		    printf("\n");
 		}
 
   protected:
@@ -1326,6 +1388,8 @@ class Rigidity : public Affinity<T, D, D>
 
 		    return *this;
 		}
+
+    using	base_type::print;
 };
 
 /************************************************************************
@@ -1399,6 +1463,8 @@ class Intrinsics
     __host__ __device__ vec<T, 3>
     operator ()(T u, T v, T d) const
     {
+	if (isnan(d))
+	    d = 0;
 	const auto	xy = (*this)(u, v);
 	return {d*xy.x, d*xy.y, d};
     }

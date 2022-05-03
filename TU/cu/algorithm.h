@@ -358,7 +358,7 @@ namespace device
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
 
       if (y < in.size() && x < in.begin().size())
-	  out[y][x] = op(y, x, in[y][x]);
+	  out[y][x] = op(x, y, in[y][x]);
   }
 }	// namespace device
 

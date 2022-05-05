@@ -198,14 +198,22 @@ class array
     const_pointer	data()			const	{ return _data; }
     __host__ __host__ __device__
     pointer		data()				{ return _data; }
+
+    __host__ __device__
+    array&		negate()
+			{
+			    for_each<>::apply(*this,
+					      [] __host__ __device__
+					      (T& x){ x = -x; });
+			    return *this;
+			}
     
     __host__ __device__
     array&		operator +=(const array& b)
 			{
 			    for_each<>::apply(*this, b,
 					      [] __host__ __device__
-					      (auto&& x, const auto& y)
-					      { x += y; });
+					      (T& x, const T& y){ x += y; });
 			    return *this;
 			}
     __host__ __device__
@@ -213,8 +221,7 @@ class array
 			{
 			    for_each<>::apply(*this, b,
 					      [] __host__ __device__
-					      (auto&& x, const auto& y)
-					      { x -= y; });
+					      (T& x, const T& y){ x -= y; });
 			    return *this;
 			}
     __host__ __device__
@@ -222,7 +229,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x *= c; });
+					      (T& x){ x *= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -230,7 +237,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x /= c; });
+					      (T& x){ x /= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -238,7 +245,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x %= c; });
+					      (T& x){ x %= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -246,8 +253,7 @@ class array
 			{
 			    for_each<>::apply(*this, b,
 					      [] __host__ __device__
-					      (auto&& x, const auto& y)
-					      { x &= y; });
+					      (T& x, const T& y){ x &= y; });
 			    return *this;
 			}
     __host__ __device__
@@ -255,7 +261,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x &= c; });
+					      (T& x){ x &= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -263,8 +269,7 @@ class array
 			{
 			    for_each<>::apply(*this, b,
 					      [] __host__ __device__
-					      (auto&& x, const auto& y)
-					      { x |= y; });
+					      (T& x, const T& y){ x |= y; });
 			    return *this;
 			}
     __host__ __device__
@@ -272,7 +277,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x |= c; });
+					      (T& x){ x |= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -280,8 +285,7 @@ class array
 			{
 			    for_each<>::apply(*this, b,
 					      [] __host__ __device__
-					      (auto&& x, const auto& y)
-					      { x ^= y; });
+					      (T& x, const T& y){ x ^= y; });
 			    return *this;
 			}
     __host__ __device__
@@ -289,7 +293,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x ^= c; });
+					      (T& x){ x ^= c; });
 			    return *this;
 			}
     __host__ __device__
@@ -297,7 +301,7 @@ class array
 			{
 			    for_each<>::apply(*this,
 					      [c] __host__ __device__
-					      (auto&& x){ x = c; });
+					      (T& x){ x = c; });
 			}
     __host__ __device__
     value_type		dot(const array& b) const
@@ -338,6 +342,13 @@ class array
   public:	// Should be public as std::array<T, D>
     value_type	_data[D];
 };
+
+template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
+operator -(const array<T, D>& a)
+{
+    auto	val(a);
+    return val.negate();
+}
 
 template <class T, size_t D> __host__ __device__ __forceinline__ array<T, D>
 operator +(const array<T, D>& a, const array<T, D>& b)

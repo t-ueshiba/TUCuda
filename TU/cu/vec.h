@@ -1376,23 +1376,27 @@ class Rigidity : public Affinity<T, D, D>
 		    return *this;
 		}
     
+    template <class ITER> __host__ __device__
+    Rigidity&	compose(ITER delta)
+		{
+		    return compose(exp(delta));
+		}
+
     template <class ITER, size_t D_=D> __host__ __device__
-    std::enable_if_t<D_ == 2, Rigidity&>
-		compose(ITER delta)
+    static std::enable_if_t<D_ == 2, Rigidity>
+		exp(ITER delta)
 		{
 		    point_type	dt;
 		    dt.x = *delta;
 		    dt.y = *++delta;
 		    const element_type	dtheta = *++delta;
-		    base_type::_b += dot(R(), dt);
-		    base_type::_A  = dot(R(), rotation(dtheta));
-
-		    return *this;
+		    
+		    return {rotation(dtheta), dt};
 		}
-
+    
     template <class ITER, size_t D_=D> __host__ __device__
-    std::enable_if_t<D_ == 3, Rigidity&>
-		compose(ITER delta)
+    static std::enable_if_t<D_ == 3, Rigidity>
+		exp(ITER delta)
 		{
 		    point_type	dt;
 		    dt.x = *delta;
@@ -1402,12 +1406,11 @@ class Rigidity : public Affinity<T, D, D>
 		    dtheta.x = *++delta;
 		    dtheta.y = *++delta;
 		    dtheta.z = *++delta;
-		    base_type::_b += dot(R(), dt);
-		    base_type::_A  = dot(R(), rotation(dtheta));
-
-		    return *this;
+		    
+		    return {rotation(dtheta), dt};
 		}
 
+    using	base_type::initialize;
     using	base_type::print;
 };
 

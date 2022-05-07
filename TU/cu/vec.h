@@ -957,6 +957,26 @@ square(const VEC& a)
 }
 
 /************************************************************************
+*  norm()								*
+************************************************************************/
+template <class VEC> __host__ __device__ __forceinline__
+std::enable_if_t<size1<VEC>() == 1, element_t<VEC> >
+norm(const VEC& a)
+{
+    return sqrt(square(a));
+}
+
+/************************************************************************
+*  normalized()								*
+************************************************************************/
+template <class VEC> __host__ __device__ __forceinline__
+std::enable_if_t<size1<VEC>() == 1, VEC>
+normalized(const VEC& a)
+{
+    return a / norm(a);
+}
+
+/************************************************************************
 *  cross()								*
 ************************************************************************/
 template <class T> __host__ __device__ __forceinline__ mat3x<T, 1>

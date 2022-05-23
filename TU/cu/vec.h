@@ -1839,6 +1839,12 @@ struct plane_estimator
 	return _invalid_plane;
     }
 
+    __host__ __device__ static bool
+    is_invalid_plane(const result_type& plane)
+    {
+	return plane.z.z == device::maxval<T>;
+    }
+
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {

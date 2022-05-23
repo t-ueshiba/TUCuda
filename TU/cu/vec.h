@@ -1796,6 +1796,18 @@ struct plane_moment
    */
     using result_type = mat4x<T, 3>;
 
+    __host__ __device__ static result_type
+    invalid_moment()
+    {
+	return result_type(0);
+    }
+
+    __host__ __device__ static bool
+    is_invalid_moment(const result_type& plane)
+    {
+	return plane.w.z == T(0);
+    }
+
     template <bool POINT_ARG_=POINT_ARG>
     __host__ __device__ std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
@@ -1836,7 +1848,7 @@ struct plane_estimator
     __host__ __device__ static result_type
     invalid_plane()
     {
-	return _invalid_plane;
+	return {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
     }
 
     __host__ __device__ static bool
@@ -1849,7 +1861,7 @@ struct plane_estimator
     operator ()(const mat4x<T, 3>& moment) const
     {
 	if (moment.w.z < T(4))	// Four or more points required.
-	    return _invalid_plane;
+	    return invalid_plane();
 
 	const auto	sc = T(1)/moment.w.z;
 	result_type	plane;
@@ -1898,11 +1910,6 @@ struct plane_estimator
 
 	return plane;
     }
-
-  private:
-    constexpr static result_type _invalid_plane{{0, 0, 0},
-						{0, 0, 0},
-						{0, 0, device::maxval<T>}};
 };
 
 template <class T>

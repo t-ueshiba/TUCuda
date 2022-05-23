@@ -1799,7 +1799,7 @@ struct plane_moment
     __host__ __device__ static result_type
     invalid_moment()
     {
-	return result_type(0);
+	return {0};
     }
 
     __host__ __device__ static bool
@@ -1818,7 +1818,7 @@ struct plane_moment
 		    point.x * point,
 		    {point.y * point.y, point.y * point.z, point.z * point.z},
 		    {0, 0, 1}) :
-		result_type(0));
+		invalid_moment());
     }
 
     template <bool POINT_ARG_=POINT_ARG>
@@ -1831,7 +1831,7 @@ struct plane_moment
 		    point.x * point,
 		    {point.y * point.y, point.y * point.z, point.z * point.z},
 		    {u, v, 1}) :
-		result_type(0));
+		invalid_moment());
     }
 };
 
@@ -1860,7 +1860,7 @@ struct plane_estimator
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {
-	if (moment.w.z < T(4))	// Four or more points required.
+	if (moment.w.z < T(3))	// Three or more points required.
 	    return invalid_plane();
 
 	const auto	sc = T(1)/moment.w.z;

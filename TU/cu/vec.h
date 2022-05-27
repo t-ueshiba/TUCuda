@@ -854,7 +854,7 @@ operator /(const VM& a, element_t<VM> c)
 }
 
 /************************************************************************
-*  Output functions							*
+*  I/O functions							*
 ************************************************************************/
 template <class T, size_t C> std::ostream&
 operator <<(std::ostream& out, const mat2x<T, C>& a)
@@ -872,6 +872,24 @@ template <class T, size_t C> std::ostream&
 operator <<(std::ostream& out, const mat4x<T, C>& a)
 {
     return out << '[' << a.x << ',' << a.y << ',' << a.z << ',' << a.w << ']';
+}
+
+template <class T, size_t C> std::istream&
+operator >>(std::istream& in, mat2x<T, C>& a)
+{
+    return in >> a.x >> a.y;
+}
+
+template <class T, size_t C> std::istream&
+operator >>(std::istream& in, mat3x<T, C>& a)
+{
+    return in >> a.x >> a.y >> a.z;
+}
+
+template <class T, size_t C> std::istream&
+operator >>(std::istream& in, mat4x<T, C>& a)
+{
+    return in >> a.x >> a.y >> a.z >> a.w;
 }
 
 /************************************************************************

@@ -1549,6 +1549,170 @@ class Intrinsics
 };
 
 /************************************************************************
+*  class Triange<T>							*
+************************************************************************/
+template <class T>
+class Triangle
+{
+  public:
+    using value_type	= T;
+    using point_type	= vec<value_type, 3>;
+    using normal_type	= vec<value_type, 3>;
+    using coord_type	= vec<value_type, 3>;
+    
+    __host__ __device__
+		Triangle()						{}
+    __host__ __device__ __forceinline__
+		Triangle(const point_type& v0,
+			 const point_type& v1,
+			 const point_type& v2)	:_v{v0, v1, v2}		{}
+
+    __host__ __device__ __forceinline__
+    normal_type	normal() const
+		{
+		    return normalized(cross(_v.y - _v.x, _v.z - _v.x));
+		}
+    __host__ __device__ __forceinline__
+    point_type	foot(const point_type& p) const
+		{
+		    return dot(barycentric_coord(p), _v);
+		}
+    __host__ __device__ __forceinline__
+    value_type	sqdist(const point_type& p) const
+		{
+		    return square(p - foot(p));
+		}
+    __host__ __device__ __forceinline__
+    point_type	closest_point(const point_type& p) const
+		{
+		    const auto	coord = barycentric_coord(p);
+
+		    if (coord.x > 1)
+			return _v.x;
+		    else if (coord.y > 1)
+			return _v.y;
+		    else if (coord.z > 1)
+			return _v.z;
+		    else if (coord.x < 0)
+			return (coord.y*_v.y + coord.z*_v.z) / (1 - coord.x);
+		    else if (coord.y < 0)
+			return (coord.z*_v.z + coord.x*_v.x) / (1 - coord.y);
+		    else if (coord.z < 0)
+			return (coord.x*_v.x + coord.y*_v.y) / (1 - coord.z);
+		    else
+			return dot(coord, _v);
+		}
+    __host__ __device__ __forceinline__
+    coord_type	barycentric_coord(const point_type& p) const
+		{
+		    const auto	b  = _v.y - _v.x;
+		    const auto	c  = _v.z - _v.x;
+		    const auto	bc = cross(b, c);
+		    const auto	x  = p - _v.x;
+		    const auto	k  = value_type(1) / square(bc);
+		    coord_type	coord;
+		    coord.y = dot(bc, cross(x, c)) * k;
+		    coord.z = dot(bc, cross(b, x)) * k;
+		    coord.x = value_type(1) - coord.y - coord.z;
+
+		    return coord;
+		}
+
+    std::istream&
+		read(std::istream& in)
+		{
+		    float	buf[9];
+		    if (!in.read((char*)buf, sizeof(buf)))
+			throw
+			    std::runtime_error("Triangle<T>::reead() failed!");
+
+		    _v.x.x = buf[0];
+		    _v.x.y = buf[1];
+		    _v.x.z = buf[2];
+		    _v.y.x = buf[3];
+		    _v.y.y = buf[4];
+		    _v.y.z = buf[5];
+		    _v.z.x = buf[6];
+		    _v.z.y = buf[7];
+		    _v.z.z = buf[8];
+
+		    return in;
+		}
+
+    friend std::istream&
+		operator >>(std::istream& in, Triangle<T>& triangle)
+		{
+		    return in >> triangle._v;
+		}
+
+    friend std::ostream&
+		operator <<(std::ostream& out, const Triangle<T>& triangle)
+		{
+		    return out << triangle._v;
+		}
+
+  private:
+    mat3x<T, 3>	_v;
+};
+    
+//! 入力ストリームからSTL形式のメッシュを読み込む．
+/*!
+  \param in	入力ストリーム
+  \return	inで指定した入力ストリーム
+*/
+template <class T> std::istream&
+restoreSTL(std::istream& in, std::vector<Triangle<T> >& faces)
+{
+  // 先頭の5 byteを読む．    
+    char	magic[6];
+    in.read(magic, 5);
+    magic[5] = '\0';
+
+    if (std::string(magic) != "solid")
+    {
+      // ヘッダ(80文字)の残りを読み捨てる.	
+	char	header[80 - 5];
+	in.read(header, sizeof(header));
+
+      // 面数を読み込む.	
+	uint32_t	nfaces;
+	in.read((char*)&nfaces, sizeof(nfaces));
+	faces.resize(nfaces);
+
+	for (auto& face : faces)
+	{
+	    float	buf[3];
+	    in.read((char*)buf, sizeof(buf));	// 法線ベクトルを読み捨てる
+	    face.read(in);			// 頂点の3D座標を読み込む
+
+	    uint16_t	flags;
+	    in.read((char*)&flags, sizeof(flags));	// フラグを読み込む
+	}
+    }
+    else
+    {
+	for (std::string s; in >> s && s != "endsolid"; )
+	{
+	    if (s != "facet")
+		continue;
+	    
+	    float	buf;
+	    Triangle<T>	triangle;
+	    in >> s >> buf >> buf >> buf	// "normal" nx ny nz
+	       >> s >> s			// "outer" "loop"
+	       >> s >> triangle			// "vertex" x y z
+	       >> s >> s;			// "endloop" "endfacet"
+	    if (!in)
+		throw std::runtime_error("restoreSTL() failed.");
+
+	    faces.push_back(triangle);
+	}
+    }
+
+    return in;
+}
+
+/************************************************************************
 *  operators for fitting plane to 3D points 				*
 ************************************************************************/
 namespace device

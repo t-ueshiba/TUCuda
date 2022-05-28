@@ -1406,32 +1406,10 @@ class Rigidity : public Affinity<T, D, D>
 		}
 
     __host__ __device__
-    Rigidity&	operator *=(const Rigidity& rigidity)
+    Rigidity	operator *(const Rigidity& rigidity)
 		{
-		    base_type::_b += dot(R(), rigidity.t());
-		    base_type::_A  = dot(R(), rigidity.R());
-
-		    return *this;
-		}
-    
-    template <class ITER> __host__ __device__
-    Rigidity&	operator *=(ITER delta)
-		{
-		    return operator *=(exp(delta));
-		}
-
-    __host__ __device__
-    Rigidity&	compose(const Rigidity& rigidity)
-		{
-		    base_type::_b = dot(rigidity.R(), t()) + rigidity.t();
-		    base_type::_A = dot(rigidity.R(), R());
-
-		    return *this;
-		}
-    template <class ITER> __host__ __device__
-    Rigidity&	compose(ITER delta)
-		{
-		    return compose(exp(delta));
+		    return {dot(R(), rigidity.R()),
+			    dot(R(), rigidity.t()) + t()};
 		}
 
     template <class ITER, size_t D_=D> __host__ __device__

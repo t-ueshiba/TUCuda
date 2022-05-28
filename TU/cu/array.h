@@ -94,14 +94,14 @@ class array
     template <size_t I=0, size_t J=0, class DUMMY=void>
     struct sqextpro
     {
-	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out)
+	template <size_t D_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out)
 			{
 			    out[D*I + J - (I*(I+1))/2] = in[I] * in[J];
 			    sqextpro<I, J+1>::apply(in, out);
 			}
-	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
+	template <size_t D_, class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out, OP_&& op)
 			{
 			    out[D*I + J - (I*(I+1))/2] = op(in[I], in[J]);
 			    sqextpro<I, J+1>::apply(in, out,
@@ -111,13 +111,13 @@ class array
     template <size_t I, class DUMMY>
     struct sqextpro<I, D, DUMMY>
     {
-	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out)
+	template <size_t D_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out)
 			{
 			    sqextpro<I+1, I+1>::apply(in, out);
 			}
-	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
+	template <size_t D_, class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out, OP_&& op)
 			{
 			    sqextpro<I+1, I+1>::apply(in, out,
 						      std::forward<OP_>(op));
@@ -126,12 +126,12 @@ class array
     template <class DUMMY>
     struct sqextpro<D, D, DUMMY>
     {
-	__host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out)
+	template <size_t D_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out)
 			{
 			}
-	template <class OP_> __host__ __device__ __forceinline__
-	static void	apply(const array& in, array<T, D_SQEP>& out, OP_&& op)
+	template <size_t D_, class OP_> __host__ __device__ __forceinline__
+	static void	apply(const array& in, array<T, D_>& out, OP_&& op)
 			{
 			}
     };
@@ -308,17 +308,17 @@ class array
 			{
 			    return for_each<>::dot(*this, b);
 			}
-    __host__ __device__
-    array<T, D_SQEP>	ext() const
+    template <size_t D_=D_SQEP> __host__ __device__
+    array<T, D_>	ext() const
 			{
-			    array<T, D_SQEP>	val;
+			    array<T, D_>	val;
 			    sqextpro<>::apply(*this, val);
 			    return val;
 			}
-    template <class OP_> __host__ __device__
-    array<T, D_SQEP>	ext(OP_&& op) const
+    template <size_t D_=D_SQEP, class OP_> __host__ __device__
+    array<T, D_>	ext(OP_&& op) const
 			{
-			    array<T, D_SQEP>	val;
+			    array<T, D_>	val;
 			    sqextpro<>::apply(*this, val, std::forward<OP_>(op));
 			    return val;
 			}

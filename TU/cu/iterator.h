@@ -292,10 +292,11 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
 }
 
 /************************************************************************
-*  TU::cu::advance_stride(ITER&, STRIDE)				*
+*  TU::cu::cu_advance_stride(ITER&, STRIDE)				*
+*    (ADLによる TU::advance_stride() との衝突を防ぐために名前を変更)	*
 ************************************************************************/
 template <class ITER> __host__ __device__ __forceinline__ auto
-advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
+cu_advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
     -> void_t<decltype(iter += stride)>
 {
     iter += stride;
@@ -303,23 +304,23 @@ advance_stride(ITER& iter, const iterator_stride<ITER>& stride)
 
 template <class ITER_TUPLE, class HEAD, class TAIL>
 __host__ __device__ __forceinline__ auto
-advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
-	       const thrust::detail::cons<HEAD, TAIL>& stride)
+cu_advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
+		  const thrust::detail::cons<HEAD, TAIL>& stride)
 {
     using tuple_t = std::decay_t<decltype(iter.get_iterator_tuple())>;
 
-    tuple_for_each([](auto&& x, const auto& y){ advance_stride(x, y); },
+    tuple_for_each([](auto&& x, const auto& y){ cu_advance_stride(x, y); },
 		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
 
 template <class ITER, class HEAD, class TAIL>
 __host__ __device__ __forceinline__ auto
-advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
+cu_advance_stride(ITER& iter, const thrust::detail::cons<HEAD, TAIL>& stride)
     -> void_t<decltype(iter.base())>
 {
     using base_t = std::decay_t<decltype(iter.base())>;
 
-    advance_stride(const_cast<base_t&>(iter.base()), stride);
+    cu_advance_stride(const_cast<base_t&>(iter.base()), stride);
 }
 
 /************************************************************************
@@ -483,17 +484,17 @@ class range_iterator
     __host__ __device__
     void	increment()
 		{
-		    advance_stride(super::base_reference(), stride());
+		    cu_advance_stride(super::base_reference(), stride());
 		}
     __host__ __device__
     void	decrement()
 		{
-		    advance_stride(super::base_reference(), -stride());
+		    cu_advance_stride(super::base_reference(), -stride());
 		}
     __host__ __device__
     void	advance(difference_type n)
 		{
-		    advance_stride(super::base_reference(), n*stride());
+		    cu_advance_stride(super::base_reference(), n*stride());
 		}
     __host__ __device__
     difference_type

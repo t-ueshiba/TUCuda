@@ -1759,8 +1759,7 @@ namespace device
     // The function accesses only the diagonal and upper triangular parts of A.
     // The access is read-only.
     // ----------------------------------------------------------------------
-      Qt = T(0);
-      Qt.x.x = Qt.y.y = Qt.z.z = T(1);
+      Qt = mat3x<T, 3>::identity();
 
     // Bring first row and column to the desired form
       const T	h = square(A.x.y) + square(A.x.z);
@@ -1926,6 +1925,10 @@ namespace device
 	  }
       }
 
+    // Enforce positive determinant value
+      if (dot(Qt.x, cross(Qt.y, Qt.z)) < 0)
+	  Qt.x *= T(-1);
+
       return true;
   }
 
@@ -1970,20 +1973,8 @@ struct plane_moment
    */
     using result_type = mat4x<T, 3>;
 
-    __host__ __device__ static result_type
-    invalid_moment()
-    {
-	return {0};
-    }
-
-    __host__ __device__ static bool
-    is_invalid_moment(const result_type& plane)
-    {
-	return plane.w.z == T(0);
-    }
-
-    template <bool POINT_ARG_=POINT_ARG>
-    __host__ __device__ std::enable_if_t<!POINT_ARG_, result_type>
+    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
+    std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
     {
 	return (point.z > T(0) ?
@@ -1995,8 +1986,8 @@ struct plane_moment
 		invalid_moment());
     }
 
-    template <bool POINT_ARG_=POINT_ARG>
-    __host__ __device__ std::enable_if_t<POINT_ARG_, result_type>
+    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
+    std::enable_if_t<POINT_ARG_, result_type>
     operator ()(int u, int v, const vec<T, 3>& point) const
     {
 	return (point.z > T(0) ?
@@ -2007,6 +1998,74 @@ struct plane_moment
 		    {u, v, 1}) :
 		invalid_moment());
     }
+
+    __host__ __device__ __forceinline__ static result_type
+    invalid_moment()
+    {
+	return {0};
+    }
+
+    __host__ __device__ __forceinline__ static bool
+    is_invalid_moment(const result_type& moment)
+    {
+	return moment.w.z == T(0);
+    }
+
+    __host__ __device__ __forceinline__ static vec<T, 3>
+    mean(const mat4x<T, 3>& moment)
+    {
+	return moment.x / moment.w.z;
+    }
+
+    __host__ __device__ __forceinline__ static mat3x<T, 3>
+    A(const mat4x<T, 3>& moment)
+    {
+	const auto	m = mean(moment);
+
+	return {moment.y - moment.x.x * m,
+		{T(0),
+		 moment.z.x - moment.x.y * m.y,
+		 moment.z.y - moment.x.y * m.z},
+		{T(0),
+		 T(0),
+		 moment.z.z - moment.x.z * m.z}};
+    }
+
+    __host__ __device__ static mat3x<T, 3>
+    PCA(const mat4x<T, 3>& moment, vec<T, 3>& evals)
+    {
+	mat3x<T, 3>	A = plane_moment<T>::A(moment);
+	mat3x<T, 3>	evecs;
+	device::eigen33(A, evecs, evals);
+
+	if (evals.x < evals.y)
+	{
+	    swap(evals.x, evals.y);
+	    swap(evecs.x, evecs.y);
+	}
+	
+	if (evals.x < evals.z)
+	{
+	    swap(evals.x, evals.z);
+	    swap(evecs.x, evecs.z);
+	}
+
+	if (evals.y < evals.z)
+	{
+	    swap(evals.y, evals.z);
+	    swap(evecs.y, evecs.z);
+	}
+	
+	return evecs;
+    }
+
+  private:
+    __host__ __device__ __forceinline__ static void
+    swap(T& a, T& b)			{ const auto t = a; a = b; b = t; }
+
+  // Negate second vector in order to preserve sign of determinant value.
+    __host__ __device__ __forceinline__ static void
+    swap(vec<T, 3>& a, vec<T, 3>& b)	{ const auto t = a; a = -b; b = t; }
 };
 
 template <class T>
@@ -2019,70 +2078,38 @@ struct plane_estimator
    */
     using result_type = mat3x<T, 3>;
 
-    __host__ __device__ static result_type
-    invalid_plane()
-    {
-	return {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
-    }
-
-    __host__ __device__ static bool
-    is_invalid_plane(const result_type& plane)
-    {
-	return plane.z.z == device::maxval<T>;
-    }
-
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {
 	if (moment.w.z < T(3))	// Three or more points required.
 	    return invalid_plane();
 
-	const auto	sc = T(1)/moment.w.z;
 	result_type	plane;
-	plane.x = moment.x * sc;
+	plane.x = plane_moment<T>::mean(moment);
 
-	mat3x<T, 3>	A = {moment.y - moment.x.x * plane.x,
-			     {T(0),
-			      moment.z.x - moment.x.y * plane.x.y,
-			      moment.z.y - moment.x.y * plane.x.z},
-			     {T(0),
-			      T(0),
-			      moment.z.z - moment.x.z * plane.x.z}};
-	mat3x<T, 3>	evecs;
+      // Compute normal vector
 	vec<T, 3>	evals;
-	device::eigen33(A, evecs, evals);
-
-	T		eval_min;
-	if (evals.x < evals.y)
-	    if (evals.x < evals.z)
-	    {
-		eval_min = evals.x;
-		plane.y  = evecs.x;
-	    }
-	    else
-	    {
-		eval_min = evals.z;
-		plane.y  = evecs.z;
-	    }
-	else
-	    if (evals.y < evals.z)
-	    {
-		eval_min = evals.y;
-		plane.y  = evecs.y;
-	    }
-	    else
-	    {
-		eval_min = evals.z;
-		plane.y  = evecs.z;
-	    }
-
-      // enforce dot(normal, center) < 0 so normal points towards camera
+	const auto	evecs = plane_moment<T>::PCA(moment, evals);
+	plane.y = evecs.z;
 	if (dot(plane.x, plane.y) > T(0))
-	    plane.y *= T(-1);
+	    plane.y *= T(-1);			// should point toward camera
 
-	plane.z = {moment.w.x*sc, moment.w.y*sc, eval_min*sc};
+	const auto	sc = 1/moment.w.z;
+	plane.z = {moment.w.x*sc, moment.w.y*sc, evals.z*sc};
 
 	return plane;
+    }
+
+    __host__ __device__ __forceinline__ static result_type
+    invalid_plane()
+    {
+	return {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
+    }
+
+    __host__ __device__ __forceinline__ static bool
+    is_invalid_plane(const result_type& plane)
+    {
+	return plane.z.z == device::maxval<T>;
     }
 };
 
@@ -2094,17 +2121,17 @@ struct normal_estimator : public plane_estimator<T>
    */
     using result_type	= vec<T, 3>;
     using super		= plane_estimator<T>;
-
-    __host__ __device__ static result_type
-    invalid_normal()
-    {
-	return super::_invalid_plane.y;
-    }
-
+    
     __host__ __device__ result_type
     operator ()(const mat4x<T, 3>& moment) const
     {
 	return super::operator ()(moment).y;
+    }
+
+    __host__ __device__ __forceinline__ static result_type
+    invalid_normal()
+    {
+	return {0, 0, 0};
     }
 };
 

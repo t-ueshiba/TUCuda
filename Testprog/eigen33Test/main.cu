@@ -30,6 +30,8 @@ doJob()
 	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose())
 		  << std::endl;
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
+		  << std::endl;
+	std::cerr << "  det(Qt) = " << dot(Qt.x, cross(Qt.y, Qt.z))
 		  << std::endl << std::endl;
 
 	auto	w = cu::qr33(A, Qt);
@@ -38,6 +40,8 @@ doJob()
 	std::cerr << "  Qt = " << Qt << std::endl;
 	std::cerr << "  Qt*Q = " << dot(Qt, Qt.transpose()) << std::endl;
 	std::cerr << "  Qt*A*Q = " << dot(dot(Qt, A), Qt.transpose())
+		  << std::endl
+		  << "  det(Qt) = " << dot(Qt.x, cross(Qt.y, Qt.z))
 		  << std::endl << std::endl;
 
       //============================================================

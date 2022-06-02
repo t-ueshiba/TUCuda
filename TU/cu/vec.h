@@ -1966,7 +1966,7 @@ namespace device
 *  class Moment<T>							*
 ************************************************************************/
 template <class T>
-class Moment : public mat3x<T, 3>
+class Moment : public mat4x<T, 3>
 {
   /*
    * [[  x,   y,   z],
@@ -1982,15 +1982,15 @@ class Moment : public mat3x<T, 3>
 
   public:
     __host__ __device__ __forceinline__
-		Moment()		:_super()	{}
+		Moment()		:super()	{}
     __host__ __device__ __forceinline__
-		Moment(const super& m)	:_super(m)	{}
+		Moment(const super& m)	:super(m)	{}
     __host__ __device__ __forceinline__
 		Moment(const vector_type& p, int u=0, int v=0)
-		    :_super(p.z > T(0) ?
-			    {p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
-			     {u, v, 1}} :
-			    {0})
+		    :super(p.z > T(0) ?
+			   super{p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
+				 {u, v, 1}} :
+			   super{0})
 		{
 		}
 
@@ -2074,15 +2074,17 @@ class Moment : public mat3x<T, 3>
 template <class T, bool POINT_ARG=false>
 struct moment_creator
 {
+    using result_type	= Moment<T>;
+    
     template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
-    std::enable_if_t<!POINT_ARG_, Moment<T> >
+    std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
     {
 	return {point};
     }
 
     template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
-    std::enable_if_t<POINT_ARG_, Moment<T> >
+    std::enable_if_t<POINT_ARG_, result_type>
     operator ()(int u, int v, const vec<T, 3>& point) const
     {
 	return {point, u, v};
@@ -2117,7 +2119,7 @@ class Plane
 		  // Three or more points required.
 		    if (moment.npoints() < T(3))
 		    {
-			_m = invalid_plane();
+			_m = {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
 			return;
 		    }
 
@@ -2134,6 +2136,11 @@ class Plane
 		    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
 		}
     
+    __host__ __device__ __forceinline__
+    bool	is_invalid() const
+		{
+		    return mse() == device::maxval<T>;
+		}
     __host__ __device__ __forceinline__
     const vector_type&
 		center()			const	{ return _m.x; }
@@ -2167,43 +2174,15 @@ class Plane
 template <class T>
 struct plane_estimator
 {
-    using result_type = mat3x<T, 3>;
+    using result_type = Plane<T>;
 
     __host__ __device__ result_type
-    operator ()(const mat4x<T, 3>& moment) const
-    {
-	if (moment.w.z < T(3))	// Three or more points required.
-	    return invalid_plane();
-
-	result_type	plane;
-	plane.x = plane_moment<T>::mean(moment);
-
-      // Compute normal vector
-	vec<T, 3>	evals;
-	const auto	evecs = plane_moment<T>::PCA(moment, evals);
-	plane.y = evecs.z;
-	if (dot(plane.x, plane.y) > T(0))
-	    plane.y *= T(-1);			// should point toward camera
-
-	const auto	sc = 1/moment.w.z;
-	plane.z = {moment.w.x*sc, moment.w.y*sc, evals.z*sc};
-
-	return plane;
-    }
-
-    __host__ __device__ __forceinline__ static result_type
-    invalid_plane()
-    {
-	return {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
-    }
-
-    __host__ __device__ __forceinline__ static bool
-    is_invalid_plane(const result_type& plane)
-    {
-	return plane.z.z == device::maxval<T>;
-    }
+    operator ()(const Moment<T>& moment)	const	{ return {moment}; }
 };
 
+/************************************************************************
+*  struct normal_estimator<T>						*
+************************************************************************/
 template <class T>
 struct normal_estimator : public plane_estimator<T>
 {
@@ -2214,18 +2193,15 @@ struct normal_estimator : public plane_estimator<T>
     using super		= plane_estimator<T>;
     
     __host__ __device__ result_type
-    operator ()(const mat4x<T, 3>& moment) const
+    operator ()(const Moment<T>& moment) const
     {
 	return super::operator ()(moment).y;
     }
-
-    __host__ __device__ __forceinline__ static result_type
-    invalid_normal()
-    {
-	return {0, 0, 0};
-    }
 };
 
+/************************************************************************
+*  struct colored_normal<T>						*
+************************************************************************/
 template <class T=vec<uint8_t, 3> >
 struct colored_normal
 {
@@ -2240,9 +2216,9 @@ struct colored_normal
     }
 
     template <class T_> __host__ __device__ result_type
-    operator ()(const mat3x<T_, 3>& plane) const
+    operator ()(const Plane<T_>& plane) const
     {
-	return (*this)(plane.y);
+	return (*this)(plane.normal());
     }
 };
 

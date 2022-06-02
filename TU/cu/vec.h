@@ -1962,8 +1962,11 @@ namespace device
   }
 }	// namespace device
 
-template <class T, bool POINT_ARG=false>
-struct plane_moment
+/************************************************************************
+*  class Moment<T>							*
+************************************************************************/
+template <class T>
+class Moment : public mat3x<T, 3>
 {
   /*
    * [[  x,   y,   z],
@@ -1971,111 +1974,199 @@ struct plane_moment
    *  [y*y, y*z, z*z],
    *  [  u,   v,   w]]		# w = (z > 0 ? 1 : 0)
    */
-    using result_type = mat4x<T, 3>;
+  public:
+    using value_type	= T;
+    using super		= mat4x<value_type, 3>;
+    using vector_type	= vec<value_type, 3>;
+    using matrix_type	= mat3x<value_type, 3>;
 
-    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
-    std::enable_if_t<!POINT_ARG_, result_type>
-    operator ()(const vec<T, 3>& point) const
-    {
-	return (point.z > T(0) ?
-	        result_type(
-		    point,
-		    point.x * point,
-		    {point.y * point.y, point.y * point.z, point.z * point.z},
-		    {0, 0, 1}) :
-		invalid_moment());
-    }
+  public:
+    __host__ __device__ __forceinline__
+		Moment()		:_super()	{}
+    __host__ __device__ __forceinline__
+		Moment(const super& m)	:_super(m)	{}
+    __host__ __device__ __forceinline__
+		Moment(const vector_type& p, int u=0, int v=0)
+		    :_super(p.z > T(0) ?
+			    {p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
+			     {u, v, 1}} :
+			    {0})
+		{
+		}
 
-    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
-    std::enable_if_t<POINT_ARG_, result_type>
-    operator ()(int u, int v, const vec<T, 3>& point) const
-    {
-	return (point.z > T(0) ?
-	        result_type(
-		    point,
-		    point.x * point,
-		    {point.y * point.y, point.y * point.z, point.z * point.z},
-		    {u, v, 1}) :
-		invalid_moment());
-    }
+    using	super::x;
+    using	super::y;
+    using	super::z;
+    using	super::w;
+    
+    __host__ __device__ __forceinline__ static
+    Moment	invalid_moment()			{ return super{0}; }
+    __host__ __device__ __forceinline__
+    bool	is_valid()			const	{ return w.z != T(0); }
+    __host__ __device__ __forceinline__
+    value_type	u()				const	{ return w.x; }
+    __host__ __device__ __forceinline__
+    value_type	v()				const	{ return w.y; }
+    __host__ __device__ __forceinline__
+    value_type	npoints()			const	{ return w.z; }
+    __host__ __device__ __forceinline__
+    vector_type	mean()				const	{ return x / w.z; }
+    __host__ __device__ __forceinline__
+    matrix_type	covariance() const
+		{
+		    const auto	m = mean();
+			    
+		    return {y - x.x*m,
+			    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
+			    {T(0), T(0),	  z.z - x.z*m.z}};
+		}
 
-    __host__ __device__ __forceinline__ static result_type
-    invalid_moment()
-    {
-	return {0};
-    }
+    __host__ __device__
+    matrix_type	PCA(vector_type& evals) const
+		{
+		    const auto	A = covariance();
+		    matrix_type	evecs;
+		    device::eigen33(A, evecs, evals);
 
-    __host__ __device__ __forceinline__ static bool
-    is_invalid_moment(const result_type& moment)
-    {
-	return moment.w.z == T(0);
-    }
+		    if (evals.x < evals.y)
+		    {
+			swap(evals.x, evals.y);
+			swap(evecs.x, evecs.y);
+		    }
+			    
+		    if (evals.x < evals.z)
+		    {
+			swap(evals.x, evals.z);
+			swap(evecs.x, evecs.z);
+		    }
 
-    __host__ __device__ __forceinline__ static vec<T, 3>
-    mean(const mat4x<T, 3>& moment)
-    {
-	return moment.x / moment.w.z;
-    }
-
-    __host__ __device__ __forceinline__ static mat3x<T, 3>
-    A(const mat4x<T, 3>& moment)
-    {
-	const auto	m = mean(moment);
-
-	return {moment.y - moment.x.x * m,
-		{T(0),
-		 moment.z.x - moment.x.y * m.y,
-		 moment.z.y - moment.x.y * m.z},
-		{T(0),
-		 T(0),
-		 moment.z.z - moment.x.z * m.z}};
-    }
-
-    __host__ __device__ static mat3x<T, 3>
-    PCA(const mat4x<T, 3>& moment, vec<T, 3>& evals)
-    {
-	mat3x<T, 3>	A = plane_moment<T>::A(moment);
-	mat3x<T, 3>	evecs;
-	device::eigen33(A, evecs, evals);
-
-	if (evals.x < evals.y)
-	{
-	    swap(evals.x, evals.y);
-	    swap(evecs.x, evecs.y);
-	}
+		    if (evals.y < evals.z)
+		    {
+			swap(evals.y, evals.z);
+			swap(evecs.y, evecs.z);
+		    }
 	
-	if (evals.x < evals.z)
-	{
-	    swap(evals.x, evals.z);
-	    swap(evecs.x, evecs.z);
-	}
-
-	if (evals.y < evals.z)
-	{
-	    swap(evals.y, evals.z);
-	    swap(evecs.y, evecs.z);
-	}
-	
-	return evecs;
-    }
+		    return evecs;
+		}
 
   private:
-    __host__ __device__ __forceinline__ static void
-    swap(T& a, T& b)			{ const auto t = a; a = b; b = t; }
+    __host__ __device__ __forceinline__
+    static void	swap(T& a, T& b)
+		{
+		    const auto t = a;
+		    a = b;
+		    b = t;
+		}
 
   // Negate second vector in order to preserve sign of determinant value.
-    __host__ __device__ __forceinline__ static void
-    swap(vec<T, 3>& a, vec<T, 3>& b)	{ const auto t = a; a = -b; b = t; }
+    __host__ __device__ __forceinline__
+    static void	swap(vector_type& a, vector_type& b)
+		{
+		    const auto t = a;
+		    a = -b;
+		    b = t;
+		}
 };
 
+/************************************************************************
+*  struct moment_creator<T, POINT_ARG>					*
+************************************************************************/
+template <class T, bool POINT_ARG=false>
+struct moment_creator
+{
+    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
+    std::enable_if_t<!POINT_ARG_, Moment<T> >
+    operator ()(const vec<T, 3>& point) const
+    {
+	return {point};
+    }
+
+    template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
+    std::enable_if_t<POINT_ARG_, Moment<T> >
+    operator ()(int u, int v, const vec<T, 3>& point) const
+    {
+	return {point, u, v};
+    }
+};
+
+/************************************************************************
+*  class Plane<T>							*
+************************************************************************/
 template <class T>
-struct plane_estimator
+class Plane
 {
   /*
    * [[cx, cy, cz],		# center of sampled points
    *  [nx, ny, nz],		# plane normal
-   *  [u, v, mse]]		# mean of 2D sample points, mean-square error
+   *  [u,  v, mse]]		# mean of 2D sample points, mean-square error
    */
+  public:
+    using value_type	= T;
+    using matrix_type	= mat3x<value_type, 3>;
+    using vector_type	= vec<value_type, 3>;
+
+  public:
+    __host__ __device__ __forceinline__
+		Plane()			    :_m()	{}
+    __host__ __device__ __forceinline__
+		Plane(const matrix_type& m) :_m(m)	{}
+    __host__ __device__ __forceinline__
+		Plane(const Moment<T>& moment)
+		    :_m()
+		{
+		  // Three or more points required.
+		    if (moment.npoints() < T(3))
+		    {
+			_m = invalid_plane();
+			return;
+		    }
+
+		    _m.x = moment.mean();
+
+		  // Compute normal vector
+		    vector_type	evals;
+		    const auto	evecs = moment.PCA(evals);
+		    _m.y = evecs.z;
+		    if (dot(_m.x, _m.y) > T(0))
+			_m.y *= T(-1);		// should point toward camera
+
+		    const auto	sc = 1/moment.npoints();
+		    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
+		}
+    
+    __host__ __device__ __forceinline__
+    const vector_type&
+		center()			const	{ return _m.x; }
+    __host__ __device__ __forceinline__
+    const vector_type&
+		normal()			const	{ return _m.y; }
+    __host__ __device__ __forceinline__
+    value_type	u()				const	{ return _m.z.x; }
+    __host__ __device__ __forceinline__
+    value_type	v()				const	{ return _m.z.y; }
+    __host__ __device__ __forceinline__
+    value_type	mse()				const	{ return _m.z.z; }
+    __host__ __device__ __forceinline__
+    value_type	distance(const vector_type& point) const
+		{
+		    return abs(signed_distance(point));
+		}
+    __host__ __device__ __forceinline__
+    value_type	signed_distance(const vector_type& point) const
+		{
+		    return dot(normal(), point - center());
+		}
+    
+  private:
+    matrix_type	_m;
+};
+
+/************************************************************************
+*  struct plane_estimator<T>						*
+************************************************************************/
+template <class T>
+struct plane_estimator
+{
     using result_type = mat3x<T, 3>;
 
     __host__ __device__ result_type

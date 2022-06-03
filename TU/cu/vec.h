@@ -1982,9 +1982,7 @@ class Moment : public mat4x<T, 3>
 
   public:
     __host__ __device__ __forceinline__
-		Moment()		:super()	{}
-    __host__ __device__ __forceinline__
-		Moment(const super& m)	:super(m)	{}
+		Moment()	:super()		{}
     __host__ __device__ __forceinline__
 		Moment(const vector_type& p, int u=0, int v=0)
 		    :super(p.z > T(0) ?
@@ -1994,6 +1992,7 @@ class Moment : public mat4x<T, 3>
 		{
 		}
 
+    using	super::operator =;
     using	super::x;
     using	super::y;
     using	super::z;
@@ -2116,16 +2115,14 @@ class Plane
 		Plane(const Moment<T>& moment)
 		    :_m()
 		{
-		  // Three or more points required.
 		    if (moment.npoints() < T(3))
 		    {
-			_m = {{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}};
+			_m = invalid_plane()._m;
 			return;
 		    }
 
 		    _m.x = moment.mean();
 
-		  // Compute normal vector
 		    vector_type	evals;
 		    const auto	evecs = moment.PCA(evals);
 		    _m.y = evecs.z;
@@ -2136,10 +2133,15 @@ class Plane
 		    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
 		}
     
-    __host__ __device__ __forceinline__
-    bool	is_invalid() const
+    __host__ __device__ __forceinline__ static
+    Plane	invalid_plane()
 		{
-		    return mse() == device::maxval<T>;
+		    return {{{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}}};
+		}
+    __host__ __device__ __forceinline__
+    bool	is_valid() const
+		{
+		    return mse() != device::maxval<T>;
 		}
     __host__ __device__ __forceinline__
     const vector_type&
@@ -2162,6 +2164,12 @@ class Plane
     value_type	signed_distance(const vector_type& point) const
 		{
 		    return dot(normal(), point - center());
+		}
+
+    friend std::ostream&
+		operator <<(std::ostream& out, const Plane& plane)
+		{
+		    return out << plane._m;
 		}
     
   private:
@@ -2195,7 +2203,7 @@ struct normal_estimator : public plane_estimator<T>
     __host__ __device__ result_type
     operator ()(const Moment<T>& moment) const
     {
-	return super::operator ()(moment).y;
+	return super::operator ()(moment).normal();
     }
 };
 

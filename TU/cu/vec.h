@@ -1547,35 +1547,35 @@ template <class T>
 class Triangle
 {
   public:
-    using value_type	= T;
-    using point_type	= vec<value_type, 3>;
-    using normal_type	= vec<value_type, 3>;
-    using coord_type	= vec<value_type, 3>;
-    
-    __host__ __device__
+    using element_type	= T;
+    using vector_type	= vec<element_type, 3>;
+
+  public:
+    __host__ __device__ __forceinline__
 		Triangle()						{}
     __host__ __device__ __forceinline__
-		Triangle(const point_type& v0,
-			 const point_type& v1,
-			 const point_type& v2)	:_v{v0, v1, v2}		{}
+		Triangle(const vector_type& v0,
+			 const vector_type& v1,
+			 const vector_type& v2)	:_v{v0, v1, v2}		{}
 
     __host__ __device__ __forceinline__
-    normal_type	normal() const
+    vector_type normal() const
 		{
 		    return normalized(cross(_v.y - _v.x, _v.z - _v.x));
 		}
     __host__ __device__ __forceinline__
-    point_type	foot(const point_type& p) const
+    vector_type	foot(const vector_type& p) const
 		{
 		    return dot(barycentric_coord(p), _v);
 		}
     __host__ __device__ __forceinline__
-    value_type	sqdist(const point_type& p) const
+    element_type
+		sqdist(const vector_type& p) const
 		{
 		    return square(p - foot(p));
 		}
     __host__ __device__ __forceinline__
-    point_type	closest_point(const point_type& p) const
+    vector_type	closest_point(const vector_type& p) const
 		{
 		    const auto	coord = barycentric_coord(p);
 
@@ -1595,17 +1595,17 @@ class Triangle
 			return dot(coord, _v);
 		}
     __host__ __device__ __forceinline__
-    coord_type	barycentric_coord(const point_type& p) const
+    vector_type	barycentric_coord(const vector_type& p) const
 		{
 		    const auto	b  = _v.y - _v.x;
 		    const auto	c  = _v.z - _v.x;
 		    const auto	bc = cross(b, c);
 		    const auto	x  = p - _v.x;
-		    const auto	k  = value_type(1) / square(bc);
-		    coord_type	coord;
+		    const auto	k  = element_type(1) / square(bc);
+		    vector_type	coord;
 		    coord.y = dot(bc, cross(x, c)) * k;
 		    coord.z = dot(bc, cross(b, x)) * k;
-		    coord.x = value_type(1) - coord.y - coord.z;
+		    coord.x = element_type(1) - coord.y - coord.z;
 
 		    return coord;
 		}
@@ -1975,96 +1975,97 @@ class Moment : public mat4x<T, 3>
    *  [  u,   v,   w]]		# w = (z > 0 ? 1 : 0)
    */
   public:
-    using value_type	= T;
-    using super		= mat4x<value_type, 3>;
-    using vector_type	= vec<value_type, 3>;
-    using matrix_type	= mat3x<value_type, 3>;
+    using super		= mat4x<T, 3>;
+    using element_type	= typename super::element_type;
+    using value_type	= typename super::value_type;
+    using vector_type	= vec<element_type, 3>;
+    using matrix_type	= mat3x<element_type, 3>;
 
   public:
     __host__ __device__ __forceinline__
-		Moment()	:super()		{}
+			Moment()	:super()		{}
     __host__ __device__ __forceinline__
-		Moment(const vector_type& p, int u=0, int v=0)
-		    :super(p.z > T(0) ?
-			   super{p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
-				 {u, v, 1}} :
-			   super{0})
-		{
-		}
+			Moment(const vector_type& p, int u=0, int v=0)
+			    :super(p.z > T(0) ?
+				   super{p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
+				         {u, v, 1}} :
+				   super{0})
+			{
+			}
 
-    using	super::operator =;
-    using	super::x;
-    using	super::y;
-    using	super::z;
-    using	super::w;
+    using		super::operator =;
+    using		super::x;
+    using		super::y;
+    using		super::z;
+    using		super::w;
     
-    __host__ __device__ __forceinline__ static
-    Moment	invalid_moment()			{ return super{0}; }
     __host__ __device__ __forceinline__
-    bool	is_valid()			const	{ return w.z != T(0); }
+    static Moment	invalid_moment()		{ return super{0}; }
     __host__ __device__ __forceinline__
-    value_type	u()				const	{ return w.x; }
+    bool		is_valid()		const	{ return w.z != T(0); }
     __host__ __device__ __forceinline__
-    value_type	v()				const	{ return w.y; }
+    element_type	u()			const	{ return w.x; }
     __host__ __device__ __forceinline__
-    value_type	npoints()			const	{ return w.z; }
+    element_type	v()			const	{ return w.y; }
     __host__ __device__ __forceinline__
-    vector_type	mean()				const	{ return x / w.z; }
+    element_type	npoints()		const	{ return w.z; }
     __host__ __device__ __forceinline__
-    matrix_type	covariance() const
-		{
-		    const auto	m = mean();
+    vector_type		mean()			const	{ return x / w.z; }
+    __host__ __device__ __forceinline__
+    matrix_type		covariance() const
+			{
+			    const auto	m = mean();
 			    
-		    return {y - x.x*m,
-			    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
-			    {T(0), T(0),	  z.z - x.z*m.z}};
-		}
+			    return {y - x.x*m,
+				    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
+				    {T(0), T(0),	  z.z - x.z*m.z}};
+			}
 
     __host__ __device__
-    matrix_type	PCA(vector_type& evals) const
-		{
-		    const auto	A = covariance();
-		    matrix_type	evecs;
-		    device::eigen33(A, evecs, evals);
+    matrix_type		PCA(vector_type& evals) const
+			{
+			    const auto	A = covariance();
+			    matrix_type	evecs;
+			    device::eigen33(A, evecs, evals);
 
-		    if (evals.x < evals.y)
-		    {
-			swap(evals.x, evals.y);
-			swap(evecs.x, evecs.y);
-		    }
+			    if (evals.x < evals.y)
+			    {
+				swap(evals.x, evals.y);
+				swap(evecs.x, evecs.y);
+			    }
 			    
-		    if (evals.x < evals.z)
-		    {
-			swap(evals.x, evals.z);
-			swap(evecs.x, evecs.z);
-		    }
+			    if (evals.x < evals.z)
+			    {
+				swap(evals.x, evals.z);
+				swap(evecs.x, evecs.z);
+			    }
 
-		    if (evals.y < evals.z)
-		    {
-			swap(evals.y, evals.z);
-			swap(evecs.y, evecs.z);
-		    }
+			    if (evals.y < evals.z)
+			    {
+				swap(evals.y, evals.z);
+				swap(evecs.y, evecs.z);
+			    }
 	
-		    return evecs;
-		}
+			    return evecs;
+			}
 
   private:
     __host__ __device__ __forceinline__
-    static void	swap(T& a, T& b)
-		{
-		    const auto t = a;
-		    a = b;
-		    b = t;
-		}
+    static void		swap(T& a, T& b)
+			{
+			    const auto t = a;
+			    a = b;
+			    b = t;
+			}
 
   // Negate second vector in order to preserve sign of determinant value.
     __host__ __device__ __forceinline__
-    static void	swap(vector_type& a, vector_type& b)
-		{
-		    const auto t = a;
-		    a = -b;
-		    b = t;
-		}
+    static void		swap(vector_type& a, vector_type& b)
+			{
+			    const auto t = a;
+			    a = -b;
+			    b = t;
+			}
 };
 
 /************************************************************************
@@ -2102,75 +2103,74 @@ class Plane
    *  [u,  v, mse]]		# mean of 2D sample points, mean-square error
    */
   public:
-    using value_type	= T;
-    using matrix_type	= mat3x<value_type, 3>;
-    using vector_type	= vec<value_type, 3>;
+    using element_type	= T;
+    using matrix_type	= mat3x<element_type, 3>;
+    using vector_type	= vec<element_type, 3>;
 
   public:
     __host__ __device__ __forceinline__
-		Plane()			    :_m()	{}
+			Plane()			    :_m()	{}
     __host__ __device__ __forceinline__
-		Plane(const matrix_type& m) :_m(m)	{}
+			Plane(const matrix_type& m) :_m(m)	{}
     __host__ __device__ __forceinline__
-		Plane(const Moment<T>& moment)
-		    :_m()
-		{
-		    if (moment.npoints() < T(3))
-		    {
-			_m = invalid_plane()._m;
-			return;
-		    }
+			Plane(const Moment<T>& moment)
+			    :_m()
+			{
+			    if (moment.npoints() < T(3))
+			    {
+				_m = invalid_plane()._m;
+				return;
+			    }
 
-		    _m.x = moment.mean();
+			    _m.x = moment.mean();
 
-		    vector_type	evals;
-		    const auto	evecs = moment.PCA(evals);
-		    _m.y = evecs.z;
-		    if (dot(_m.x, _m.y) > T(0))
-			_m.y *= T(-1);		// should point toward camera
+			    vector_type	evals;
+			    const auto	evecs = moment.PCA(evals);
+			    _m.y = evecs.z;
+			    if (dot(_m.x, _m.y) > T(0))
+				_m.y *= T(-1);	// should point toward camera
 
-		    const auto	sc = 1/moment.npoints();
-		    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
-		}
+			    const auto	sc = 1/moment.npoints();
+			    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
+			}
     
-    __host__ __device__ __forceinline__ static
-    Plane	invalid_plane()
-		{
-		    return {{{0, 0, 0}, {0, 0, 0}, {0, 0, device::maxval<T>}}};
-		}
     __host__ __device__ __forceinline__
-    bool	is_valid() const
-		{
-		    return mse() != device::maxval<T>;
-		}
+    static Plane	invalid_plane()
+			{
+			    return {{{0, 0, 0}, {0, 0, 0},
+				     {0, 0, device::maxval<T>}}};
+			}
     __host__ __device__ __forceinline__
-    const vector_type&
-		center()			const	{ return _m.x; }
+    bool		is_valid() const
+			{
+			    return mse() != device::maxval<T>;
+			}
     __host__ __device__ __forceinline__
-    const vector_type&
-		normal()			const	{ return _m.y; }
+    const vector_type&	center()		const	{ return _m.x; }
     __host__ __device__ __forceinline__
-    value_type	u()				const	{ return _m.z.x; }
+    const vector_type&	normal()		const	{ return _m.y; }
     __host__ __device__ __forceinline__
-    value_type	v()				const	{ return _m.z.y; }
+    element_type	u()			const	{ return _m.z.x; }
     __host__ __device__ __forceinline__
-    value_type	mse()				const	{ return _m.z.z; }
+    element_type	v()			const	{ return _m.z.y; }
     __host__ __device__ __forceinline__
-    value_type	distance(const vector_type& point) const
-		{
-		    return abs(signed_distance(point));
-		}
+    element_type	mse()			const	{ return _m.z.z; }
     __host__ __device__ __forceinline__
-    value_type	signed_distance(const vector_type& point) const
-		{
-		    return dot(normal(), point - center());
-		}
+    element_type	distance(const vector_type& point) const
+			{
+			    return abs(signed_distance(point));
+			}
+    __host__ __device__ __forceinline__
+    element_type	signed_distance(const vector_type& point) const
+			{
+			    return dot(normal(), point - center());
+			}
 
     friend std::ostream&
-		operator <<(std::ostream& out, const Plane& plane)
-		{
-		    return out << plane._m;
-		}
+			operator <<(std::ostream& out, const Plane& plane)
+			{
+			    return out << plane._m;
+			}
     
   private:
     matrix_type	_m;
@@ -2184,8 +2184,11 @@ struct plane_estimator
 {
     using result_type = Plane<T>;
 
-    __host__ __device__ result_type
-    operator ()(const Moment<T>& moment)	const	{ return {moment}; }
+    __host__ __device__ __forceinline__
+    result_type	operator ()(const Moment<T>& moment) const
+		{
+		    return {moment};
+		}
 };
 
 /************************************************************************
@@ -2200,11 +2203,11 @@ struct normal_estimator : public plane_estimator<T>
     using result_type	= vec<T, 3>;
     using super		= plane_estimator<T>;
     
-    __host__ __device__ result_type
-    operator ()(const Moment<T>& moment) const
-    {
-	return super::operator ()(moment).normal();
-    }
+    __host__ __device__ __forceinline__
+    result_type	operator ()(const Moment<T>& moment) const
+		{
+		    return super::operator ()(moment).normal();
+		}
 };
 
 /************************************************************************
@@ -2215,19 +2218,19 @@ struct colored_normal
 {
     using result_type	= T;
 
-    __host__ __device__ result_type
-    operator ()(const vec<float, 3>& normal) const
-    {
-	return {uint8_t(128 + 127*normal.x),
-		uint8_t(128 + 127*normal.y),
-		uint8_t(128 + 127*normal.z)};
-    }
+    __host__ __device__ __forceinline__
+    result_type	operator ()(const vec<float, 3>& normal) const
+		{
+		    return {uint8_t(128 + 127*normal.x),
+			    uint8_t(128 + 127*normal.y),
+			    uint8_t(128 + 127*normal.z)};
+		}
 
-    template <class T_> __host__ __device__ result_type
-    operator ()(const Plane<T_>& plane) const
-    {
-	return (*this)(plane.normal());
-    }
+    template <class T_> __host__ __device__ __forceinline__
+    result_type	operator ()(const Plane<T_>& plane) const
+		{
+		    return (*this)(plane.normal());
+		}
 };
 
 /************************************************************************

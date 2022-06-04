@@ -560,22 +560,22 @@ using mat = std::conditional_t<R == 1, vec<T, C>,
 *  Access element by its integral index					*
 ************************************************************************/
 template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
-__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.x; }
+__host__ __device__ __forceinline__ auto	get(const VM& a){ return a.x; }
 template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
-__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.y; }
+__host__ __device__ __forceinline__ auto	get(const VM& a){ return a.y; }
 template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
-__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.z; }
+__host__ __device__ __forceinline__ auto	get(const VM& a){ return a.z; }
 template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
-__host__ __device__ __forceinline__ auto	val(const VM& a){ return a.w; }
+__host__ __device__ __forceinline__ auto	get(const VM& a){ return a.w; }
 
 template <size_t I, class VM, std::enable_if_t<I == 0>* = nullptr>
-__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.x; }
+__host__ __device__ __forceinline__ auto&	get(VM& a)	{ return a.x; }
 template <size_t I, class VM, std::enable_if_t<I == 1>* = nullptr>
-__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.y; }
+__host__ __device__ __forceinline__ auto&	get(VM& a)	{ return a.y; }
 template <size_t I, class VM, std::enable_if_t<I == 2>* = nullptr>
-__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.z; }
+__host__ __device__ __forceinline__ auto&	get(VM& a)	{ return a.z; }
 template <size_t I, class VM, std::enable_if_t<I == 3>* = nullptr>
-__host__ __device__ __forceinline__ auto&	val(VM& a)	{ return a.w; }
+__host__ __device__ __forceinline__ auto&	get(VM& a)	{ return a.w; }
 
 /************************************************************************
 *  2-dimensional vectors or 2-by-C matrices				*
@@ -1831,14 +1831,14 @@ namespace device
     diagonalize(vec<T, 3>& w, vec<T, 3>& e,
 		vec<T, 3>& q0, vec<T, 3>& q1, T& c, T& s)
     {
-	const auto	x = val<I+1>(e);
-	const auto	y = s*val<I>(e);
-	const auto	z = c*val<I>(e);
+	const auto	x = get<I+1>(e);
+	const auto	y = s*get<I>(e);
+	const auto	z = c*get<I>(e);
 	if (abs(x) > abs(y))
 	{
 	    const auto	t = y/x;
 	    const auto	r = sqrt(square(t) + T(1));
-	    val<I+1>(e) = x*r;
+	    get<I+1>(e) = x*r;
 	    c 	      = T(1)/r;
 	    s	      = c*t;
 	}
@@ -1846,16 +1846,16 @@ namespace device
 	{
 	    const auto	t = x/y;
 	    const auto	r = sqrt(square(t) + T(1));
-	    val<I+1>(e) = y*r;
+	    get<I+1>(e) = y*r;
 	    s	      = T(1)/r;
 	    c	      = s*t;
 	}
 
-	const auto	v = s*(val<I>(w) - val<I+1>(w)) + T(2)*c*z;
+	const auto	v = s*(get<I>(w) - get<I+1>(w)) + T(2)*c*z;
 	const auto	p = s*v;
-	val<I  >(w) -= p;
-	val<I+1>(w) += p;
-	val<I  >(e)  = c*v - z;
+	get<I  >(w) -= p;
+	get<I+1>(w) += p;
+	get<I  >(e)  = c*v - z;
 
       // Form eigenvectors
 	const auto	q0_old = q0;
@@ -1980,10 +1980,15 @@ class Moment : public mat4x<T, 3>
     using value_type	= typename super::value_type;
     using vector_type	= vec<element_type, 3>;
     using matrix_type	= mat3x<element_type, 3>;
-
+    using transform_type= Rigidity<element_type, 3>;
+    
   public:
     __host__ __device__ __forceinline__
-			Moment()	:super()		{}
+			Moment()		:super()	{}
+    __host__ __device__ __forceinline__
+			Moment(const super& m)	:super(m)	{}
+    __host__ __device__ __forceinline__
+			Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
 			Moment(const vector_type& p, int u=0, int v=0)
 			    :super(p.z > T(0) ?
@@ -2049,6 +2054,12 @@ class Moment : public mat4x<T, 3>
 			    return evecs;
 			}
 
+    transform_type	get_transform() const
+			{
+			    vector_type	evals;
+			    return {PCA(evals), mean()};
+			}
+
   private:
     __host__ __device__ __forceinline__
     static void		swap(T& a, T& b)
@@ -2080,7 +2091,7 @@ struct moment_creator
     std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
     {
-	return {point};
+	return {point, 0, 0};
     }
 
     template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__

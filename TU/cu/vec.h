@@ -159,7 +159,7 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
 
     __host__ __device__	mat2x()			:super()		{}
     __host__ __device__ constexpr
-			mat2x(T c)		:super{c, c}		{}
+    explicit		mat2x(T c)		:super{c, c}		{}
     __host__ __device__ constexpr
 			mat2x(T x, T y)		:super{x, y}		{}
 
@@ -207,7 +207,7 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
 
     __host__ __device__	mat3x()		     :super()			{}
     __host__ __device__ constexpr
-			mat3x(T c)	     :super{c, c, c}		{}
+    explicit		mat3x(T c)	     :super{c, c, c}		{}
     __host__ __device__ constexpr
 			mat3x(T x, T y, T z) :super{x, y, z}		{}
 
@@ -257,7 +257,7 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
 
     __host__ __device__	mat4x()			  :super()		{}
     __host__ __device__ constexpr
-			mat4x(T c)		  :super{c, c, c, c}	{}
+    explicit		mat4x(T c)		  :super{c, c, c, c}	{}
     __host__ __device__ constexpr
 			mat4x(T x, T y, T z, T w) :super{x, y, z, w}	{}
 
@@ -309,7 +309,7 @@ struct mat2x
 			mat2x(const value_type& xx, const value_type& yy)
 			    :x(xx), y(yy)				{}
     __host__ __device__	constexpr
-			mat2x(T c) :x(c), y(c)				{}
+    explicit		mat2x(T c) :x(c), y(c)				{}
 
     __host__ __device__
     mat2x&		operator =(T c)
@@ -386,7 +386,7 @@ struct mat3x
 			      const value_type& zz)
 			    :x(xx), y(yy), z(zz)			{}
     __host__ __device__	constexpr
-			mat3x(T c) :x(c), y(c), z(c)			{}
+    explicit		mat3x(T c) :x(c), y(c), z(c)			{}
 
     __host__ __device__
     mat3x&		operator =(T c)
@@ -467,7 +467,7 @@ struct mat4x
 			      const value_type& zz, const value_type& ww)
 			    :x(xx), y(yy), z(zz), w(ww)			{}
     __host__ __device__	constexpr
-			mat4x(T c) :x(c), y(c), z(c), w(c)		{}
+    explicit		mat4x(T c) :x(c), y(c), z(c), w(c)		{}
 
     __host__ __device__
     mat4x&		operator =(T c)
@@ -1151,7 +1151,7 @@ class Projectivity
     __host__ __device__
 		Projectivity()	:_m()				{}
     __host__ __device__
-		Projectivity(const matrix_type& m)	:_m(m)	{}
+    explicit	Projectivity(const matrix_type& m)	:_m(m)	{}
 
     __host__ __device__
     void	initialize(const matrix_type& m=matrix_type::identity())
@@ -1986,9 +1986,7 @@ class Moment : public mat4x<T, 3>
     __host__ __device__ __forceinline__
 			Moment()		:super()	{}
     __host__ __device__ __forceinline__
-			Moment(const super& m)	:super(m)	{}
-    __host__ __device__ __forceinline__
-			Moment(element_type c)	:super(c)	{}
+    explicit		Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
 			Moment(const vector_type& p, int u=0, int v=0)
 			    :super(p.z > T(0) ?
@@ -1996,6 +1994,20 @@ class Moment : public mat4x<T, 3>
 				         {u, v, 1}} :
 				   super{0})
 			{
+			}
+
+    __host__ __device__ __forceinline__
+    Moment&		operator +=(const Moment& m)
+			{
+			    static_cast<super&>(*this) += m;
+			    return *this;
+			}
+
+    __host__ __device__ __forceinline__
+    Moment&		operator -=(const Moment& m)
+			{
+			    static_cast<super&>(*this) -= m;
+			    return *this;
 			}
 
     using		super::operator =;
@@ -2078,6 +2090,20 @@ class Moment : public mat4x<T, 3>
 			    b = t;
 			}
 };
+
+template <class T> __host__ __device__ __forceinline__ Moment<T>
+operator +(const Moment<T>& a, const Moment<T>& b)
+{
+    Moment<T>	val(a);
+    return val += b;
+}
+
+template <class T> __host__ __device__ __forceinline__ Moment<T>
+operator -(const Moment<T>& a, const Moment<T>& b)
+{
+    Moment<T>	val(a);
+    return val -= b;
+}
 
 /************************************************************************
 *  struct moment_creator<T, POINT_ARG>					*

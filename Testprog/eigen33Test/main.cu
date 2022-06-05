@@ -19,6 +19,7 @@ doJob()
 	A.z.y = A.y.z;
 	std::cerr << "  A = " << A << std::endl << std::endl;
 
+	std::cerr << "\n=== GPU ===" << std::endl;
 	cu::mat<T, 3, 3>	Qt;
 	cu::vec<T, 3>		d;
 	cu::vec<T, 3>		e;
@@ -45,7 +46,7 @@ doJob()
 		  << std::endl << std::endl;
 
       //============================================================
-	std::cerr << "\n======================" << std::endl;
+	std::cerr << "\n=== CPU ===" << std::endl;
 	T	matA[3][3] = {{A.x.x, A.x.y, A.x.z},
 			      {A.y.x, A.y.y, A.y.z},
 			      {A.z.x, A.z.y, A.z.z}};
@@ -82,12 +83,29 @@ doJob()
 	std::cerr << ">> ";
     }
 }
+
+template <class T> void
+doJob2()
+{
+    std::cerr << ">> ";
+    cu::mat<T, 4, 3>	A;
+    std::cin >> A.x.x >> A.x.y >> A.x.z
+	     >> A.y.x >> A.y.y >> A.y.z
+	     >> A.z.x >> A.z.y >> A.z.z
+	     >> A.w.z;
+    std::cerr << "  A = " << A << std::endl;
+    cu::Moment<T>	m(A);
+    cu::vec<T, 3>	eval;
+    std::cerr << "  PCA(A) = " << m.PCA(eval) << std::endl;
+}
+    
 }	// namespace TU
 
 int
 main()
 {
 
-    TU::doJob<float>();
+  //TU::doJob<float>();
+    TU::doJob2<float>();
     return 0;
 }

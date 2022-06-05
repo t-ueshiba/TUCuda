@@ -1515,8 +1515,6 @@ class Intrinsics
     __host__ __device__ vec<T, 3>
     operator ()(T u, T v, T d) const
     {
-	if (isnan(d))
-	    d = 0;
 	const auto	xy = (*this)(u, v);
 	return {d*xy.x, d*xy.y, d};
     }
@@ -1989,10 +1987,10 @@ class Moment : public mat4x<T, 3>
     explicit		Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
 			Moment(const vector_type& p, int u=0, int v=0)
-			    :super(p.z > T(0) ?
+			    :super(isnan(p.z) ?
+				   super{0} :
 				   super{p, p.x*p, {p.y*p.y, p.y*p.z, p.z*p.z},
-				         {u, v, 1}} :
-				   super{0})
+					 {u, v, 1}})
 			{
 			}
 

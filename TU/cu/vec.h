@@ -1707,18 +1707,17 @@ restoreSTL(std::istream& in, std::vector<Triangle<T> >& faces)
 ************************************************************************/
 namespace device
 {
-  template <class T> __host__ __forceinline__ vec<T, 3>
+  template <class T> __device__ __forceinline__ vec<T, 3>
   cardano(const mat3x<T, 3>& A)
   {
     // Determine coefficients of characteristic poynomial. We write
     //       | a   d   f  |
     //  A =  | d*  b   e  |
     //       | f*  e*  c  |
-      std::cerr << "cardano(): A=" << A << std::endl;
       const T de = A.x.y * A.y.z;	    // d * e
-      const T dd = A.x.y * A.x.y;	    // d^2
-      const T ee = A.y.z * A.y.z;	    // e^2
-      const T ff = A.x.z * A.x.z;	    // f^2
+      const T dd = square(A.x.y);	    // d^2
+      const T ee = square(A.y.z);	    // e^2
+      const T ff = square(A.x.z);	    // f^2
       const T m  = A.x.x + A.y.y + A.z.z;
       const T c1 = (A.x.x*A.y.y + A.x.x*A.z.z + A.y.y*A.z.z)
 	  - (dd + ee + ff);    // a*b + a*c + b*c - d^2 - e^2 - f^2
@@ -1727,7 +1726,6 @@ namespace device
 
       const T p = m*m - T(3)*c1;
       const T q = m*(p - (T(3)/T(2))*c1) - (T(27)/T(2))*c0;
-      std::cerr << "cardano(): OK2" << std::endl;
       const T sqrt_p = sqrt(abs(p));
 
       T phi = T(27) * (T(0.25)*square(c1)*(p - c1) + c0*(q + T(27)/T(4)*c0));
@@ -1736,19 +1734,17 @@ namespace device
       constexpr T	M_SQRT3 = 1.73205080756887729352744634151;  // sqrt(3)
       const T	c = sqrt_p*cos(phi);
       const T	s = (T(1)/M_SQRT3)*sqrt_p*sin(phi);
-      std::cerr << "cardano(): OK3" << std::endl;
 
       vec<T, 3>	w;
       w.y  = (T(1)/T(3))*(m - c);
       w.z  = w.y + s;
       w.x  = w.y + c;
       w.y -= s;
-      std::cerr << "cardano(): OK4" << std::endl;
 
       return w;
   }
 
-  template <class T> __host__ __device__ void
+  template <class T> __device__ void
   tridiagonal33(const mat3x<T, 3>& A,
 		mat3x<T, 3>& Qt, vec<T, 3>& d, vec<T, 3>& e)
   {
@@ -1815,13 +1811,13 @@ namespace device
 
   namespace detail
   {
-    template <class T> __host__ __device__ __forceinline__ bool
+    template <class T> __device__ __forceinline__ bool
     is_zero(T e, T g)
     {
 	return abs(e) + g == g;
     }
 
-    template <class T> __host__ __device__ T
+    template <class T> __device__ T
     init_offdiagonal(T w, T w0, T w1, T e0)
     {
 	const auto	t = (w1 - w0)/(e0 + e0);
@@ -1829,7 +1825,7 @@ namespace device
 	return w - w0 + e0/(t + (t > 0 ? r : -r));
     }
 
-    template <size_t I, class T> __host__ __device__ __forceinline__ void
+    template <size_t I, class T> __device__ __forceinline__ void
     diagonalize(vec<T, 3>& w, vec<T, 3>& e,
 		vec<T, 3>& q0, vec<T, 3>& q1, T& c, T& s)
     {
@@ -1874,7 +1870,7 @@ namespace device
     }
   }	// namespace detail
 
-  template <class T> __host__ __device__ bool
+  template <class T> __device__ bool
   qr33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   {
     // Transform A to real tridiagonal form by the Householder method
@@ -1934,7 +1930,7 @@ namespace device
       return true;
   }
 
-  template <class T> __host__ __forceinline__ bool
+  template <class T> __device__  __forceinline__ bool
   eigen33(const mat3x<T, 3>& A, mat3x<T, 3>& Qt, vec<T, 3>& w)
   {
       w = cardano(A);		// Calculate eigenvalues
@@ -1946,7 +1942,6 @@ namespace device
     // 1st eigen vector
       Qt.x = detail::eigen_vector(A.x, A.y, w.x);
       auto	norm = dot(Qt.x, Qt.x);
-      std::cerr << "norm(Qt.x)=" << norm << std::endl;
       if (norm <= error)
 	  return qr33(A, Qt, w);
       Qt.x *= rsqrt(norm);
@@ -1988,8 +1983,6 @@ class Moment : public mat4x<T, 3>
   public:
     __host__ __device__ __forceinline__
 			Moment()		:super()	{}
-    __host__ __device__ __forceinline__
-    explicit		Moment(const super& m)	:super(m)	{}
     __host__ __device__ __forceinline__
     explicit		Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
@@ -2038,12 +2031,9 @@ class Moment : public mat4x<T, 3>
 			{
 			    const auto	m = mean();
 			    
-			    // return {y - x.x*m,
-			    // 	    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
-			    // 	    {T(0), T(0),	  z.z - x.z*m.z}};
 			    return {y - x.x*m,
-				    {y.y - x.x*m.y, z.x - x.y*m.y, z.y - x.y*m.z},
-				    {y.z - x.x*m.z, z.y - x.y*m.z, z.z - x.z*m.z}};
+				    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
+				    {T(0), T(0),	  z.z - x.z*m.z}};
 			}
 
     __host__ __device__
@@ -2077,9 +2067,7 @@ class Moment : public mat4x<T, 3>
     transform_type	get_transform() const
 			{
 			    vector_type	evals;
-			    const auto	evecs = PCA(evals);
-			    std::cerr << "evecs=" << evecs << std::endl;
-			    return {evecs, mean()};
+			    return {PCA(evals), mean()};
 			}
 
   private:

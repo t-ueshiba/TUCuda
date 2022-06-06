@@ -2036,7 +2036,7 @@ class Moment : public mat4x<T, 3>
 				    {T(0), T(0),	  z.z - x.z*m.z}};
 			}
 
-    __host__ __device__
+    __device__
     matrix_type		PCA(vector_type& evals) const
 			{
 			    const auto	A = covariance();
@@ -2064,6 +2064,7 @@ class Moment : public mat4x<T, 3>
 			    return evecs;
 			}
 
+    __device__
     transform_type	get_transform() const
 			{
 			    vector_type	evals;

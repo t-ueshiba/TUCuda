@@ -42,6 +42,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <vector>
 #include <thrust/device_ptr.h>
 #include "TU/Image++.h"		// for TU::RGB_<E>
 
@@ -1986,6 +1987,8 @@ class Moment : public mat4x<T, 3>
     __host__ __device__ __forceinline__
     explicit		Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
+    explicit		Moment(const super& m)	:super(m)	{}
+    __host__ __device__ __forceinline__
 			Moment(const vector_type& p, int u=0, int v=0)
 			    :super(isnan(p.z) ?
 				   super{0} :
@@ -2041,24 +2044,24 @@ class Moment : public mat4x<T, 3>
 			{
 			    const auto	A = covariance();
 			    matrix_type	evecs;
-			    device::eigen33(A, evecs, evals);
+			    device::qr33(A, evecs, evals);
 
 			    if (evals.x < evals.y)
 			    {
-				swap(evals.x, evals.y);
-				swap(evecs.x, evecs.y);
+			    	swap(evals.x, evals.y);
+			    	swap(evecs.x, evecs.y);
 			    }
 			    
 			    if (evals.x < evals.z)
 			    {
-				swap(evals.x, evals.z);
-				swap(evecs.x, evecs.z);
+			    	swap(evals.x, evals.z);
+			    	swap(evecs.x, evecs.z);
 			    }
 
 			    if (evals.y < evals.z)
 			    {
-				swap(evals.y, evals.z);
-				swap(evecs.y, evecs.z);
+			    	swap(evals.y, evals.z);
+			    	swap(evecs.y, evecs.z);
 			    }
 	
 			    return evecs;

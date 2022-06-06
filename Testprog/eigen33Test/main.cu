@@ -2,6 +2,7 @@
  * $Id$
  */
 #include "TU/cu/algorithm.h"
+#include "TU/cu/Array++.h"
 #include "eigen33_gpu.h"
 #include "eigen33_cpu.h"
 
@@ -82,12 +83,47 @@ doJob()
 	std::cerr << ">> ";
     }
 }
+
+namespace device
+{
+  template <class T> __global__ void
+  get_Tgm(const cu::Moment<T>* moment, cu::Rigidity<T, 3>* transform)
+  {
+      *transform = moment->get_transform();
+  }
+}
+	
+template <class T> void
+doJob2()
+{
+    using mat43_t	= cu::mat<T, 4, 3>;
+    using rigidity_t	= cu::Rigidity<T, 3>;
+    using moment_t	= cu::Moment<T>;
+    
+    std::cerr << ">> ";
+    mat43_t	A;
+    std::cin >> A.x.x >> A.x.y >> A.x.z
+	     >> A.y.x >> A.y.y >> A.y.z
+	     >> A.z.x >> A.z.y >> A.z.z
+	     >> A.w.z;
+    moment_t		M(A);
+    cu::Array<moment_t>	Md(1);
+    Md[0] = M;
+    std::cerr << M.covariance() << std::endl;
+    
+    cu::Array<rigidity_t>	Td(1);
+    device::get_Tgm<<<1, 1>>>(Md.data().get(), Td.data().get());
+    rigidity_t	Tgm = Td[0];
+    std::cerr << Tgm << std::endl;
+}
+    
 }	// namespace TU
 
 int
 main()
 {
 
-    TU::doJob<float>();
+  //TU::doJob<float>();
+    TU::doJob2<float>();
     return 0;
 }

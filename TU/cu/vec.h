@@ -1936,13 +1936,17 @@ namespace device
   {
       w = cardano(A);		// Calculate eigenvalues
 
+    // t: absolute minimum eigenvalue
       const auto	t     = min(min(abs(w.x), abs(w.y)), abs(w.z));
       const auto	u     = (t < T(1) ? t : square(t));
-      const auto	error = T(256) * epsilon<T> * square(u);
+    // error should be positive even if u == 0      
+      const auto	error = T(256)*epsilon<T>*square(u)
+			      + T(2)  *epsilon<T>;
 
     // 1st eigen vector
       Qt.x = detail::eigen_vector(A.x, A.y, w.x);
       auto	norm = dot(Qt.x, Qt.x);
+      printf("norm=%f,error=%f\n", norm, error);
       if (norm <= error)
 	  return qr33(A, Qt, w);
       Qt.x *= rsqrt(norm);
@@ -2039,12 +2043,12 @@ class Moment : public mat4x<T, 3>
 				    {T(0), T(0),	  z.z - x.z*m.z}};
 			}
 
-    __device__
+    __device__ __forceinline__
     matrix_type		PCA(vector_type& evals) const
 			{
-			    const auto	A = covariance();
+			    const auto	C = covariance();
 			    matrix_type	evecs;
-			    device::qr33(A, evecs, evals);
+			    device::eigen33(C, evecs, evals);
 
 			    if (evals.x < evals.y)
 			    {
@@ -2067,15 +2071,15 @@ class Moment : public mat4x<T, 3>
 			    return evecs;
 			}
 
-    __device__
+    __device__ __forceinline__
     transform_type	get_transform() const
 			{
 			    vector_type	evals;
-			    return {PCA(evals), mean()};
+			    return {PCA(evals).transpose(), mean()};
 			}
 
   private:
-    __host__ __device__ __forceinline__
+    __device__ __forceinline__
     static void		swap(T& a, T& b)
 			{
 			    const auto t = a;
@@ -2084,7 +2088,7 @@ class Moment : public mat4x<T, 3>
 			}
 
   // Negate second vector in order to preserve sign of determinant value.
-    __host__ __device__ __forceinline__
+    __device__ __forceinline__
     static void		swap(vector_type& a, vector_type& b)
 			{
 			    const auto t = a;

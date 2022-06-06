@@ -84,21 +84,32 @@ doJob()
     }
 }
 
+namespace cu
+{
 namespace device
 {
   template <class T> __global__ void
-  get_Tgm(const cu::Moment<T>* moment, cu::Rigidity<T, 3>* transform)
+  get_Tgm(const Moment<T>* moment, Rigidity<T, 3>* transform)
   {
       *transform = moment->get_transform();
+  }
+
+  template <class T> __global__ void
+  get_evalues(const cu::Moment<T>* moment,
+	      cu::mat3x<T, 1>* evalues, cu::mat3x<T, 3>* evecs)
+  {
+      const auto	C = moment->covariance();
+    //*evalues = cardano(C);
+      eigen33(C, *evecs, *evalues);
   }
 }
 	
 template <class T> void
-doJob2()
+doJob()
 {
-    using mat43_t	= cu::mat<T, 4, 3>;
-    using rigidity_t	= cu::Rigidity<T, 3>;
-    using moment_t	= cu::Moment<T>;
+    using mat43_t	= mat<T, 4, 3>;
+    using rigidity_t	= Rigidity<T, 3>;
+    using moment_t	= Moment<T>;
     
     std::cerr << ">> ";
     mat43_t	A;
@@ -107,16 +118,24 @@ doJob2()
 	     >> A.z.x >> A.z.y >> A.z.z
 	     >> A.w.z;
     moment_t		M(A);
-    cu::Array<moment_t>	Md(1);
+    Array<moment_t>	Md(1);
     Md[0] = M;
-    std::cerr << M.covariance() << std::endl;
     
-    cu::Array<rigidity_t>	Td(1);
+    Array<rigidity_t>	Td(1);
     device::get_Tgm<<<1, 1>>>(Md.data().get(), Td.data().get());
     rigidity_t	Tgm = Td[0];
-    std::cerr << Tgm << std::endl;
+    std::cerr << "Tgm=" << Tgm << std::endl;
+
+    std::cerr << "cov=" << M.covariance() << std::endl;
+    Array<vec<T, 3> >	evalues_d(1);
+    Array<mat3x<T, 3> >	evecs_d(1);
+    device::get_evalues<<<1, 1>>>(Md.data().get(), evalues_d.data().get(),
+				  evecs_d.data().get());
+    std::cerr << "evalues=" << evalues_d[0] << std::endl;
+    std::cerr << "evecs=" << evecs_d[0] << std::endl;
 }
-    
+
+}	// mamespace 
 }	// namespace TU
 
 int
@@ -124,6 +143,6 @@ main()
 {
 
   //TU::doJob<float>();
-    TU::doJob2<float>();
+    TU::cu::doJob<float>();
     return 0;
 }

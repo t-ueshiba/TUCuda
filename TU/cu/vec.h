@@ -1946,7 +1946,6 @@ namespace device
     // 1st eigen vector
       Qt.x = detail::eigen_vector(A.x, A.y, w.x);
       auto	norm = dot(Qt.x, Qt.x);
-      printf("norm=%f,error=%f\n", norm, error);
       if (norm <= error)
 	  return qr33(A, Qt, w);
       Qt.x *= rsqrt(norm);

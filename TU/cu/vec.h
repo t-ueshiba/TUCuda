@@ -1936,9 +1936,9 @@ namespace device
   {
       w = cardano(A);		// Calculate eigenvalues
 
-    // t: absolute minimum eigenvalue
-      const auto	t     = min(min(abs(w.x), abs(w.y)), abs(w.z));
-      const auto	u     = (t < T(1) ? t : square(t));
+    // t: minimum absolute eigenvalue
+      const auto	t = min(min(abs(w.x), abs(w.y)), abs(w.z));
+      const auto	u = (t < T(1) ? t : square(t));
     // error should be positive even if u == 0      
       const auto	error = T(256)*epsilon<T>*square(u)
 			      + T(2)  *epsilon<T>;

@@ -1399,18 +1399,18 @@ class Rigidity : public Affinity<T, D, D>
 		    return dot(d, R());
 		}
 
+    __host__ __device__
+    Rigidity	operator *(const Rigidity& rigidity) const
+		{
+		    return {dot(R(), rigidity.R()),
+			    dot(R(), rigidity.t()) + t()};
+		}
+
     template <size_t D_=D> __host__ __device__
     static std::enable_if_t<D_ == 2, vec<T, 3> >
 		image_derivative0(T eH, T eV, T u, T v)
 		{
 		    return {eH, eV, eV*u - eH*v};
-		}
-
-    __host__ __device__
-    Rigidity	operator *(const Rigidity& rigidity)
-		{
-		    return {dot(R(), rigidity.R()),
-			    dot(R(), rigidity.t()) + t()};
 		}
 
     template <class ITER, size_t D_=D> __host__ __device__

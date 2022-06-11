@@ -84,6 +84,11 @@ namespace device
 					double y)	{ return fmax(x, y); }
   __device__ __forceinline__ double square(double x)	{ return x*x; }
   __device__ __forceinline__ double abs(double x)	{ return fabs(x); }
+
+  __device__ __forceinline__ int    to_int(float x)	{ return
+							   __float2int_rn(x);}
+  __device__ __forceinline__ int    to_int(double x)	{ return
+							   __double2int_rn(x);}
 }	// namespace device
 #endif	// __NVCC__
 
@@ -1055,7 +1060,7 @@ rotation(const mat3x<T, 1>& axis)
     R.y.z -= normal.x * s;
     R.z.x -= normal.y * s;
     R.z.y += normal.x * s;
-    
+
     return R;
 }
 
@@ -1233,7 +1238,7 @@ class Projectivity
 		{
 		    return out << proj._m;
 		}
-    
+
     __device__
     void	print() const
 		{
@@ -1328,7 +1333,7 @@ class Affinity
 		{
 		    return out << affinity._A << ',' << affinity._b;
 		}
-    
+
     __device__
     void	print() const
 		{
@@ -1378,9 +1383,9 @@ class Rigidity : public Affinity<T, D, D>
 		{
 		    return {R().transpose(), -dot(t(), R())};
 		}
-    
+
     using	base_type::operator ();
-    
+
     __host__ __device__
     direction_type
 		direction(const direction_type& d) const
@@ -1421,10 +1426,10 @@ class Rigidity : public Affinity<T, D, D>
 		    dt.x = *delta;
 		    dt.y = *++delta;
 		    const element_type	dtheta = *++delta;
-		    
+
 		    return {rotation(dtheta), dt};
 		}
-    
+
     template <class ITER, size_t D_=D> __host__ __device__
     static std::enable_if_t<D_ == 3, Rigidity>
 		exp(ITER delta)
@@ -1437,7 +1442,7 @@ class Rigidity : public Affinity<T, D, D>
 		    dtheta.x = *++delta;
 		    dtheta.y = *++delta;
 		    dtheta.z = *++delta;
-		    
+
 		    return {rotation(dtheta), dt};
 		}
 
@@ -1645,7 +1650,7 @@ class Triangle
   private:
     mat3x<T, 3>	_v;
 };
-    
+
 //! 入力ストリームからSTL形式のメッシュを読み込む．
 /*!
   \param in	入力ストリーム
@@ -1654,18 +1659,18 @@ class Triangle
 template <class T> std::istream&
 restoreSTL(std::istream& in, std::vector<Triangle<T> >& faces)
 {
-  // 先頭の5 byteを読む．    
+  // 先頭の5 byteを読む．
     char	magic[6];
     in.read(magic, 5);
     magic[5] = '\0';
 
     if (std::string(magic) != "solid")
     {
-      // ヘッダ(80文字)の残りを読み捨てる.	
+      // ヘッダ(80文字)の残りを読み捨てる.
 	char	header[80 - 5];
 	in.read(header, sizeof(header));
 
-      // 面数を読み込む.	
+      // 面数を読み込む.
 	uint32_t	nfaces;
 	in.read((char*)&nfaces, sizeof(nfaces));
 	faces.resize(nfaces);
@@ -1686,7 +1691,7 @@ restoreSTL(std::istream& in, std::vector<Triangle<T> >& faces)
 	{
 	    if (s != "facet")
 		continue;
-	    
+
 	    float	buf;
 	    Triangle<T>	triangle;
 	    in >> s >> buf >> buf >> buf	// "normal" nx ny nz
@@ -1939,7 +1944,7 @@ namespace device
     // t: minimum absolute eigenvalue
       const auto	t = min(min(abs(w.x), abs(w.y)), abs(w.z));
       const auto	u = (t < T(1) ? t : square(t));
-    // error should be positive even if u == 0      
+    // error should be positive even if u == 0
       const auto	error = T(256)*epsilon<T>*square(u)
 			      + T(2)  *epsilon<T>;
 
@@ -1983,7 +1988,7 @@ class Moment : public mat4x<T, 3>
     using vector_type	= vec<element_type, 3>;
     using matrix_type	= mat3x<element_type, 3>;
     using transform_type= Rigidity<element_type, 3>;
-    
+
   public:
     __host__ __device__ __forceinline__
 			Moment()		:super()	{}
@@ -2019,7 +2024,7 @@ class Moment : public mat4x<T, 3>
     using		super::y;
     using		super::z;
     using		super::w;
-    
+
     __host__ __device__ __forceinline__
     static Moment	invalid_moment()		{ return super{0}; }
     __host__ __device__ __forceinline__
@@ -2036,7 +2041,7 @@ class Moment : public mat4x<T, 3>
     matrix_type		covariance() const
 			{
 			    const auto	m = mean();
-			    
+
 			    return {y - x.x*m,
 				    {T(0), z.x - x.y*m.y, z.y - x.y*m.z},
 				    {T(0), T(0),	  z.z - x.z*m.z}};
@@ -2054,7 +2059,7 @@ class Moment : public mat4x<T, 3>
 			    	swap(evals.x, evals.y);
 			    	swap(evecs.x, evecs.y);
 			    }
-			    
+
 			    if (evals.x < evals.z)
 			    {
 			    	swap(evals.x, evals.z);
@@ -2066,7 +2071,7 @@ class Moment : public mat4x<T, 3>
 			    	swap(evals.y, evals.z);
 			    	swap(evecs.y, evecs.z);
 			    }
-	
+
 			    return evecs;
 			}
 
@@ -2117,7 +2122,7 @@ template <class T, bool POINT_ARG=false>
 struct moment_creator
 {
     using result_type	= Moment<T>;
-    
+
     template <bool POINT_ARG_=POINT_ARG> __host__ __device__ __forceinline__
     std::enable_if_t<!POINT_ARG_, result_type>
     operator ()(const vec<T, 3>& point) const
@@ -2175,7 +2180,7 @@ class Plane
 			    const auto	sc = 1/moment.npoints();
 			    _m.z = {moment.u()*sc, moment.v()*sc, evals.z*sc};
 			}
-    
+
     __host__ __device__ __forceinline__
     static Plane	invalid_plane()
 			{
@@ -2213,7 +2218,7 @@ class Plane
 			{
 			    return out << plane._m;
 			}
-    
+
   private:
     matrix_type	_m;
 };
@@ -2244,7 +2249,7 @@ struct normal_estimator : public plane_estimator<T>
    */
     using result_type	= vec<T, 3>;
     using super		= plane_estimator<T>;
-    
+
     __host__ __device__ __forceinline__
     result_type	operator ()(const Moment<T>& moment) const
 		{

@@ -59,6 +59,8 @@ namespace device
   constexpr static T	maxval  = std::numeric_limits<T>::max();
   template <class T>
   constexpr static T	epsilon = std::numeric_limits<T>::epsilon();
+  template <class T>
+  constexpr static T	nan	= std::numeric_limits<T>::quiet_NaN();
 
   __device__ __forceinline__ float  fma(float x,
 					float y,

@@ -157,19 +157,19 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
     using super::y;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 1; }
+    static size_t	rank()				{ return 1; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 2; }
+    static size_t	size0()				{ return 2; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return 1; }
+    static size_t	size1()				{ return 1; }
     __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat2x()			:super()		{}
+    __host__ __device__	mat2x()				= default;
     __host__ __device__ constexpr
-    explicit		mat2x(T c)		:super{c, c}		{}
+    explicit		mat2x(T c)	:super{c, c}	{}
     __host__ __device__ constexpr
-			mat2x(T x, T y)		:super{x, y}		{}
+			mat2x(T x, T y)	:super{x, y}	{}
 
     __host__ __device__
     mat2x&		operator =(T c)
@@ -205,19 +205,21 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
     using super::z;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 1; }
+    static size_t	rank()				{ return 1; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 3; }
+    static size_t	size0()				{ return 3; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return 1; }
-    __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size1()				{ return 1; }
+    __host__ __device__ constexpr	
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat3x()		     :super()			{}
+    __host__ __device__	mat3x()				= default;
     __host__ __device__ constexpr
-    explicit		mat3x(T c)	     :super{c, c, c}		{}
+    explicit		mat3x(T c)
+			    :super{c, c, c}		{}
     __host__ __device__ constexpr
-			mat3x(T x, T y, T z) :super{x, y, z}		{}
+			mat3x(T x, T y, T z)
+			    :super{x, y, z}		{}
 
     __host__ __device__
     mat3x&		operator =(T c)
@@ -255,19 +257,21 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
     using super::w;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 1; }
+    static size_t	rank()				{ return 1; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 4; }
+    static size_t	size0()				{ return 4; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return 1; }
+    static size_t	size1()				{ return 1; }
     __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat4x()			  :super()		{}
+    __host__ __device__	mat4x()				= default;
     __host__ __device__ constexpr
-    explicit		mat4x(T c)		  :super{c, c, c, c}	{}
+    explicit		mat4x(T c)
+			    :super{c, c, c, c}		{}
     __host__ __device__ constexpr
-			mat4x(T x, T y, T z, T w) :super{x, y, z, w}	{}
+			mat4x(T x, T y, T z, T w)
+			    :super{x, y, z, w}		{}
 
     __host__ __device__
     mat4x&		operator =(T c)
@@ -304,20 +308,21 @@ struct mat2x
     using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 2; }
+    static size_t	rank()				{ return 2; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 2; }
+    static size_t	size0()				{ return 2; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return C; }
+    static size_t	size1()				{ return C; }
     __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat2x()						{}
+    __host__ __device__	mat2x()				= default;
     __host__ __device__	constexpr
-			mat2x(const value_type& xx, const value_type& yy)
-			    :x(xx), y(yy)				{}
+			mat2x(const value_type& xx,
+			      const value_type& yy)
+			    :x(xx), y(yy)		{}
     __host__ __device__	constexpr
-    explicit		mat2x(T c) :x(c), y(c)				{}
+    explicit		mat2x(T c) :x(c), y(c)		{}
 
     __host__ __device__
     mat2x&		operator =(T c)
@@ -380,21 +385,22 @@ struct mat3x
     using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 2; }
+    static size_t	rank()				{ return 2; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 3; }
+    static size_t	size0()				{ return 3; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return C; }
+    static size_t	size1()				{ return C; }
     __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat3x()						{}
+    __host__ __device__	mat3x()				= default;
     __host__ __device__	constexpr
-			mat3x(const value_type& xx, const value_type& yy,
+			mat3x(const value_type& xx,
+			      const value_type& yy,
 			      const value_type& zz)
-			    :x(xx), y(yy), z(zz)			{}
+			    :x(xx), y(yy), z(zz)	{}
     __host__ __device__	constexpr
-    explicit		mat3x(T c) :x(c), y(c), z(c)			{}
+    explicit		mat3x(T c) :x(c), y(c), z(c)	{}
 
     __host__ __device__
     mat3x&		operator =(T c)
@@ -461,21 +467,24 @@ struct mat4x
     using value_type	= vec<T, C>;
 
     __host__ __device__ constexpr
-    static size_t	rank()			{ return 2; }
+    static size_t	rank()				{ return 2; }
     __host__ __device__ constexpr
-    static size_t	size0()			{ return 4; }
+    static size_t	size0()				{ return 4; }
     __host__ __device__ constexpr
-    static size_t	size1()			{ return C; }
+    static size_t	size1()				{ return C; }
     __host__ __device__ constexpr
-    static size_t	size()			{ return size0(); }
+    static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat4x()						{}
+    __host__ __device__	mat4x()				= default;
     __host__ __device__	constexpr
-			mat4x(const value_type& xx, const value_type& yy,
-			      const value_type& zz, const value_type& ww)
-			    :x(xx), y(yy), z(zz), w(ww)			{}
+			mat4x(const value_type& xx,
+			      const value_type& yy,
+			      const value_type& zz,
+			      const value_type& ww)
+			    :x(xx), y(yy), z(zz), w(ww)	{}
     __host__ __device__	constexpr
-    explicit		mat4x(T c) :x(c), y(c), z(c), w(c)		{}
+    explicit		mat4x(T c)
+			    :x(c), y(c), z(c), w(c)	{}
 
     __host__ __device__
     mat4x&		operator =(T c)
@@ -1157,7 +1166,7 @@ class Projectivity
     constexpr static size_t	nparams()	{ return NPARAMS; }
 
     __host__ __device__
-		Projectivity()	:_m()				{}
+		Projectivity()					= default;
     __host__ __device__
     explicit	Projectivity(const matrix_type& m)	:_m(m)	{}
 
@@ -1272,7 +1281,7 @@ class Affinity
     constexpr static size_t	nparams()	{ return NPARAMS; }
 
     __host__ __device__
-		Affinity() :_A(), _b()		{}
+		Affinity()			= default;
     __host__ __device__
 		Affinity(const matrix_type& A, const point_type& b)
 		    :_A(A), _b(b)
@@ -1369,7 +1378,7 @@ class Rigidity : public Affinity<T, D, D>
 
   public:
     __host__ __device__
-		Rigidity() :base_type()		{}
+		Rigidity()			= default;
     __host__ __device__
 		Rigidity(const matrix_type& R, const point_type& t)
 		    :base_type(R, t)
@@ -1993,7 +2002,7 @@ class Moment : public mat4x<T, 3>
 
   public:
     __host__ __device__ __forceinline__
-			Moment()		:super()	{}
+			Moment()				= default;
     __host__ __device__ __forceinline__
     explicit		Moment(element_type c)	:super(c)	{}
     __host__ __device__ __forceinline__
@@ -2158,7 +2167,7 @@ class Plane
 
   public:
     __host__ __device__ __forceinline__
-			Plane()			    :_m()	{}
+			Plane()					= default;
     __host__ __device__ __forceinline__
 			Plane(const matrix_type& m) :_m(m)	{}
     __host__ __device__ __forceinline__

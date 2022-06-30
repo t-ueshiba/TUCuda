@@ -271,6 +271,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::fir_filterH<FIRFilter2, L><<<blocks, threads>>>(
 	cu::make_range(in, nrow), cu::make_range(out, nrow));
+    gpuCheckLastError();
 }
 
 template <class T, class BLOCK_TRAITS>
@@ -285,6 +286,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
 	cu::make_range(in, nrow),
 	cu::slice(out, (shift ? offsetV() : 0), outSizeV(nrow),
 			 (shift ? offsetH() : 0), outSizeH(ncol)));
+    gpuCheckLastError();
 }
 #endif	// __NVCC__
 

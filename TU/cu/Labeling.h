@@ -62,14 +62,14 @@ label_tiles(range<range_iterator<LINK> >  links,
     const int	v0 = blockIdx.y * blockDim.y;
     const int	u  = u0 + tu;
     const int	v  = v0 + tv;
-    
+
     if (v >= links.size() || u >= links.begin().size())
 	return;
 
     constexpr int		Stride_s = LABELING::BlockDimX + 1;
     __shared__ link_type	links_s[ LABELING::BlockDimY][Stride_s];
     __shared__ label_type	labels_s[LABELING::BlockDimY][Stride_s];
-    
+
   // Load links and disable connections at right/bottom tile borders.
     auto	link = links[v][u];
     if (tu == blockDim.x - 1)
@@ -77,18 +77,18 @@ label_tiles(range<range_iterator<LINK> >  links,
     if (tv == blockDim.y - 1)
 	link &= ~LABELING::LOWER;
     links_s[tv][tu] = link;
-	
+
   // Initialize labels within a local tile block.
     labels_s[tv][tu] = tv * Stride_s + tu;
     __syncthreads();
-    
+
   // Update local labels iteratively.
     for (;;)
     {
       // 1. Check connections to 4-neighbors.
 	const auto	old_label = labels_s[tv][tu];
 	auto		label	  = old_label;
-	
+
 	if (links_s[tv][tu] & LABELING::RIGHT)
 	    label = ::min(label, labels_s[tv][tu+1]);
 	if (links_s[tv][tu] & LABELING::LOWER)
@@ -97,7 +97,7 @@ label_tiles(range<range_iterator<LINK> >  links,
 	    label = ::min(label, labels_s[tv][tu-1]);
 	if (0 < tv && links_s[tv-1][tu] & LABELING::LOWER)
 	    label = ::min(label, labels_s[tv-1][tu]);
-	
+
       // 2. Is any value changed?
 	int	changed = 0;
 	if (label < old_label)
@@ -149,7 +149,7 @@ merge_tiles(range<range_iterator<LINK> >  links,
 		if (links[v][u1-1] & LABELING::RIGHT)
 		    merge(lp, labels[v][u1-1], labels[v][u1], changed);
 	}
-	
+
 	if (v1 < v2)
 	{
 	  // Merge upper-left and lower-left tiles.
@@ -216,7 +216,7 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
     {
 	__host__ __device__
 	link_detector(IS_LINKED is_linked) :_is_linked(is_linked)	{}
-    
+
 	template <class T_, size_t W_> __host__ __device__ link_type
 	operator ()(int v, int u, int nrow, int ncol, T_ in[][W_]) const
 	{
@@ -237,10 +237,10 @@ class Labeling : public BLOCK_TRAITS, public Profiler<CLOCK>
 
     constexpr static link_type	RIGHT = 0x01;
     constexpr static link_type	LOWER = 0x02;
-    
+
   public:
 		Labeling()	:profiler_t(4)				{}
-    
+
     template <class IN, class OUT, class IS_LINKED,
 	      class IS_BACKGROUND=std::nullptr_t>
     void	label(IN row, IN rowe, OUT rowL, IS_LINKED is_linked,
@@ -277,11 +277,11 @@ Labeling<BLOCK_TRAITS, CLOCK>::label(IN row, IN rowe, OUT rowL,
   // Perform labeling for each tile.
     profiler_t::start(1);
     label_tiles(rowL);
-    
+
   // Iteratively merge tiles.
     profiler_t::start(2);
     merge_tiles(rowL);
-    
+
   // Flatten labels.
     profiler_t::start(3);
     flatten_labels(row, rowL, is_background);
@@ -311,6 +311,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::label_tiles(LABEL rowL) const
     device::label_tiles<Labeling><<<blocks, threads>>>(
 	cu::make_range(_links.cbegin(), _links.nrow()),
 	cu::make_range(rowL,		_links.nrow()));
+    gpuCheckLastError();
 }
 
 template<class BLOCK_TRAITS, class CLOCK> template <class LABEL> void
@@ -328,6 +329,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::merge_tiles(LABEL rowL) const
 	    cu::make_range(_links.cbegin(), _links.nrow()),
 	    cu::make_range(rowL,	    _links.nrow()),
 	    tileSize);
+	gpuCheckLastError();
 
 	threads.x = std::min(threads.x << 1, uint32_t(BlockDimX * BlockDimX));
 	tileSize <<= 1;
@@ -344,6 +346,7 @@ Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(IN, LABEL rowL,
 		       divUp(_links.ncol(), threads.y));
     device::flatten_labels<<<blocks, threads>>>(
 	cu::make_range(rowL, _links.nrow()));
+    gpuCheckLastError();
 }
 
 template<class BLOCK_TRAITS, class CLOCK>
@@ -358,8 +361,9 @@ Labeling<BLOCK_TRAITS, CLOCK>::flatten_labels(IN row, LABEL rowL,
 	cu::make_range(row , _links.nrow()),
 	cu::make_range(rowL, _links.nrow()),
 	is_background);
+    gpuCheckLastError();
 }
-    
+
 #endif	// __NVCC__
 }	// namespace cu
 }	// namespace TU

@@ -166,6 +166,7 @@ DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 						  _cminR.stride(),
 						  _dminR[0].begin(),
 						  _dminR.stride());
+    gpuCheckLastError();
   // 右上
     const auto	x = blocks.x*threads.x;
     threads.x = width - x;
@@ -181,6 +182,7 @@ DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 						  _cminR.stride(),
 						  _dminR[0].begin() + x,
 						  _dminR.stride());
+    gpuCheckLastError();
   // 左下
     const auto	y = blocks.y*threads.y;
     std::advance(rowD, y);
@@ -199,6 +201,7 @@ DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 						  _cminR.stride(),
 						  _dminR[y].begin(),
 						  _dminR.stride());
+    gpuCheckLastError();
   // 右下
     device::select_disparity<<<blocks, threads>>>(costs[0][y].cbegin() + x,
 						  width,
@@ -211,6 +214,7 @@ DisparitySelector<T, BLOCK_TRAITS>::select(const Array3<T>& costs, ROW_D rowD)
 						  _cminR.stride(),
 						  _dminR[y].begin() + x,
 						  _dminR.stride());
+    gpuCheckLastError();
 }
 
 }	// namespace cu

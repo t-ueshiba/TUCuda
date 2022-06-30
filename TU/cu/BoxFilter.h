@@ -89,13 +89,13 @@ class deque
 				_back = MAX_SIZE;
 			    --_back;
 			}
-	
+
   private:
     T	_buf[MAX_SIZE];
     int	_front;
     int	_back;
 };
-    
+
 /************************************************************************
 *  __device__ functionals used with find_extrema()			*
 ************************************************************************/
@@ -105,9 +105,9 @@ struct extrema_value : public COMP
     using argument_type	= typename COMP::first_argument_type;
     using value_type	= typename COMP::first_argument_type;
     using result_type	= value_type;
-    
+
     using COMP::operator ();
-    
+
     __device__
     value_type	operator ()(const argument_type& v, int pos) const
 		{
@@ -136,7 +136,7 @@ struct extrema_position_base : public COMP
 		}
 };
 }	// namespace detail
-    
+
 template <class COMP>
 struct extrema_position : public detail::extrema_position_base<COMP>
 {
@@ -144,14 +144,14 @@ struct extrema_position : public detail::extrema_position_base<COMP>
     using typename super::value_type;
     using result_type	= vec<int, 2>;
     using super::operator ();
-    
+
     __device__
     result_type	operator ()(const value_type& v, int pos) const
 		{
 		    return {pos, thrust::get<1>(v)};
 		}
 };
-    
+
 template <class COMP>
 struct extrema_value_position : public detail::extrema_position_base<COMP>
 {
@@ -167,7 +167,7 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
 		    return {thrust::get<0>(v), {pos, thrust::get<1>(v)}};
 		}
 };
-    
+
 /************************************************************************
 *  __device__ convolution algorithms					*
 ************************************************************************/
@@ -176,7 +176,7 @@ struct box_convolver
 {
     using value_type	= T;
     using result_type	= T;
-    
+
     template <class S_, class T_, size_t W_> __device__
     void	operator ()(const S_ in_s[][W_],
 			    T_ out_s[][W_], int winSize, int ye) const
@@ -197,7 +197,7 @@ struct extrema_finder
 {
     using value_type	= typename OP::value_type;
     using result_type	= typename OP::result_type;
-    
+
     template <class S_, class T_, size_t W_> __device__
     void	operator ()(const S_ in_s[][W_],
 			    T_ out_s[][W_], int winSize, int ye) const
@@ -219,10 +219,10 @@ struct extrema_finder
 				break;
 			}
 			q.push_back(y);
-			
+
 			if (y == q.front() + winSize)
 			    q.pop_front();
-	      
+
 			if (y >= winSize1)
 			    out_s[y - winSize1][threadIdx.x]
 				= op(in_s[q.front()][threadIdx.x],
@@ -230,7 +230,7 @@ struct extrema_finder
 		    }
 		}
 };
-    
+
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
@@ -264,7 +264,7 @@ box_filter(range<range_iterator<IN> > in,
 			    [FILTER::BlockDim + 1];
     loadTile(slice(in.cbegin(), y0, ysiz, x0, xsiz), in_s);
     __syncthreads();
-    
+
     __shared__ out_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
     const int	ye = ysiz - winSize + 1;
@@ -541,7 +541,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 							 bool shift) const
 {
     using	std::size;
-    
+
     profiler_t::start(0);
 
     const size_t nrows = std::distance(row, rowe);
@@ -561,6 +561,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
     device::box_filter<BoxFilter2><<<blocks, threads>>>(
 	cu::make_range(row, nrows),
 	cu::make_range(_buf.begin(), _buf.nrow()), _winSizeV);
+    gpuCheckLastError();
 
   // Accumulate horizontally.
     cudaDeviceSynchronize();
@@ -572,6 +573,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 	cu::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
 			(shift ? offsetH() : 0), outSizeH(ncols)),
 	_winSizeH);
+    gpuCheckLastError();
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
@@ -587,7 +589,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     using	std::cend;
     using	std::begin;
     using	std::size;
-    
+
     profiler_t::start(0);
 
     size_t	nrows = std::distance(rowL, rowLe);
@@ -620,6 +622,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(*begin(*rowO)),
 #endif
 	op, _winSizeH, strideL, strideR, strideXD, strideD);
+    gpuCheckLastError();
   // 視差右半かつ画像上半
     const auto	d = blocks.x*threads.x;
     threads.x = disparitySearchWidth - d;
@@ -632,6 +635,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(*begin(*rowO)) + d,
 #endif
 	op, _winSizeH, strideL, strideR, strideXD, strideD);
+    gpuCheckLastError();
   // 視差左半かつ画像下半
     threads.x = BlockDimX;
     blocks.x  = disparitySearchWidth/threads.x;
@@ -646,6 +650,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(*begin(*(rowO + y))),
 #endif
 	op, _winSizeH, strideL, strideR, strideXD, strideD);
+    gpuCheckLastError();
   // 視差右半かつ画像下半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
@@ -658,6 +663,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(*begin(*(rowO + y))) + d,
 #endif
 	op, _winSizeH, strideL, strideR, strideXD, strideD);
+    gpuCheckLastError();
   // ---- 縦方向積算 ----
     cudaDeviceSynchronize();
     profiler_t::start(2);
@@ -672,6 +678,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(_buf3[0][0]), nrows, begin(*begin(*rowO)),
 	_winSizeV, strideXD, strideD, strideYX_O, strideX_O);
+    gpuCheckLastError();
   // 視差右半かつ画像左半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
@@ -679,6 +686,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(_buf3[0][0]) + d, nrows,
 	begin(*begin(*(rowO + d))),
 	_winSizeV, strideXD, strideD, strideYX_O, strideX_O);
+    gpuCheckLastError();
   // 視差左半かつ画像右半
     threads.x = BlockDim;
     blocks.x  = disparitySearchWidth/threads.x;
@@ -688,6 +696,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(_buf3[0][x]), nrows, begin(*begin(*rowO)) + x,
 	_winSizeV, strideXD, strideD, strideYX_O, strideX_O);
+    gpuCheckLastError();
   // 視差右半かつ画像右半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
@@ -695,6 +704,7 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
 	begin(_buf3[0][x]) + d, nrows,
 	begin(*begin(*(rowO + d))) + x,
 	_winSizeV, strideXD, strideD, strideYX_O, strideX_O);
+    gpuCheckLastError();
 #else
   // 視差左半かつ画像左半
     nrows     = outSizeV(nrows);
@@ -704,11 +714,13 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     blocks.y  = ncols/threads.y;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(*begin(*rowO)), nrows, _winSizeV, strideXD, strideD);
+    gpuCheckLastError();
   // 視差右半かつ画像左半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(*begin(*(rowO + d))), nrows, _winSizeV, strideXD, strideD);
+    gpuCheckLastError();
   // 視差左半かつ画像右半
     threads.x = BlockDimX;
     blocks.x  = disparitySearchWidth/threads.x;
@@ -717,12 +729,14 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(
     blocks.y  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(*(begin(*rowO) + x)), nrows, _winSizeV, strideXD, strideD);
+    gpuCheckLastError();
   // 視差右半かつ画像右半
     threads.x = disparitySearchWidth - d;
     blocks.x  = 1;
     device::box_filterV<BoxFilter2><<<blocks, threads>>>(
 	begin(*(begin(*rowO) + x)) + d,
 	nrows, _winSizeV, strideXD, strideD);
+    gpuCheckLastError();
 #endif
     cudaDeviceSynchronize();
     profiler_t::nextFrame();

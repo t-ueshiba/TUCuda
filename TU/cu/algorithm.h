@@ -42,6 +42,12 @@
 #include "TU/cu/allocator.h"
 #include "TU/cu/iterator.h"
 
+#define gpuCheckError(err)	TU::cu::checkError(err, __FILE__, __LINE__)
+#define gpuCheckLastError()	TU::cu::checkError(cudaGetLastError(),	\
+ 						   __FILE__, __LINE__)
+#define gpuCheckAsyncError()	TU::cu::checkError(cudaDeviceSynchronize(), \
+ 						   __FILE__, __LINE__)
+
 namespace TU
 {
 namespace cu
@@ -74,6 +80,17 @@ inline std::ostream&
 operator <<(std::ostream& out, const dim3& d)
 {
     return out << '[' << d.x << ' ' << d.y << ' ' << d.z << ']';
+}
+
+inline void
+checkError(cudaError_t err, const char* file, int line)
+{
+    if (err != cudaSuccess)
+    {
+	std::cerr << "CUDA Runtime Error at: " << file << ':' << line
+		  << '[' << cudaGetErrorString(err) << ']' << std::endl;
+	std::exit(EXIT_FAILURE);
+    }
 }
 
 //! デバイス関数を納める名前空間
@@ -190,6 +207,7 @@ subsample(IN in, IN ie, OUT out)
     const dim3	blocks(divUp(ncol/2, threads.x), divUp(nrow/2, threads.y));
     device::subsample<<<blocks, threads>>>(cu::make_range(in,  nrow),
 					   cu::make_range(out, nrow/2));
+    gpuCheckLastError();
 }
 #endif
 
@@ -254,6 +272,7 @@ opNxM(IN in, IN ie, OUT out, OP op)
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::opNxM<BLOCK_TRAITS><<<blocks, threads>>>(
 	cu::make_range(in, nrow), cu::make_range(out, nrow), op);
+    gpuCheckLastError();
 }
 #endif
 
@@ -310,6 +329,7 @@ namespace detail
       const dim3	blocks(c/threads.x, r/threads.y);
       cu::device::transpose<BLOCK_DIM><<<blocks, threads>>>(
 	  cu::slice(in, 0, r, j, c), cu::slice(out, 0, c, i, r));	// 左上
+      gpuCheckLastError();
 
       r = blocks.y*threads.y;
       c = blocks.x*threads.x;
@@ -396,6 +416,7 @@ transform2(IN in, IN ie, OUT out, OP op)
 	cu::make_range(in,  nrow), cu::make_range(out, nrow), op,
 	std::integral_constant<bool,
 			       detail::is_unary<OP, value_type>::value>());
+    gpuCheckLastError();
 }
 #endif
 
@@ -471,6 +492,7 @@ generate2(OUT out, OUT oe, GEN gen)
     device::generate2<<<blocks, threads>>>(
     	cu::make_range(out, nrow), gen,
     	std::integral_constant<bool, detail::noargs<GEN>::value>());
+    gpuCheckLastError();
 }
 #endif
 

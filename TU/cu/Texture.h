@@ -204,6 +204,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
     device::warp<T><<<blocks, threads>>>(tex.get(),
 					 cu::make_range(out, nrow), map);
+    gpuCheckLastError();
 }
 #endif
 

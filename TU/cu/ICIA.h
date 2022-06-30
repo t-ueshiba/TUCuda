@@ -297,12 +297,14 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
     dim3	blocks(ncol/threads.x, nrow/threads.y);
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, 0, 0, stride_o);
+    gpuCheckLastError();
   // 右上
     const auto	x0 = blocks.x*threads.x;
     threads.x = ncol - x0;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, x0, 0, stride_o);
+    gpuCheckLastError();
   // 左下
     const auto	y0 = blocks.y*threads.y;
     threads.x = BlockDimX;
@@ -311,11 +313,13 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
     blocks.y  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, 0, y0, stride_o);
+    gpuCheckLastError();
   // 右下
     threads.x = ncol - x0;
     blocks.x  = 1;
     device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
 					 op, x0, y0, stride_o);
+    gpuCheckLastError();
 }
 
 template <class MAP, class CLOCK> template <class T_> auto

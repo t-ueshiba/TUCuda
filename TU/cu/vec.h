@@ -91,6 +91,15 @@ namespace device
 							   __float2int_rn(x);}
   __device__ __forceinline__ int    to_int(double x)	{ return
 							   __double2int_rn(x);}
+
+  template <class T> __device__ __forceinline__ T
+  clamp(T val, T low, T high)
+  {
+      using ::min;
+      using ::max;
+      
+      return min(max(val, low), high);
+  }
 }	// namespace device
 #endif	// __NVCC__
 

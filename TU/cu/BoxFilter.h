@@ -97,7 +97,7 @@ class deque
 };
 
 /************************************************************************
-*  __device__ functionals used with find_extrema()			*
+*  __device__ functionals used as operator of extrema_finder<OP, WMAX>	*
 ************************************************************************/
 template <class COMP>
 struct extrema_value : public COMP

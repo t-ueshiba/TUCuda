@@ -61,7 +61,7 @@ box_convolver_test(const Image<T>& in, size_t winSize)
     out *= float(1)/float(winSize*winSize);
     out.save(std::cout);				// 結果画像をセーブ
 }
-    
+
 template <class T> void
 extrema_value_test(const Image<T>& in, size_t winSize)
 {
@@ -83,7 +83,7 @@ extrema_value_test(const Image<T>& in, size_t winSize)
 	for (size_t u = 0; u < in.width() - winSize + 1; ++u)
 	{
 	    T	minval = 1000;
-		
+
 	    for (size_t vv = v ; vv < v + winSize; ++vv)
 		for (size_t uu = u ; uu < u + winSize; ++uu)
 		    if (in[vv][uu] <= minval)
@@ -125,7 +125,7 @@ extrema_position_test(const Image<T>& in, size_t winSize)
     	{
     	    const auto	p = pos[v][u];
 	    const auto	minval = in[p.y][p.x];
-	    
+
 	    for (size_t vv = v - offsetL; vv < v + offsetR; ++vv)
 		for (size_t uu = u - offsetL; uu < u + offsetR; ++uu)
 		    if (in[vv][uu] < minval)
@@ -154,7 +154,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
     using convolver_t = cu::device::extrema_finder<
 			    cu::device::extrema_value_position<
 				thrust::greater<T> > >;
-    
+
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";
     const cu::Array2<T>			in_d(in);
     cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
@@ -169,9 +169,9 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 			 winSize, true);
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
-  /*
+
     Array2<cu::vec<int, 2> >	pos(pos_d);
-    Image<T>		out2(in.width(), in.height());
+    Image<T>			out2(in.width(), in.height());
     for (size_t v = 0; v < out2.nrow(); ++v)
     {
     	for (size_t u = 0; u < out2.ncol(); ++u)
@@ -188,7 +188,6 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 	if (out[V][u] != out2[V][u])
 	    std::cerr << ' ' << u << ":(" << out[V][u] << ',' << out2[V][u]
 		      << ')' << std::endl;
-  */
 }
 
 }	// namespace TU
@@ -208,11 +207,11 @@ main(int argc, char* argv[])
 	    winSize = atoi(optarg);
 	    break;
 	}
-    
+
     try
     {
 	using value_type = float;
-    
+
 	TU::Image<value_type>	in;
 	in.restore(std::cin);
 	in.save(std::cout);

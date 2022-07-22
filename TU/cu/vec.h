@@ -97,7 +97,7 @@ namespace device
   {
       using ::min;
       using ::max;
-      
+
       return min(max(val, low), high);
   }
 }	// namespace device
@@ -219,7 +219,7 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
     static size_t	size0()				{ return 3; }
     __host__ __device__ constexpr
     static size_t	size1()				{ return 1; }
-    __host__ __device__ constexpr	
+    __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
     __host__ __device__	mat3x()				= default;
@@ -2332,6 +2332,21 @@ struct to_vec
 		{
 		    return T(val);
 		}
+    template <class T_>
+    result_type	operator ()(const mat2x<T_, 1>& val) const
+		{
+		    return T(val.x);
+		}
+    template <class T_>
+    result_type	operator ()(const mat3x<T_, 1>& val) const
+		{
+		    return T(val.x);
+		}
+    template <class T_>
+    result_type	operator ()(const mat4x<T_, 1>& val) const
+		{
+		    return T(val.x);
+		}
 };
 
 template <class T>
@@ -2349,6 +2364,11 @@ struct to_vec<mat3x<T, 1> >
 		{
 		    return {T(rgb.r), T(rgb.g), T(rgb.b)};
 		}
+    template <class T_>
+    result_type	operator ()(const mat3x<T_, 1>& val) const
+		{
+		    return {T(val.x), T(val.y), T(val.z)};
+		}
 };
 
 template <class T>
@@ -2365,6 +2385,11 @@ struct to_vec<mat4x<T, 1> >
     result_type	operator ()(const RGB_<E_>& rgb) const
 		{
 		    return {T(rgb.r), T(rgb.g), T(rgb.b), T(rgb.a)};
+		}
+    template <class T_>
+    result_type	operator ()(const mat4x<T_, 1>& val) const
+		{
+		    return {T(val.x), T(val.y), T(val.z), T(val.w)};
 		}
 };
 

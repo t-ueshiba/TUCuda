@@ -435,10 +435,10 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
     \param winSizeH	boxフィルタのウィンドウの列幅(幅)
    */
 		BoxFilter2(size_t winSizeV, size_t winSizeH)
-		    :profiler_t(3), _winSizeV(winSizeV), _winSizeH(winSizeH)
+		    :profiler_t(3)
 		{
-		    if (_winSizeV > WinSizeMax || _winSizeH > WinSizeMax)
-			throw std::runtime_error("Too large window size!");
+		    setWinSizeV(winSizeV);
+		    setWinSizeH(winSizeH);
 		}
 
   //! boxフィルタのウィンドウの高さを返す．
@@ -460,6 +460,8 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
    */
     BoxFilter2&	setWinSizeV(size_t winSize)
 		{
+		    if (winSize > WinSizeMax)
+			throw std::runtime_error("Too large window size!");
 		    _winSizeV = winSize;
 		    return *this;
 		}
@@ -471,6 +473,8 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
    */
     BoxFilter2&	setWinSizeH(size_t winSize)
 		{
+		    if (winSize > WinSizeMax)
+			throw std::runtime_error("Too large window size!");
 		    _winSizeH = winSize;
 		    return *this;
 		}

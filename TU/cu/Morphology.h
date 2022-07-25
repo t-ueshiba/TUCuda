@@ -80,13 +80,29 @@ morphology(range<range_iterator<IN> > in,
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
     const int	xs   = ::max(x0 - winRadius, 0);
-    const int	xsiz = ::min(blockDim.x + winRafius, in.begin().size() - x0);
-    const int	ysiz = ::min(blockDim.y, in.size() - y0);
+    const int	xsiz = ::min(int(blockDim.x + winRadius),
+			     in.begin().size() - xs);
+    const int	ysiz = ::min(int(blockDim.y), in.size() - y0);
 
     __shared__ value_type in_s[FILTER::BlockDimY]
 			      [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
     loadTile(slice(in.cbegin(), y0, ysiz, xs, xsiz), in_s);
     __syncthreads();
+
+    const int	x = x0 + threadIdx.x;
+    const int	y = y0 + threadIdx.y;
+    if (y >= in.size() || x >= in.begin().size())
+	return;
+
+    const int	winSize = 2*winRadius + 1;
+
+    for (int xl = 0; xl < in.begin().size(); xl += winSize)
+    {
+	const int	xr = ::min(xl + winSize, in.begin().size());
+	if (xl <= x && x < xr)
+	{
+	}
+    }
 
     __shared__ TempStorage	tmp;
     BlockScan(tmp).InclusiveScan(, op);

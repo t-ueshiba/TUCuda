@@ -59,56 +59,74 @@ namespace device
 /************************************************************************
 *  __global__ functions							*
 ************************************************************************/
-//! スレッドブロックの縦方向にフィルタを適用する
+//! スレッドブロックの横方向にモルフォロジーフィルタを適用する
 /*!
   \param in		入力2次元配列
   \param out		出力2次元配列
-  \param winSize	boxフィルタのウィンドウの行幅(高さ)
+  \param op		結合葎を満たす2項演算子
+  \param null_val	任意の値valに対して op(null_val, val) = val となる値
+  \param winRadius	ウィンドウの半径
 */
-template <class FILTER, class IN, class OUT, class OP>
+template <class FILTER, class IN, class OUT, class OP, class T>
 __global__ void
 morphology(range<range_iterator<IN> > in,
-	   range<range_iterator<OUT> > out, OP op, int winRadius)
+	   range<range_iterator<OUT> > out, OP op, T null_val, int winRadius)
 {
 
-    using value_type	= typename std::iterator_traits<IN>::value_type;
+    using value_type	= T;
     using BlockScan	= cub::BlockScan<value_type, FILTER::BlockDimX,
 					 cub::BLOCK_SCAN_RAKING,
 					 FILTER::BlockDimY>;
     using TempStorage	= typename BlockScan::TempStorage;
 
+    const int	ncol = in.cbegin().size();
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
-    const int	xs   = ::max(x0 - winRadius, 0);
-    const int	xsiz = ::min(int(blockDim.x + winRadius),
-			     in.begin().size() - xs);
+    const int	xorg = ::max(x0 - winRadius, 0);
+    const int	xsiz = ::min(int(blockDim.x + winRadius), ncol - xorg);
     const int	ysiz = ::min(int(blockDim.y), in.size() - y0);
 
     __shared__ value_type in_s[FILTER::BlockDimY]
 			      [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
-    loadTile(slice(in.cbegin(), y0, ysiz, xs, xsiz), in_s);
+    loadTile(slice(in.cbegin(), y0, ysiz, xorg, xsiz), in_s);
     __syncthreads();
 
     const int	x = x0 + threadIdx.x;
     const int	y = y0 + threadIdx.y;
-    if (y >= in.size() || x >= in.begin().size())
+    if (y >= in.size() || x >= ncol)
 	return;
 
-    const int	winSize = 2*winRadius + 1;
+    __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+    __shared__ TempStorage	tmp;
 
-    for (int xl = 0; xl < in.begin().size(); xl += winSize)
+    const int	x1 = ::min(x0 + blockDim.x, ncol);
+    for (int wx0 = x0; wx0 < x1; )
     {
-	const int	xr = ::min(xl + winSize, in.begin().size());
-	if (xl <= x && x < xr)
+	const int	wx1  = ::min(wx0 + 2*winRadius + 1, ncol);
+	value_type	rval = null_val;
+	value_type	sval = null_val;
+
+	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
 	{
+	    if (wx0 + winRadius < ncol && x + winRadius < ncol)
+		sval = in_s[x + winRadius - xorg];
+
+	    if (winRadius <= wx0 && winRadius <= x)
+		rval =;
 	}
+
+	value_type	r;
+	BlockScan(tmp).InclusiveScan(rval, r, op);
+	value_type	s;
+	BlockScan(tmp).InclusiveScan(sval, s, op);
+
+	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
+	    out_s[y][x] = op(r, s);
+
+	wx0 = wx1;
     }
 
-    __shared__ TempStorage	tmp;
-    BlockScan(tmp).InclusiveScan(, op);
     __syncthreads();
-
-    __shared__ out_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
 
     const int	ye = ysiz - winSize + 1;
 
@@ -131,72 +149,8 @@ morphology(range<range_iterator<IN> > in,
 	else
 	{
 	    if (threadIdx.y < ye)
-		out[x0 + threadIdx.x][y0 + threadIdx.y]
-		    = out_s[threadIdx.y][threadIdx.x];
+		out[x][y] = out_s[threadIdx.y][threadIdx.x];
 	}
-    }
-}
-
-template <class FILTER, class IN, class OUT, class OP> __global__ void
-box_filterH(IN inL, IN inR, int ncols, OUT out, OP op, int winSizeH,
-	    int strideL, int strideR, int strideXD, int strideD)
-{
-    using value_type  =	typename FILTER::value_type;
-
-    __shared__ value_type val_s[FILTER::WinSizeMax]
-			       [FILTER::BlockDimY][FILTER::BlockDimX + 1];
-
-    const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
-    const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 行
-
-    inL += __mul24(y, strideL);
-    inR += (__mul24(y, strideR)  + d);
-    out += (__mul24(y, strideXD) + d);
-
-  // 最初のwinSize画素分の相違度を計算してvalに積算
-    auto	val = (val_s[0][threadIdx.y][threadIdx.x] = op(*inL, *inR));
-    for (int i = 0; ++i != winSizeH; )
-	val += (val_s[i][threadIdx.y][threadIdx.x] = op(*++inL, *++inR));
-    *out = val;
-
-  // 逐次的にvalを更新して出力
-    for (int i = 0; --ncols; )
-    {
-	val -= val_s[i][threadIdx.y][threadIdx.x];
-	*(out += strideD) = (val += (val_s[i][threadIdx.y][threadIdx.x]
-				     = op(*++inL, *++inR)));
-	if (++i == winSizeH)
-	    i = 0;
-    }
-}
-
-template <class FILTER, class IN> __global__ void
-box_filterV(IN in, int nrows, int winSizeV, int strideXD, int strideD)
-{
-    using value_type  =	typename FILTER::value_type;
-
-    __shared__ value_type	in_s[FILTER::WinSizeMax]
-				    [FILTER::BlockDimY][FILTER::BlockDimX + 1];
-
-    const auto	d = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;	// 視差
-    const auto	x = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;	// 列
-
-    in += (__mul24(x, strideD) + d);
-
-    auto	out = in;
-    auto	val = (in_s[0][threadIdx.y][threadIdx.x] = *in);
-    for (int i = 0; ++i < winSizeV; )
-  	val += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD));
-    *out = val;
-
-    for (int i = 0; --nrows; )
-    {
-	val -= in_s[i][threadIdx.y][threadIdx.x];
-	*(out += strideXD)
-	    = (val += (in_s[i][threadIdx.y][threadIdx.x] = *(in += strideXD)));
-
-	if (++i == winSizeV)
-	    i = 0;
     }
 }
 

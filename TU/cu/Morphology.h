@@ -90,14 +90,13 @@ morphology(range<range_iterator<IN> > in,
 			      [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
     loadTile(slice(in.cbegin(), y0, ysiz, xorg, xsiz), in_s);
     __syncthreads();
-
+    
     const int	x = x0 + threadIdx.x;
     const int	y = y0 + threadIdx.y;
     if (y >= in.size() || x >= ncol)
 	return;
 
-    __shared__ value_type	r[2*FILTER::WinRadiusMax + 1];
-    __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
+    __shared__ value_type	r[FILTER::BlockDimY][FILTER::BlockDimX];
     __shared__ TempStorage	tmp;
 
     const int	x1 = ::min(x0 + blockDim.x, ncol);
@@ -110,48 +109,23 @@ morphology(range<range_iterator<IN> > in,
 	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
 	{
 	    if (winRadius <= x)
-		rval = in_s[wx0 + winRadius - (x - wx0) - xorg];
+		rval = in_s[y][wx0 + winRadius - (x - wx0) - xorg];
 
 	    if (x + winRadius < ncol)
-		sval = in_s[x + winRadius - xorg];
+		sval = in_s[y][x + winRadius - xorg];
 	}
 
-	BlockScan(tmp).InclusiveScan(rval, r[wx0 + winRadius - x], op);
+	BlockScan(tmp).InclusiveScan(rval, r[y][wx0 + winRadius - x], op);
 	value_type	s;
 	BlockScan(tmp).InclusiveScan(sval, s, op);
 	__syncthreads();
+	printf("[(%d,%d) x=%d in [%d, %d)]: sval=%f, s=%f, null_val=%f\n",
+	       threadIdx.x, threadIdx.y, x, wx0, wx1, rval, r[x - xorg]);
 
 	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
-	    out_s[y][x] = op(r[x - wx0], s);
+	    out[y][x] = s;
 
 	wx0 = wx1;
-    }
-
-    __syncthreads();
-
-    const int	ye = ysiz - winSize + 1;
-
-    if (threadIdx.x < xsiz && ye > 0)
-    {
-	if (threadIdx.y == 0)		// 各列を並列に縦方向積算
-	{
-	    const convolver_type	convolve;
-	    convolve(in_s, out_s, winSize, ye);
-	}
-	__syncthreads();
-
-      // 結果を格納
-	if (xsiz == blockDim.x)
-	{
-	    if (threadIdx.x < ye)
-		out[x0 + threadIdx.y][y0 + threadIdx.x]
-		    = out_s[threadIdx.x][threadIdx.y];
-	}
-	else
-	{
-	    if (threadIdx.y < ye)
-		out[x][y] = out_s[threadIdx.y][threadIdx.x];
-	}
     }
 }
 
@@ -162,14 +136,14 @@ morphology(range<range_iterator<IN> > in,
 *  class Morphology<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T, class BLOCK_TRAITS=BlockTraits<128, 4>, class CLOCK=void>
+template <class T, class BLOCK_TRAITS=BlockTraits<8, 4>, class CLOCK=void>
 class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   private:
     using profiler_t	= Profiler<CLOCK>;
 
   public:
-    using value_type	= typename convolver_type::value_type;
+    using value_type	= T;
 
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
@@ -177,11 +151,6 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
     constexpr static size_t	WinRadiusMax = (BlockDimX - 1)/2;
 
   public:
-  //! CUDAによる2次元boxフィルタを生成する．
-  /*!
-    \param winRadiusV	boxフィルタのウィンドウの行幅(高さ)
-    \param winRadiusH	boxフィルタのウィンドウの列幅(幅)
-   */
 		Morphology(size_t winRadiusV, size_t winRadiusH)
 		    :profiler_t(3)
 		{
@@ -189,23 +158,8 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 		    setWinSizeH(winRadiusH);
 		}
 
-  //! boxフィルタのウィンドウの高さを返す．
-  /*!
-    \return	boxフィルタのウィンドウの高さ
-   */
     size_t	winRadiusV()		const	{ return _winRadiusV; }
-
-  //! boxフィルタのウィンドウの幅を返す．
-  /*!
-    \return	boxフィルタのウィンドウの幅
-   */
     size_t	winRadiusH()		const	{ return _winRadiusH; }
-
-  //! boxフィルタのウィンドウの高さを設定する．
-  /*!
-    \param winRadiusV	boxフィルタのウィンドウの高さ
-    \return		このboxフィルタ
-   */
     Morphology&	setWinSizeV(size_t winRadius)
 		{
 		    if (winRadius > WinRadiusMax)
@@ -213,12 +167,6 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 		    _winRadiusV = winRadius;
 		    return *this;
 		}
-
-  //! boxフィルタのウィンドウの幅を設定する．
-  /*!
-    \param winRadiusH	boxフィルタのウィンドウの幅
-    \return		このboxフィルタ
-   */
     Morphology&	setWinSizeH(size_t winRadius)
 		{
 		    if (winRadius > WinRadiusMax)
@@ -227,15 +175,9 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 		    return *this;
 		}
 
-  //! 与えられた2次元配列とこのフィルタの畳み込みを行う
-  /*!
-    \param row	入力2次元データ配列の先頭行を指す反復子
-    \param rowe	入力2次元データ配列の末尾の次の行を指す反復子
-    \param rowO	出力2次元データ配列の先頭行を指す反復子
-  */
-    template <class ROW, class ROW_O>
+    template <class ROW, class ROW_O, class OP>
     void	apply(ROW row, ROW rowe,
-		      ROW_O rowO, bool shift=false)		const	;
+		      ROW_O rowO, OP op, T null_val)		const	;
 
   private:
     size_t			_winRadiusV;
@@ -244,45 +186,25 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 };
 
 #if defined(__NVCC__)
-template <class CONVOLVER, class BOX_TRAITS, size_t WMAX, class CLOCK>
-template <class ROW, class ROW_O> void
-Morphology<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::apply(ROW row, ROW rowe,
-							 ROW_O rowO,
-							 bool shift) const
+template <class T, class BOX_TRAITS, class CLOCK>
+template <class ROW, class ROW_O, class OP> void
+Morphology<T, BOX_TRAITS, CLOCK>::apply(ROW row, ROW rowe, ROW_O rowO,
+					OP op, T null_val) const
 {
-    using	std::size;
-
     profiler_t::start(0);
 
     const size_t nrows = std::distance(row, rowe);
-    if (nrows < _winRadiusV)
-	return;
+    const size_t ncols = std::size(*row);
 
-    const size_t ncols = size(*row);
-    if (ncols < _winRadiusH)
-	return;
-
-    _buf.resize(ncols, outSizeV(nrows));
+    _buf.resize(ncols, nrows);
 
   // Accumulate vertically.
     profiler_t::start(1);
-    const dim3	threads(BlockDim, BlockDim);
+    const dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(divUp(ncols, threads.x), divUp(nrows, threads.y));
     device::morphology<Morphology><<<blocks, threads>>>(
-	cu::make_range(row, nrows),
-	cu::make_range(_buf.begin(), _buf.nrow()), _winRadiusV);
-    gpuCheckLastError();
-
-  // Accumulate horizontally.
-    cudaDeviceSynchronize();
-    profiler_t::start(2);
-    blocks.x = divUp(_buf.ncol(), threads.x);
-    blocks.y = divUp(_buf.nrow(), threads.y);
-    device::morphology<Morphology><<<blocks, threads>>>(
-	cu::make_range(_buf.cbegin(), _buf.nrow()),
-	cu::slice(rowO, (shift ? offsetV() : 0), outSizeV(nrows),
-			(shift ? offsetH() : 0), outSizeH(ncols)),
-	_winRadiusH);
+	cu::make_range(row,  nrows),
+	cu::make_range(rowO, nrows), op, null_val, _winRadiusV);
     gpuCheckLastError();
 
     cudaDeviceSynchronize();

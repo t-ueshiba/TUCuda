@@ -83,7 +83,7 @@ morphology(range<range_iterator<IN> > in,
     const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
     const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
     const int	xorg = ::max(x0 - winRadius, 0);
-    const int	xsiz = ::min(int(blockDim.x + winRadius), ncol - xorg);
+    const int	xsiz = ::min(int(blockDim.x + 2*winRadius), ncol - xorg);
     const int	ysiz = ::min(int(blockDim.y), in.size() - y0);
 
     __shared__ value_type in_s[FILTER::BlockDimY]
@@ -96,6 +96,7 @@ morphology(range<range_iterator<IN> > in,
     if (y >= in.size() || x >= ncol)
 	return;
 
+    __shared__ value_type	r[2*FILTER::WinRadiusMax + 1];
     __shared__ value_type	out_s[FILTER::BlockDim][FILTER::BlockDim + 1];
     __shared__ TempStorage	tmp;
 
@@ -108,20 +109,20 @@ morphology(range<range_iterator<IN> > in,
 
 	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
 	{
-	    if (wx0 + winRadius < ncol && x + winRadius < ncol)
-		sval = in_s[x + winRadius - xorg];
+	    if (winRadius <= x)
+		rval = in_s[wx0 + winRadius - (x - wx0) - xorg];
 
-	    if (winRadius <= wx0 && winRadius <= x)
-		rval =;
+	    if (x + winRadius < ncol)
+		sval = in_s[x + winRadius - xorg];
 	}
 
-	value_type	r;
-	BlockScan(tmp).InclusiveScan(rval, r, op);
+	BlockScan(tmp).InclusiveScan(rval, r[wx0 + winRadius - x], op);
 	value_type	s;
 	BlockScan(tmp).InclusiveScan(sval, s, op);
+	__syncthreads();
 
 	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
-	    out_s[y][x] = op(r, s);
+	    out_s[y][x] = op(r[x - wx0], s);
 
 	wx0 = wx1;
     }
@@ -158,24 +159,22 @@ morphology(range<range_iterator<IN> > in,
 #endif	// __NVCC__
 
 /************************************************************************
-*  class Morphology<CONVOLVER, BLOCK_TRAITS, WMAX, CLOCK>		*
+*  class Morphology<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class CONVOLVER=device::box_convolver<float>,
-	  class BLOCK_TRAITS=BlockTraits<>, size_t WMAX=23, class CLOCK=void>
+template <class T, class BLOCK_TRAITS=BlockTraits<128, 4>, class CLOCK=void>
 class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   private:
     using profiler_t	= Profiler<CLOCK>;
 
   public:
-    using convolver_type= CONVOLVER;
     using value_type	= typename convolver_type::value_type;
 
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
-    constexpr static size_t	BlockDim   = BlockDimY;
-    constexpr static size_t	WinSizeMax = WMAX;
+    constexpr static size_t	BlockDim     = BlockDimX;
+    constexpr static size_t	WinRadiusMax = (BlockDimX - 1)/2;
 
   public:
   //! CUDAによる2次元boxフィルタを生成する．
@@ -209,8 +208,8 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
    */
     Morphology&	setWinSizeV(size_t winRadius)
 		{
-		    if (winRadius > WinSizeMax)
-			throw std::runtime_error("Too large window size!");
+		    if (winRadius > WinRadiusMax)
+			throw std::runtime_error("Too large window radius!");
 		    _winRadiusV = winRadius;
 		    return *this;
 		}
@@ -222,39 +221,11 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
    */
     Morphology&	setWinSizeH(size_t winRadius)
 		{
-		    if (winRadius > WinSizeMax)
-			throw std::runtime_error("Too large window size!");
+		    if (winRadius > WinRadiusMax)
+			throw std::runtime_error("Too large window radius!");
 		    _winRadiusH = winRadius;
 		    return *this;
 		}
-
-  //! 与えられた高さを持つ入力データ列に対する出力データ列の高さを返す．
-  /*!
-    \param inSizeV	入力データ列の高さ
-    \return		出力データ列の高さ
-   */
-    size_t	outSizeV(size_t inSize)	const	{return inSize + 1 - _winRadiusV;}
-
-  //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
-  /*!
-    \param inSizeH	入力データ列の幅
-    \return		出力データ列の幅
-   */
-    size_t	outSizeH(size_t inSize)	const	{return inSize + 1 - _winRadiusH;}
-
-  //! 与えられた高さを持つ入力データ列に対する出力データ列の高さを返す．
-  /*!
-    \param inSizeV	入力データ列の高さ
-    \return		出力データ列の高さ
-   */
-    size_t	offsetV()		const	{return _winRadiusV/2;}
-
-  //! 与えられた幅を持つ入力データ列に対する出力データ列の幅を返す．
-  /*!
-    \param inSizeH	入力データ列の幅
-    \return		出力データ列の幅
-   */
-    size_t	offsetH()		const	{return _winRadiusH/2;}
 
   //! 与えられた2次元配列とこのフィルタの畳み込みを行う
   /*!

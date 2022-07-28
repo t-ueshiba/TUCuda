@@ -17,7 +17,7 @@ template <class T> void
 cudaJob(const Array2<T>& in, size_t winRadius)
 {
     cu::Array2<T>	in_d(in);
-    cu::Array2<T>	out_d(in_d.ncol(), in_d.nrow());
+    cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
 
     const cu::Morphology<T, cu::BlockTraits<8, 2> >	filter(winRadius,
 							       winRadius);

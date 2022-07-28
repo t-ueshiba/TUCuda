@@ -126,7 +126,7 @@ morphology(range<range_iterator<IN> > in,
 	       sval, s, rval, r[y - y0][x - xorg]);
 
 	if (w0 <= x && x < w1)	// xがwindow内にあるか？
-	    out[y][x] = op(s, r[y - y0][x - xorg]);
+	    out[y][x] = op(r[y - y0][x], s);
 
 	w0 = w1;
     }

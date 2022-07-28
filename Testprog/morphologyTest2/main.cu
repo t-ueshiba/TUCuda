@@ -1,9 +1,9 @@
 /*
  *  $Id: main.cu,v 1.1 2012-08-30 00:13:51 ueshiba Exp $
  */
+#include <limits>
 #include "TU/Image++.h"
 #include "TU/Profiler.h"
-#include "TU/BoxFilter.h"
 #include "TU/cu/Array++.h"
 #include "TU/cu/algorithm.h"
 #include "TU/cu/functional.h"
@@ -14,29 +14,18 @@
 namespace TU
 {
 template <class T> void
-doJob(const Image<T>& in, size_t winRadius)
+cudaJob(const Array2<T>& in, size_t winRadius)
 {
     cu::Array2<T>	in_d(in);
-    cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
+    cu::Array2<T>	out_d(in_d.ncol(), in_d.nrow());
 
-    const cu::Morphology<T, cu::BlockTraits<8, 4> >	filter(winRadius, winRadius);
-    filter.apply(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		 thrust::maximum<T>(), 0);
-    cudaDeviceSynchronize();
-#if 0
-    Profiler<cu::clock>	cuProfiler(1);
-    constexpr size_t	NITER = 1000;
-    for (size_t n = 0; n < NITER; ++n)
-    {
-	cuProfiler.start(0);
-	filter.apply(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		     thrust::maximum<T>(), 0);
-	cuProfiler.nextFrame();
-    }
-    cuProfiler.print(std::cerr);
-#endif
-    const Image<T>	out(out_d);
-    out.save(std::cout);
+    const cu::Morphology<T, cu::BlockTraits<8, 2> >	filter(winRadius,
+							       winRadius);
+    filter.apply_debug(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		       thrust::maximum<T>(), 0);
+
+    cu::Array2<T>	out(out_d);
+    std::cerr << "--- out ---\n" << out;
 }
 
 }	// namespace TU
@@ -61,11 +50,15 @@ main(int argc, char* argv[])
     {
 	using value_type = float;
 
-	TU::Image<value_type>	in;
-	in.restore(std::cin);
-	in.save(std::cout);
+	std::cerr << "Input array2 >> ";
+	for (TU::Array2<value_type> in; std::cin >> in; )
+	{
+	    std::cerr << "--- array2 ---\n" << in << std::endl;
 
-	TU::doJob(in, winRadius);
+	    cudaJob(in, winRadius);
+
+	    std::cerr << "Input array2 >> ";
+	}
     }
     catch (std::exception& err)
     {

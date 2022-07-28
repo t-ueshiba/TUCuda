@@ -90,42 +90,45 @@ morphology(range<range_iterator<IN> > in,
 			      [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
     loadTile(slice(in.cbegin(), y0, ysiz, xorg, xsiz), in_s);
     __syncthreads();
-    
+
     const int	x = x0 + threadIdx.x;
     const int	y = y0 + threadIdx.y;
     if (y >= in.size() || x >= ncol)
 	return;
 
-    __shared__ value_type	r[FILTER::BlockDimY][FILTER::BlockDimX];
+    __shared__ value_type	r[FILTER::BlockDimY]
+				 [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
     __shared__ TempStorage	tmp;
 
     const int	x1 = ::min(x0 + blockDim.x, ncol);
-    for (int wx0 = x0; wx0 < x1; )
+    for (int w0 = x0; w0 < x1; )
     {
-	const int	wx1  = ::min(wx0 + 2*winRadius + 1, ncol);
+	const int	w1   = ::min(w0 + 2*winRadius + 1, ncol);
+	const int	xr   = 2*w0 + winRadius - x;
 	value_type	rval = null_val;
 	value_type	sval = null_val;
 
-	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
+	if (w0 <= x && x < w1)	// xがwindow内にあるか？
 	{
-	    if (winRadius <= x)
-		rval = in_s[y][wx0 + winRadius - (x - wx0) - xorg];
+	    if (xorg <= xr)
+		rval = in_s[y - y0][xr - xorg];
 
 	    if (x + winRadius < ncol)
-		sval = in_s[y][x + winRadius - xorg];
+		sval = in_s[y - y0][x + winRadius - xorg];
 	}
 
-	BlockScan(tmp).InclusiveScan(rval, r[y][wx0 + winRadius - x], op);
+	BlockScan(tmp).InclusiveScan(rval, r[y - y0][xr + winRadius], op);
 	value_type	s;
 	BlockScan(tmp).InclusiveScan(sval, s, op);
 	__syncthreads();
-	printf("[(%d,%d) x=%d in [%d, %d)]: sval=%f, s=%f, null_val=%f\n",
-	       threadIdx.x, threadIdx.y, x, wx0, wx1, rval, r[x - xorg]);
+	printf("[(%d,%d) x=%d in [%d, %d) x'=%d]: sval=%f, s=%f, rval=%f, r=%f\n",
+	       threadIdx.x, threadIdx.y, x, w0, w1, xr - xorg,
+	       sval, s, rval, r[y - y0][x - xorg]);
 
-	if (wx0 <= x && x < wx1)	// xがwindow内にあるか？
-	    out[y][x] = s;
+	if (w0 <= x && x < w1)	// xがwindow内にあるか？
+	    out[y][x] = op(s, r[y - y0][x - xorg]);
 
-	wx0 = wx1;
+	w0 = w1;
     }
 }
 
@@ -136,7 +139,7 @@ morphology(range<range_iterator<IN> > in,
 *  class Morphology<T, BLOCK_TRAITS, WMAX, CLOCK>			*
 ************************************************************************/
 //! CUDAによる2次元boxフィルタを表すクラス
-template <class T, class BLOCK_TRAITS=BlockTraits<8, 4>, class CLOCK=void>
+template <class T, class BLOCK_TRAITS=BlockTraits<128, 4>, class CLOCK=void>
 class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 {
   private:
@@ -147,7 +150,6 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
 
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
-    constexpr static size_t	BlockDim     = BlockDimX;
     constexpr static size_t	WinRadiusMax = (BlockDimX - 1)/2;
 
   public:
@@ -179,6 +181,10 @@ class Morphology : public BLOCK_TRAITS, public Profiler<CLOCK>
     void	apply(ROW row, ROW rowe,
 		      ROW_O rowO, OP op, T null_val)		const	;
 
+    template <class ROW, class ROW_O, class OP>
+    void	apply_debug(ROW row, ROW rowe,
+			    ROW_O rowO, OP op, T null_val)	const	;
+
   private:
     size_t			_winRadiusV;
     size_t			_winRadiusH;
@@ -191,6 +197,7 @@ template <class ROW, class ROW_O, class OP> void
 Morphology<T, BOX_TRAITS, CLOCK>::apply(ROW row, ROW rowe, ROW_O rowO,
 					OP op, T null_val) const
 {
+    std::cerr << "OK0" << std::endl;
     profiler_t::start(0);
 
     const size_t nrows = std::distance(row, rowe);
@@ -198,18 +205,54 @@ Morphology<T, BOX_TRAITS, CLOCK>::apply(ROW row, ROW rowe, ROW_O rowO,
 
     _buf.resize(ncols, nrows);
 
-  // Accumulate vertically.
+  // Apply filter in horizontal direction.
+    std::cerr << "OK1" << std::endl;
     profiler_t::start(1);
     const dim3	threads(BlockDimX, BlockDimY);
     dim3	blocks(divUp(ncols, threads.x), divUp(nrows, threads.y));
     device::morphology<Morphology><<<blocks, threads>>>(
 	cu::make_range(row,  nrows),
+	cu::make_range(_buf.begin(), _buf.nrow()), op, null_val, _winRadiusH);
+    gpuCheckLastError();
+
+  // Apply filter in horizontal direction.
+    std::cerr << "OK2" << std::endl;
+    profiler_t::start(2);
+    blocks.x = divUp(nrows, threads.x);
+    blocks.y = divUp(ncols, threads.y);
+    device::morphology<Morphology><<<blocks, threads>>>(
+	cu::make_range(_buf.cbegin(), _buf.nrow()),
 	cu::make_range(rowO, nrows), op, null_val, _winRadiusV);
+    gpuCheckLastError();
+
+    std::cerr << "OK3" << std::endl;
+    cudaDeviceSynchronize();
+    profiler_t::nextFrame();
+}
+
+template <class T, class BOX_TRAITS, class CLOCK>
+template <class ROW, class ROW_O, class OP> void
+Morphology<T, BOX_TRAITS, CLOCK>::apply_debug(ROW row, ROW rowe, ROW_O rowO,
+					      OP op, T null_val) const
+{
+    profiler_t::start(0);
+
+    const size_t nrows = std::distance(row, rowe);
+    const size_t ncols = std::size(*row);
+
+  // Apply filter in horizontal direction.
+    profiler_t::start(1);
+    const dim3	threads(BlockDimX, BlockDimY);
+    dim3	blocks(divUp(ncols, threads.x), divUp(nrows, threads.y));
+    device::morphology<Morphology><<<blocks, threads>>>(
+	cu::make_range(row,  nrows),
+	cu::make_range(rowO, nrows), op, null_val, _winRadiusH);
     gpuCheckLastError();
 
     cudaDeviceSynchronize();
     profiler_t::nextFrame();
 }
+
 #endif	// __NVCC__
 }	// namespace cu
 }	// namespace TU

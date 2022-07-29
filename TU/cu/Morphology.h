@@ -79,9 +79,9 @@ morphology(range<range_iterator<IN> > in,
 					 FILTER::BlockDimY>;
     using TempStorage	= typename BlockScan::TempStorage;
 
-    const int	ncol = in.cbegin().size();
-    const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
-    const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
+    const int	ncol = in.cbegin().size();		 // 画像幅
+    const int	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左端
+    const int	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック上端
     const int	xorg = ::max(x0 - winRadius, 0);
     const int	xsiz = ::min(int(blockDim.x + 2*winRadius), ncol - xorg);
     const int	ysiz = ::min(int(blockDim.y), in.size() - y0);
@@ -100,33 +100,34 @@ morphology(range<range_iterator<IN> > in,
 				 [FILTER::BlockDimX + 2*FILTER::WinRadiusMax];
     __shared__ TempStorage	tmp;
 
-    const int	x1 = ::min(x0 + blockDim.x, ncol);
+    const int	x1 = ::min(x0 + blockDim.x, ncol);	// ブロック右端
     for (int w0 = x0; w0 < x1; )
     {
-	const int	w1   = ::min(w0 + 2*winRadius + 1, ncol);
+	const int	w1   = w0 + 2*winRadius + 1;
 	const int	xr   = 2*w0 + winRadius - x;
 	value_type	rval = null_val;
 	value_type	sval = null_val;
 
 	if (w0 <= x && x < w1)	// xがwindow内にあるか？
 	{
-	    if (xorg <= xr)
+	    if (xorg <= xr && xr < ncol)
 		rval = in_s[y - y0][xr - xorg];
 
 	    if (x + winRadius < ncol)
 		sval = in_s[y - y0][x + winRadius - xorg];
 	}
 
-	BlockScan(tmp).InclusiveScan(rval, r[y - y0][xr + winRadius], op);
+	BlockScan(tmp).InclusiveScan(rval, r[y - y0][xr + winRadius - xorg],
+				     op);
 	value_type	s;
 	BlockScan(tmp).InclusiveScan(sval, s, op);
 	__syncthreads();
 	printf("[(%d,%d) x=%d in [%d, %d) x'=%d]: sval=%f, s=%f, rval=%f, r=%f\n",
-	       threadIdx.x, threadIdx.y, x, w0, w1, xr - xorg,
+	       threadIdx.x, threadIdx.y, x, w0, w1, xr,
 	       sval, s, rval, r[y - y0][x - xorg]);
 
 	if (w0 <= x && x < w1)	// xがwindow内にあるか？
-	    out[y][x] = op(r[y - y0][x], s);
+	    out[y][x] = op(r[y - y0][x - xorg], s);
 
 	w0 = w1;
     }

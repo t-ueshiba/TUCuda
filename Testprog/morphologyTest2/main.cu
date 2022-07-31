@@ -48,7 +48,7 @@ main(int argc, char* argv[])
 
     try
     {
-	using value_type = float;
+	using value_type = int;
 
 	std::cerr << "Input array2 >> ";
 	for (TU::Array2<value_type> in; std::cin >> in; )

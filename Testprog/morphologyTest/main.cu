@@ -19,9 +19,9 @@ doJob(const Image<T>& in, size_t winRadius)
     cu::Array2<T>	in_d(in);
     cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
 
-    const cu::Morphology<T, cu::BlockTraits<8, 4> >	filter(winRadius, winRadius);
-    filter.apply(in_d.cbegin(), in_d.cend(), out_d.begin(),
-		 thrust::maximum<T>(), 0);
+    const cu::Morphology<T, cu::BlockTraits<128, 1> >	filter(winRadius, winRadius);
+    filter.apply_debug(in_d.cbegin(), in_d.cend(), out_d.begin(),
+		       thrust::maximum<T>(), 0);
     cudaDeviceSynchronize();
 #if 0
     Profiler<cu::clock>	cuProfiler(1);

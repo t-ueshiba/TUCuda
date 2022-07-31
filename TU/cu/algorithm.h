@@ -69,7 +69,7 @@ struct BlockTraits
 /************************************************************************
 *  global functions							*
 ************************************************************************/
-static inline size_t
+inline size_t
 divUp(size_t dim, size_t blockDim)
 {
     return (dim + blockDim - 1)/blockDim;
@@ -141,6 +141,14 @@ namespace device
 	  for (int tx = threadIdx.x; tx < row.size(); tx += blockDim.x)
 	      dst[tx][ty] = row[tx];
       }
+  }
+
+  template <class T, size_t H, size_t W> __device__ __forceinline__ static void
+  reverse(const T src[H][W], T dst[][W])
+  {
+      for (int ty = threadIdx.y; ty < H; ty += blockDim.y)
+	  for (int tx = threadIdx.x; tx < W; tx += blockDim.x)
+	      dst[ty][tx] = src[ty][W - 1 - tx];
   }
 }	// namespace device
 #endif

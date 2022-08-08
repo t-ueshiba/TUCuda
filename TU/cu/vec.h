@@ -1477,15 +1477,20 @@ template <class T>
 class Intrinsics
 {
   public:
+    using element_type	= T;
+    using point2_type	= vec<element_type, 2>;
+    using point3_type	= vec<element_type, 3>;
+
+  public:
     Intrinsics()						= default;
     template <class ITER_K, class ITER_D> __host__ __device__
-    Intrinsics(ITER_K K, ITER_D d, T scale=T(1))
+    Intrinsics(ITER_K K, ITER_D d, element_type scale=1)
     {
 	initialize(K, d, scale);
     }
 
     template <class ITER_K, class ITER_D> __host__ __device__ void
-    initialize(ITER_K K, ITER_D d, T scale=T(1))
+    initialize(ITER_K K, ITER_D d, element_type scale=1)
     {
 	_flen.x = scale * *K;
 	std::advance(K, 2);
@@ -1500,27 +1505,28 @@ class Intrinsics
 	_d[3] = *++d;
     }
 
-    __host__ __device__ vec<T, 2>
-    operator ()(T u, T v) const
+  //! 画素座標における2D点を正規化画像座標における2D点に変換
+    __host__ __device__ point2_type
+    operator ()(element_type u, element_type v) const
     {
-	constexpr static T	MAX_ERR  = 0.001*0.001;
-	constexpr static int	MAX_ITER = 5;
+	constexpr static element_type	MAX_ERR  = 0.001*0.001;
+	constexpr static int		MAX_ITER = 5;
 
-	const vec<T, 2>	uv{u, v};
-	auto		xy  = (uv - _uv0)/_flen;
-	const auto	xy0 = xy;
+	const point2_type	uv{u, v};
+	auto			xy  = (uv - _uv0)/_flen;
+	const auto		xy0 = xy;
 
       // compensate distortion iteratively
 	for (int n = 0; n < MAX_ITER; ++n)
 	{
 	    const auto	r2 = cu::square(xy);
-	    const auto	k  = T(1) + (_d[0] + _d[1]*r2)*r2;
-	    if (k < T(0))
+	    const auto	k  = element_type(1) + (_d[0] + _d[1]*r2)*r2;
+	    if (k < element_type(0))
 		break;
 
-	    const auto	a = T(2)*xy.x*xy.y;
-	    vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + T(2)*xy.x*xy.x),
-			      _d[2]*(r2 + T(2)*xy.y*xy.y) + _d[3]*a};
+	    const auto	a = element_type(2)*xy.x*xy.y;
+	    vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+			      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
 	    const auto	uv_proj = _flen*(k*xy + delta) + _uv0;
 
 	    if (cu::square(uv_proj - uv) < MAX_ERR)
@@ -1532,36 +1538,66 @@ class Intrinsics
 	return xy;
     }
 
-    __host__ __device__ vec<T, 2>
-    operator ()(const vec<T, 2>& uv) const
+  //! 画素座標における2D点を正規化画像座標における2D点に変換
+    __host__ __device__ point2_type
+    operator ()(const point2_type& uv) const
     {
 	return (*this)(uv.x, uv.y);
     }
 
-    __host__ __device__ vec<T, 3>
-    operator ()(T u, T v, T d) const
+  //! depth画像における画素座標とdepthからカメラ座標における3D点を計算
+    __host__ __device__ point3_type
+    operator ()(element_type u, element_type v, element_type d) const
     {
 	const auto	xy = (*this)(u, v);
 	return {d*xy.x, d*xy.y, d};
     }
 
-    __host__ __device__ vec<T, 2>
-    operator ()(const vec<T, 3>& p) const
+  //! カメラ座標における3D点からそれが投影される画像点の画素座標を計算
+    __host__ __device__ point2_type
+    operator ()(const point3_type& p) const
     {
-	const vec<T, 2>	xy(p.x/p.z, p.y/p.z);
-	const auto	r2 = cu::square(xy);
-	const auto	k  = T(1) + (_d[0] + _d[1]*r2)*r2;
-	const auto	a  = T(2)*xy.x*xy.y;
-	vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + T(2)*xy.x*xy.x),
-			      _d[2]*(r2 + T(2)*xy.y*xy.y) + _d[3]*a};
+	const point2_type	xy(p.x/p.z, p.y/p.z);
+	const auto		r2 = cu::square(xy);
+	const auto		k  = 1 + (_d[0] + _d[1]*r2)*r2;
+	const auto		a  = element_type(2)*xy.x*xy.y;
+	vec<T, 2>		delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
 
 	return _flen*(k*xy + delta) + _uv0;
     }
 
   private:
-    vec<T, 2>	_flen;
-    vec<T, 2>	_uv0;
-    T		_d[4];
+    vec<element_type, 2>	_flen;
+    point2_type			_uv0;
+    element_type		_d[4];
+};
+
+/************************************************************************
+*  class Camera<T>							*
+************************************************************************/
+template <class T>
+class Camera
+{
+  public:
+    using rigidity_type		= Rigidity<T, 3>;
+    using intrinsics_type	= Intrinsics<T>;
+
+    using element_type		= typename intrinsics_type::element_type;
+    using point2_type		= typename intrinsics_type::point2_type;
+    using point3_type		= typename intrinsics_type::point3_type;
+    using direction_type	= typename rigidity_type::direction_type;
+
+  public:
+    __host__ __device__
+    point2_type		operator ()(const point3_type& p) const
+			{
+			    return _intrinsics(_rigidity(p));
+			}
+
+  private:
+    rigidity_type	_rigidity;
+    intrinsics_type	_intrinsics;
 };
 
 /************************************************************************

@@ -1582,18 +1582,27 @@ class Camera
   public:
     using rigidity_type		= Rigidity<T, 3>;
     using intrinsics_type	= Intrinsics<T>;
-
     using element_type		= typename intrinsics_type::element_type;
     using point2_type		= typename intrinsics_type::point2_type;
     using point3_type		= typename intrinsics_type::point3_type;
     using direction_type	= typename rigidity_type::direction_type;
 
   public:
+    __host__ __device__		Camera(const rigidity_type& rigidity,
+				       const intrinsics_type& intrinsics)
+				    :_rigidity(rigidity),
+				     _intrinsics(intrinsics)
+				{}
+
     __host__ __device__
-    point2_type		operator ()(const point3_type& p) const
-			{
-			    return _intrinsics(_rigidity(p));
-			}
+    const rigidity_type&	rigidity()	const	{ return _rigidity; }
+    __host__ __device__
+    const intrinsics_type&	intrinsics()	const	{ return _intrinsics; }
+    __host__ __device__
+    point2_type			operator ()(const point3_type& p) const
+				{
+				    return _intrinsics(_rigidity(p));
+				}
 
   private:
     rigidity_type	_rigidity;

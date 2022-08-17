@@ -1484,13 +1484,13 @@ class Intrinsics
   public:
     Intrinsics()						= default;
     template <class ITER_K, class ITER_D> __host__ __device__
-    Intrinsics(ITER_K K, ITER_D d, element_type scale=1)
+    Intrinsics(ITER_K K, ITER_D d, ITER_D de, element_type scale=1)
     {
-	initialize(K, d, scale);
+	initialize(K, d, de, scale);
     }
 
     template <class ITER_K, class ITER_D> __host__ __device__ void
-    initialize(ITER_K K, ITER_D d, element_type scale=1)
+    initialize(ITER_K K, ITER_D d, ITER_D de, element_type scale=1)
     {
 	_flen.x = scale * *K;
 	std::advance(K, 2);
@@ -1499,10 +1499,11 @@ class Intrinsics
 	_flen.y = scale * *K;
 	++K;
 	_uv0.y = scale * *K;
-	_d[0] = *d;
-	_d[1] = *++d;
-	_d[2] = *++d;
-	_d[3] = *++d;
+	for (auto&& distortion : _d)
+	{
+	    distortion = (d != de ? *d : 0);
+	    ++d;
+	}
     }
 
   //! 画素座標における2D点を正規化画像座標における2D点に変換

@@ -1500,10 +1500,7 @@ class Intrinsics
 	++K;
 	_uv0.y = scale * *K;
 	for (auto&& distortion : _d)
-	{
-	    distortion = (d != de ? *d : 0);
-	    ++d;
-	}
+	    distortion = (d != de ? *d++ : 0);
     }
 
   //! 画素座標における2D点を正規化画像座標における2D点に変換

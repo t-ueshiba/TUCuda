@@ -73,12 +73,20 @@ namespace device
   __device__ __forceinline__ float  abs(float x)	{ return fabsf(x); }
   __device__ __forceinline__ float  sqrt(float x)	{ return sqrtf(x); }
   __device__ __forceinline__ float  rsqrt(float x)	{ return rsqrtf(x); }
-  __device__ __forceinline__ float  sin(float x)	{ return sinf(x); }
-  __device__ __forceinline__ float  cos(float x)	{ return cosf(x); }
+  __device__ __forceinline__ float  sin(float x)	{ return __sinf(x); }
+  __device__ __forceinline__ float  cos(float x)	{ return __cosf(x); }
+  __device__ __forceinline__ float  tan(float x)	{ return __tanf(x); }
   __device__ __forceinline__ float  atan2(float y,
 					  float x)	{ return atan2f(y, x); }
   __device__ __forceinline__ float  floor(float x)	{ return floorf(x); }
   __device__ __forceinline__ float  ceil(float x)	{ return ceilf(x); }
+  __device__ __forceinline__ float  exp(float x)	{ return __expf(x); }
+  __device__ __forceinline__ float  exp10(float x)	{ return __exp10f(x); }
+  __device__ __forceinline__ float  log(float x)	{ return __logf(x); }
+  __device__ __forceinline__ float  log2(float x)	{ return __log2f(x); }
+  __device__ __forceinline__ float  log10(float x)	{ return __log10f(x); }
+  __device__ __forceinline__ float  pow(float x,
+					float y)	{ return __powf(x, y); }
 
   __device__ __forceinline__ double min(double x,
 					double y)	{ return fmin(x, y); }

@@ -1011,18 +1011,18 @@ square(const VEC& a)
 /************************************************************************
 *  norm()								*
 ************************************************************************/
-template <class VEC> __host__ __device__ __forceinline__
-std::enable_if_t<size1<VEC>() == 1, element_t<VEC> >
+template <class VEC> __host__ __device__ __forceinline__ element_t<VEC>
 norm(const VEC& a)
 {
+    using	device::square;
+    
     return sqrt(square(a));
 }
 
 /************************************************************************
 *  normalized()								*
 ************************************************************************/
-template <class VEC> __host__ __device__ __forceinline__
-std::enable_if_t<size1<VEC>() == 1, VEC>
+template <class VEC> __host__ __device__ __forceinline__ VEC
 normalized(const VEC& a)
 {
     return a / norm(a);

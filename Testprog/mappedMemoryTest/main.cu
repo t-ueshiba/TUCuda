@@ -9,7 +9,7 @@
 #include "TU/cu/functional.h"
 #include "TU/cu/algorithm.h"
 #include "TU/cu/chrono.h"
-#include <thrust/system/cuda/experimental/pinned_allocator.h>
+//#include <thrust/system/cuda/experimental/pinned_allocator.h>
 
 namespace TU
 {
@@ -26,8 +26,8 @@ range_print(const E& expr)
 #endif
 
 template <class T>
-//using allocator_t = cu::mapped_allocator<T>;
-using allocator_t = thrust::system::cuda::experimental::pinned_allocator<T>;
+using allocator_t = cu::mapped_allocator<T>;
+  //using allocator_t = thrust::system::cuda::experimental::pinned_allocator<T>;
     
 template <class T>
 class maximal3x3

@@ -44,6 +44,7 @@
 #include "TU/Image++.h"
 #include "TU/cu/FIRGaussianConvolver.h"
 #include "TU/cu/chrono.h"
+#include "TU/cu/vec.h"
 #include <iomanip>
 
 namespace TU
@@ -56,7 +57,7 @@ namespace device
 namespace detail
 {
   template <class OUT, class VEC> __device__
-  std::enable_if_t<ncol<VEC>() == 1, OUT>
+  std::enable_if_t<size1<VEC>() == 1, OUT>
   assign_grad(OUT out, const VEC& v, int stride)
   {
       *out = v;
@@ -65,13 +66,13 @@ namespace detail
   }
 
   template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const Mat2x<T, C>& m, int stride)
+  assign_grad(OUT out, const mat2x<T, C>& m, int stride)
   {
       return assign_grad(assign_grad(out, m.x, stride), m.y, stride);
   }
 
   template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const Mat3x<T, C>& m, int stride)
+  assign_grad(OUT out, const mat3x<T, C>& m, int stride)
   {
       return assign_grad(assign_grad(assign_grad(out, m.x, stride),
 				     m.y, stride),
@@ -79,7 +80,7 @@ namespace detail
   }
 
   template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const Mat4x<T, C>& m, int stride)
+  assign_grad(OUT out, const mat4x<T, C>& m, int stride)
   {
       return assign_grad(assign_grad(assign_grad(assign_vec(out, m.x, stride),
 						 m.y, stride),
@@ -87,32 +88,20 @@ namespace detail
 			 m.w, stride);
   }
 
-  template <class OUT, class VEC> __device__ OUT
-  std::enable_if_t<ncol<VEC>() == 1, OUT>
+  template <class OUT, class VEC> __device__
+  std::enable_if_t<size1<VEC>() == 1, OUT>
   assign_moment(OUT out, const VEC& a, const VEC& b, int stride)
   {
       return assign_grad(out, ext(a, b), stride);
   }
 
   template <class OUT, class T, size_t C> __device__ void
-  assign_moment(OUT out, const Mat2x<T, C>& a, const Mat2x<T, C>& b, int stride)
+  assign_moment(OUT out, const mat2x<T, C>& a, const mat2x<T, C>& b, int stride)
   {
       assign_moment(assign_moment(out, a.x, b.x, 2*stride),
 		    a.y, b.x, 2*stride);
       assign_moment(assign_moment(out + stride, a.x, b.y, 2*stride),
 		    a.y, b.y, 2*stride);
-  }
-
-  __device__ float
-  clamp(float x, float lower, float upper)
-  {
-      return fminf(fmaxf(x, lower), upper);
-  }
-
-  __device__ double
-  clamp(double x, double lower, double upper)
-  {
-      return fmin(fmax(x, lower), upper);
   }
 }	// namespsace detail
 
@@ -135,10 +124,10 @@ compute_grad_and_moment(EDGE edgeH, EDGE edgeV, GRAD grad, MOMENT moment,
     detail::assign_moment(moment + x, g, g, strideM);
 }
 
-template <class IN, class GRAD, class MAP>
+template <class IN, class GRAD, class MAP, class T>
 __global__ void
 sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
-       int x0, int y0, int strideI, int strideG)
+       int x0, int y0, int strideI, int strideG, T intensityThresh)
 {
     using value_t = iterator_value<IN>;
 
@@ -153,8 +142,8 @@ sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
 
     if (sval > 0.5 && dval > 0.5)
     {
-	const auto	dI = detail::clamp(dval - sval,
-					   -intensityThresh, intensityThresh);
+	const auto	dI = clamp(dval - sval,
+				   -intensityThresh, intensityThresh);
 	sqr = dI * dI;
 	dIg = dI * grad[y*strideG + x];
     }

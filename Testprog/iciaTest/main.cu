@@ -2,8 +2,7 @@
  *  $Id$
  */
 #include <cstdlib>
-#include "TU/Warp.h"
-#include "TU/ICIA.h"
+#include "TU/cu/ICIA.h"
 
 namespace TU
 {
@@ -36,7 +35,7 @@ registerImages(const Image<T>& src, const Image<T>& dst,
 	       typename Map::element_type thresh, bool newton)
 {
     using namespace	std;
-    using Parameters	= typename ICIA<Map>::Parameters;
+    using Parameters	= typename cu::ICIA<Map>::Parameters;
 
     Parameters	params;
     params.newton	   = newton;
@@ -44,9 +43,10 @@ registerImages(const Image<T>& src, const Image<T>& dst,
     params.niter_max	   = 200;
 
     const cu::Array2<T>	src_d(src);
-    cu::Array2<T>	dst_d(dst);
+    const cu::Array2<T>	dst_d(dst);
+
   // 位置合わせを実行．
-    ICIA<Map>	registration(params);
+    cu::ICIA<Map>	registration(params);
     registration.initialize(src);
     Map		map;
     auto	err = registration(src, dst, map, u0, v0, w, h);

@@ -1015,7 +1015,7 @@ template <class VEC> __host__ __device__ __forceinline__ element_t<VEC>
 norm(const VEC& a)
 {
     using	device::square;
-    
+
     return sqrt(square(a));
 }
 
@@ -1240,23 +1240,23 @@ class Projectivity
 		    auto	t0 = _m.x.x;
 		    auto	t1 = _m.x.y;
 		    auto	t2 = _m.x.z;
-		    _m.x.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.x.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.x.z -= (t0*dt[2] + t1*dt[5]);
+		    _m.x.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.x.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.x.z += (t0*dt[2] + t1*dt[5]);
 
 		    t0 = _m.y.x;
 		    t1 = _m.y.y;
 		    t2 = _m.y.z;
-		    _m.y.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.y.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.y.z -= (t0*dt[2] + t1*dt[5]);
+		    _m.y.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.y.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.y.z += (t0*dt[2] + t1*dt[5]);
 
 		    t0 = _m.z.x;
 		    t1 = _m.z.y;
 		    t2 = _m.z.z;
-		    _m.z.x -= (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.z.y -= (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.z.z -= (t0*dt[2] + t1*dt[5]);
+		    _m.z.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
+		    _m.z.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
+		    _m.z.z += (t0*dt[2] + t1*dt[5]);
 
 		    return *this;
 		}
@@ -1343,15 +1343,15 @@ class Affinity
 		{
 		    auto	t0 = _A.x.x;
 		    auto	t1 = _A.x.y;
-		    _A.x.x -= (t0*dt[0] + t1*dt[3]);
-		    _A.x.y -= (t0*dt[1] + t1*dt[4]);
-		    _b.x   -= (t0*dt[2] + t1*dt[5]);
+		    _A.x.x += (t0*dt[0] + t1*dt[3]);
+		    _A.x.y += (t0*dt[1] + t1*dt[4]);
+		    _b.x   += (t0*dt[2] + t1*dt[5]);
 
 		    t0 = _A.y.x;
 		    t1 = _A.y.y;
-		    _A.y.x -= (t0*dt[0] + t1*dt[3]);
-		    _A.y.y -= (t0*dt[1] + t1*dt[4]);
-		    _b.y   -= (t0*dt[2] + t1*dt[5]);
+		    _A.y.x += (t0*dt[0] + t1*dt[3]);
+		    _A.y.y += (t0*dt[1] + t1*dt[4]);
+		    _b.y   += (t0*dt[2] + t1*dt[5]);
 
 		    return *this;
 		}

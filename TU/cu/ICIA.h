@@ -45,6 +45,9 @@
 #include "TU/cu/FIRGaussianConvolver.h"
 #include "TU/cu/chrono.h"
 #include "TU/cu/vec.h"
+#include <cub/cub.cuh>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/iterator/counting_iterator.h>
 #include <iomanip>
 
 namespace TU
@@ -245,6 +248,7 @@ class ICIA : public Profiler<CLOCK>
 
   private:
     Parameters			_params;
+    Texture<T>			_dst;
     Array3<param_vec_type>	_grad;
     Array3<param_vec_type>	_M;
 };
@@ -312,10 +316,12 @@ ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
 }
 
 template <class MAP, class CLOCK> template <class T_> auto
-ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src, const Array2<T_>& dst,
-			      MAP& f, size_t u0, size_t v0, size_t w, size_t h)
+ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src,
+			      const Array2<T_>& dst, MAP& f)
     -> value_type
 {
+    Texture<T_>	dsttex(dst);
+
 #ifdef ICIA_DEBUG
     std::cout << 'M' << 2 << std::endl;
     src.saveHeader(std::cout, ImageFormat::RGB_24);

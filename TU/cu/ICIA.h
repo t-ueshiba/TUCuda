@@ -161,6 +161,120 @@ sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
 #endif	// __NVCC__
 
 /************************************************************************
+*  class ErrorMetric<MAP>						*
+************************************************************************/
+template <class C, class MAP>
+class ErrorMetrics
+{
+  public:
+    using color_type		= C;
+    using map_type		= MAP;
+    using value_type		= typename map_type::element_type;
+    using moment_type		= array<value_type, 29>;
+    using deviation_type	= array<value_type, 6>;
+    using moment_matrix_type	= Eigen::Matrix<value_type, 6, 6>;
+    using deviation_vector_type	= Eigen::Matrix<value_type, 6, 1>;
+
+    using colors_type		= range<range_iterator<
+					    thrust::device_ptr<
+						const color_type> > >;
+    using texture_type		= Texture<color_type>;
+
+  public:
+    static moment_matrix_type
+		A(const moment_type& moment)
+		{
+		    moment_matrix_type	m;
+		    auto		p = moment.data();
+		    for (int i = 0; i < m.rows(); ++i)
+		    {
+			for (int j = i; j < m.cols(); ++j)
+			    m(j, i) = m(i, j) = *p++;
+			++p;
+		    }
+
+		    return m;
+		}
+    static deviation_vector_type
+		b(const moment_type& moment)
+		{
+		    deviation_vector_type	v;
+		    v << moment[6],  moment[12], moment[17],
+			 moment[21], moment[24], moment[26];
+
+		    return v;
+		}
+    static value_type
+		npoints(const moment_type& moment)
+		{
+		    return moment[28];
+		}
+    static value_type
+		mse(const moment_type& moment)
+		{
+		    return moment[27] / moment[28];
+		}
+
+    ColorMetric(const map_type& map,
+		const Array2<color_type>& fc, const Texture<color_type>& fp)
+	:_map(map), _fc(fc.colors.cbegin(), fc.colors.nrow()), _fp(fp)
+    {
+    }
+
+    __device__ __forceinline__ moment_type
+    operator()(int i) const
+    {
+	const int		v    = i / ncol();
+	const int		u    = i - (v * ncol());
+	const color_type	fc   = _fc[v][u];
+	const auto		uv_p = _map(u, v);
+	const auto		fp   = tex2D<color_type>(_fp, uv_p.x, uv_p.y);
+	
+
+	if (0 <= uc && uc < ncol() && 0 <= vc && vc < nrow() &&
+	    xp.z > 0 && xp_c.z > 0)
+	{
+	    const point_type		xc   = _xc[vc][uc];
+	    const color_type		fc   = _fc[vc][uc];
+	    const color_type		fp   = _fp[v][u];
+
+	    if (square(xc - xp_c)	< _sqdist_thresh  &&
+		square(fc - fp)		< _sqcolor_thresh)
+	    {
+		array<value_type, 7>	row;
+		// row[0] = nc.x;
+		// row[1] = nc.y;
+		// row[2] = nc.z;
+		// const auto	x_cross_n = cross(xp_c, nc);
+		// row[3] = x_cross_n.x;
+		// row[4] = x_cross_n.y;
+		// row[5] = x_cross_n.z;
+	      //row[6] = dot(nc, xc - xp_c);
+
+		auto	m = row.template ext<28+1>();
+		m[28] = 1;
+
+		return m;
+	    }
+	}
+
+	return {0};
+    }
+
+    __host__ __device__ __forceinline__
+    int		size()		const	{ return nrow() * ncol(); }
+    __host__ __device__ __forceinline__
+    int		nrow()		const	{ return _fc.size(); }
+    __host__ __device__ __forceinline__
+    int		ncol()		const	{ return _fc.cbegin().size(); }
+
+  private:
+    const map_type	_map;
+    const colors_type	_fc;
+    const texture_type&	_fp;
+};
+
+/************************************************************************
 *  class ICIA<MAP, CLOCK>						*
 ************************************************************************/
 template <class MAP, class CLOCK=void>

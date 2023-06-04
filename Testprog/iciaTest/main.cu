@@ -2,6 +2,7 @@
  *  $Id$
  */
 #include <cstdlib>
+#include "TU/Warp.h"
 #include "TU/cu/ICIA.h"
 
 namespace TU
@@ -29,27 +30,26 @@ warp(const Image<T>& src, double du, double dv, double theta)
     return dst;
 }
 
-template <class Map, class T> void
+template <class MAP, class T> void
 registerImages(const Image<T>& src, const Image<T>& dst,
-	       size_t u0, size_t v0, size_t w, size_t h,
-	       typename Map::element_type thresh, bool newton)
+	       typename MAP::element_type thresh, bool newton)
 {
     using namespace	std;
-    using Parameters	= typename cu::ICIA<Map>::Parameters;
+    using Parameters	= typename cu::ICIA<MAP>::Parameters;
 
     Parameters	params;
     params.newton	   = newton;
-    params.intensityThresh = thresh;
+    params.sqcolor_thresh  = thresh*thresh;
     params.niter_max	   = 200;
 
     const cu::Array2<T>	src_d(src);
     const cu::Array2<T>	dst_d(dst);
 
   // 位置合わせを実行．
-    cu::ICIA<Map>	registration(params);
-    registration.initialize(src);
-    Map		map;
-    auto	err = registration(src, dst, map, u0, v0, w, h);
+    cu::ICIA<MAP>	registration(params);
+    MAP			map;
+    map.initialize();
+    auto		err = registration(src_d, dst_d, map);
     cerr << "RMS-err = " << sqrt(err) << endl;
     cerr << map;
 
@@ -64,7 +64,6 @@ registerImages(const Image<T>& src, const Image<T>& dst,
 int
 main(int argc, char* argv[])
 {
-    using namespace	std;
     using namespace	TU;
 
     typedef float	T;
@@ -75,10 +74,8 @@ main(int argc, char* argv[])
     double		du = 0.0, dv = 0.0, theta = 0.0;
     T			thresh = 15.0;
     bool		newton = false;
-    size_t		u0 = 0, v0 = 0;
-    size_t		w = 0, h = 0;
     extern char		*optarg;
-    for (int c; (c = getopt(argc, argv, "ARu:v:t:nU:V:W:H:T:")) != -1; )
+    for (int c; (c = getopt(argc, argv, "ARu:v:t:n:T:")) != -1; )
 	switch (c)
 	{
 	  case 'A':
@@ -99,18 +96,6 @@ main(int argc, char* argv[])
 	  case 'n':
 	    newton = true;
 	    break;
-	  case 'U':
-	    u0 = atoi(optarg);
-	    break;
-	  case 'V':
-	    v0 = atoi(optarg);
-	    break;
-	  case 'W':
-	    w = atoi(optarg);
-	    break;
-	  case 'H':
-	    h = atoi(optarg);
-	    break;
 	  case 'T':
 	    thresh = atof(optarg);
 	    break;
@@ -118,48 +103,35 @@ main(int argc, char* argv[])
 
     try
     {
-	cerr << "Restoring image...";
-	Image<u_char>	src;
-	src.restore(cin);
-	cerr << "done." << endl;
+	std::cerr << "Restoring image...";
+	Image<T>	src;
+	src.restore(std::cin);
+	std::cerr << "done." << std::endl;
 
-	if (u0 >= src.width())
-	    u0 = 0;
-	if (v0 >= src.height())
-	    v0 = 0;
+	std::cerr << "Warping image...";
+	Image<T>	dst = warp(src, du, dv, theta);
+	std::cerr << "done." << std::endl;
 
- 	if (w == 0)
-	    w = src.width();
-	if (h == 0)
-	    h = src.height();
-	if (u0 + w > src.width())
-	    w = src.width() - u0;
-	if (v0 + h > src.height())
-	    h = src.height() - v0;
-
-	cerr << "Warping image...";
-	Image<u_char>	dst = warp(src, du, dv, theta);
-	cerr << "done." << endl;
+	src.save(std::cout);
+	dst.save(std::cout);
 
 	switch (algorithm)
 	{
 	  case RIGID:
-	    registerImages<Rigidity2<T> >(src, dst, u0, v0, w, h,
-					 thresh, newton);
+	    registerImages<cu::Rigidity<T, 2> >(src, dst, thresh, newton);
 	    break;
 	  case AFFINE:
-	    registerImages<Affinity22<T> >(src, dst, u0, v0, w, h,
-					  thresh, newton);
+	    registerImages<cu::Affinity<T, 2, 2> >(src, dst, thresh, newton);
 	    break;
 	  default:
-	    registerImages<Homography<T> >(src, dst, u0, v0, w, h,
-					   thresh, newton);
+	    registerImages<cu::Projectivity<T, 2, 2> >(src, dst,
+						       thresh, newton);
 	    break;
 	}
     }
-    catch (exception& err)
+    catch (std::exception& err)
     {
-	cerr << err.what() << endl;
+	std::cerr << err.what() << std::endl;
 	return 1;
     }
 

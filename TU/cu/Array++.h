@@ -186,27 +186,27 @@ namespace cu
 ************************************************************************/
 //! 1次元CUDA配列
 template <class T>
-using Array = array<T, cu::allocator<T>, 0>;
+using Array = TU::array<T, cu::allocator<T>, 0>;
 
 //! 2次元CUDA配列
 template <class T>
-using Array2 = array<T, cu::allocator<T>, 0, 0>;
+using Array2 = TU::array<T, cu::allocator<T>, 0, 0>;
 
 //! 3次元CUDA配列
 template <class T>
-using Array3 = array<T, cu::allocator<T>, 0, 0, 0>;
+using Array3 = TU::array<T, cu::allocator<T>, 0, 0, 0>;
 
 //! CUDAデバイス空間にマップされた1次元配列
 template <class T>
-using MappedArray = array<T, cu::mapped_allocator<T>, 0>;
+using MappedArray = TU::array<T, cu::mapped_allocator<T>, 0>;
 
 //! CUDAデバイス空間にマップされた2次元配列
 template <class T>
-using MappedArray2 = array<T, cu::mapped_allocator<T>, 0, 0>;
+using MappedArray2 = TU::array<T, cu::mapped_allocator<T>, 0, 0>;
 
 //! CUDAデバイス空間にマップされた3次元配列
 template <class T>
-using MappedArray3 = array<T, cu::mapped_allocator<T>, 0, 0, 0>;
+using MappedArray3 = TU::array<T, cu::mapped_allocator<T>, 0, 0, 0>;
 
 }	// namespace cu
 }	// namespace TU

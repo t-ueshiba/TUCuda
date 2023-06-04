@@ -44,6 +44,7 @@
 #include <cmath>
 #include <vector>
 #include <thrust/device_ptr.h>
+#include "TU/cu/array.h"
 #include "TU/Image++.h"		// for TU::RGB_<E>
 
 namespace TU
@@ -182,7 +183,7 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat2x()				= default;
+			mat2x()				= default;
     __host__ __device__ constexpr
     explicit		mat2x(T c)	:super{c, c}	{}
     __host__ __device__ constexpr
@@ -230,7 +231,7 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat3x()				= default;
+			mat3x()				= default;
     __host__ __device__ constexpr
     explicit		mat3x(T c)
 			    :super{c, c, c}		{}
@@ -282,7 +283,7 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat4x()				= default;
+			mat4x()				= default;
     __host__ __device__ constexpr
     explicit		mat4x(T c)
 			    :super{c, c, c, c}		{}
@@ -333,7 +334,7 @@ struct mat2x
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat2x()				= default;
+			mat2x()				= default;
     __host__ __device__	constexpr
 			mat2x(const value_type& xx,
 			      const value_type& yy)
@@ -410,7 +411,7 @@ struct mat3x
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat3x()				= default;
+			mat3x()				= default;
     __host__ __device__	constexpr
 			mat3x(const value_type& xx,
 			      const value_type& yy,
@@ -492,7 +493,7 @@ struct mat4x
     __host__ __device__ constexpr
     static size_t	size()				{ return size0(); }
 
-    __host__ __device__	mat4x()				= default;
+			mat4x()				= default;
     __host__ __device__	constexpr
 			mat4x(const value_type& xx,
 			      const value_type& yy,
@@ -1168,21 +1169,20 @@ template <class T, size_t DO, size_t DI>
 class Projectivity
 {
   public:
-    constexpr static size_t	DO1	= DO + 1;
-    constexpr static size_t	DI1	= DI + 1;
-    constexpr static size_t	NPARAMS = DO1 * DI1;
-    constexpr static size_t	DOF	= NPARAMS - 1;
+    constexpr static size_t	DO1 = DO + 1;
+    constexpr static size_t	DI1 = DI + 1;
+    constexpr static size_t	DOF = DO1 * DI1 - 1;
 
     using element_type	= T;
     using matrix_type	= mat<element_type, DO1, DI1>;
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
-
+    using param_type	= array<element_type, DOF>;
+    
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
-    constexpr static size_t	nparams()	{ return NPARAMS; }
+    constexpr static size_t	dof()		{ return DOF; }
 
-    __host__ __device__
 		Projectivity()					= default;
     __host__ __device__
     explicit	Projectivity(const matrix_type& m)	:_m(m)	{}
@@ -1226,39 +1226,61 @@ class Projectivity
     		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
-    static std::enable_if_t<DO_ == 2&& DI_ == 2, mat<T, 2, 4> >
-		image_derivative0(T eH, T eV, T u, T v)
+    std::enable_if_t<DO_ == DI_, Projectivity>
+		operator *(const Projectivity& projectivity) const
 		{
-		    return {{eH*u, eH*v, eH, eV*u},
-			    {eV*v, eV, -(eH*u + eV*v)*u, -(eH*u + eV*v)*v}};
+		    return Projectivity(_m * projectivity._m);
+		}
+    
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, Projectivity>
+		exp(ITER delta)
+		{
+		    Projectivity	projectivity;
+		    projectivity._m.x.x = *delta + 1;
+		    projectivity._m.x.y = *++delta;
+		    projectivity._m.x.z  = *++delta;
+		    projectivity._m.y.x = *++delta;
+		    projectivity._m.y.y = *++delta + 1;
+		    projectivity._m.y.z = *++delta;
+		    projectivity._m.z.x = *++delta;
+		    projectivity._m.z.y = *++delta;
+		    projectivity._m.z.z = 1;
+		    
+		    return projectivity;
 		}
 
-    template <size_t DO_=DO, size_t DI_=DI> __host__
-    std::enable_if_t<DO_ == 2&& DI_ == 2, Projectivity&>
-		compose(const TU::Array<T, DOF>& dt)
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 3 && DI_ == 3, Projectivity>
+		exp(ITER delta)
 		{
-		    auto	t0 = _m.x.x;
-		    auto	t1 = _m.x.y;
-		    auto	t2 = _m.x.z;
-		    _m.x.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.x.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.x.z += (t0*dt[2] + t1*dt[5]);
+		    Projectivity	projectivity;
+		    projectivity._m.x.x = *delta + 1;
+		    projectivity._m.x.y = *++delta;
+		    projectivity._m.x.z = *++delta;
+		    projectivity._m.x.w = *++delta;
+		    projectivity._m.y.x = *++delta;
+		    projectivity._m.y.y = *++delta + 1;
+		    projectivity._m.y.z = *++delta;
+		    projectivity._m.y.w = *++delta;
+		    projectivity._m.z.x = *++delta;
+		    projectivity._m.z.y = *++delta;
+		    projectivity._m.z.z = *++delta + 1;
+		    projectivity._m.z.w = *++delta;
+		    projectivity._m.w.x = *++delta;
+		    projectivity._m.w.y = *++delta;
+		    projectivity._m.w.z = *++delta;
+		    projectivity._m.w.w = *++delta + 1;
+		    
+		    return projectivity;
+		}
 
-		    t0 = _m.y.x;
-		    t1 = _m.y.y;
-		    t2 = _m.y.z;
-		    _m.y.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.y.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.y.z += (t0*dt[2] + t1*dt[5]);
-
-		    t0 = _m.z.x;
-		    t1 = _m.z.y;
-		    t2 = _m.z.z;
-		    _m.z.x += (t0*dt[0] + t1*dt[3] + t2*dt[6]);
-		    _m.z.y += (t0*dt[1] + t1*dt[4] + t2*dt[7]);
-		    _m.z.z += (t0*dt[2] + t1*dt[5]);
-
-		    return *this;
+    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, param_type>
+		image_derivative0(T eH, T eV, T u, T v)
+		{
+		    return {eH*u, eH*v, eH, eV*u, eV*v, eV,
+			    -(eH*u + eV*v)*u, -(eH*u + eV*v)*v};
 		}
 
     friend std::ostream&
@@ -1284,20 +1306,19 @@ template <class T, size_t DO, size_t DI>
 class Affinity
 {
   public:
-    constexpr static size_t	DO1	= DO + 1;
-    constexpr static size_t	DI1	= DI + 1;
-    constexpr static size_t	NPARAMS = DO * DI1;
-    constexpr static size_t	DOF	= NPARAMS;
+    constexpr static size_t	DO1 = DO + 1;
+    constexpr static size_t	DI1 = DI + 1;
+    constexpr static size_t	DOF = DO * DI1;
 
     using element_type	= T;
     using matrix_type	= mat<element_type, DO, DI>;
     using point_type	= vec<element_type, DO>;
+    using param_type	= array<element_type, DOF>;
 
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
-    constexpr static size_t	nparams()	{ return NPARAMS; }
+    constexpr static size_t	dof()		{ return DOF; }
 
-    __host__ __device__
 		Affinity()			= default;
     __host__ __device__
 		Affinity(const matrix_type& A, const point_type& b)
@@ -1331,29 +1352,53 @@ class Affinity
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
-    static std::enable_if_t<DO_ == 2 && DI_ == 2, matrix_type>
-		image_derivative0(T eH, T eV, T u, T v)
+    std::enable_if_t<DO_ == DI_, Affinity>
+		operator *(const Affinity& affinity) const
 		{
-		    return {{eH*u, eH*v}, {eV*u, eV*v}};
+		    return {dot(_A, affinity._A), _b + dot(_A, affinity._b)};
+		}
+    
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, Affinity>
+		exp(ITER delta)
+		{
+		    Affinity	affinity;
+		    affinity._A.x.x = *delta + 1;
+		    affinity._A.x.y = *++delta;
+		    affinity._b.x   = *++delta;
+		    affinity._A.y.x = *++delta;
+		    affinity._A.y.y = *++delta + 1;
+		    affinity._b.y   = *++delta;
+		    
+		    return affinity;
 		}
 
-    template <size_t DO_=DO, size_t DI_=DI> __host__
-    std::enable_if_t<DO_ == 2 && DI_ == 2, Affinity&>
-		compose(const TU::Array<T, DOF>& dt)
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 3 && DI_ == 3, Affinity>
+		exp(ITER delta)
 		{
-		    auto	t0 = _A.x.x;
-		    auto	t1 = _A.x.y;
-		    _A.x.x += (t0*dt[0] + t1*dt[3]);
-		    _A.x.y += (t0*dt[1] + t1*dt[4]);
-		    _b.x   += (t0*dt[2] + t1*dt[5]);
+		    Affinity	affinity;
+		    affinity._A.x.x = *delta + 1;
+		    affinity._A.x.y = *++delta;
+		    affinity._A.x.z = *++delta;
+		    affinity._b.x   = *++delta;
+		    affinity._A.y.x = *++delta;
+		    affinity._A.y.y = *++delta + 1;
+		    affinity._A.y.z = *++delta;
+		    affinity._b.y   = *++delta;
+		    affinity._A.z.x = *++delta;
+		    affinity._A.z.y = *++delta;
+		    affinity._A.z.z = *++delta + 1;
+		    affinity._b.y   = *++delta;
+		    
+		    return affinity;
+		}
 
-		    t0 = _A.y.x;
-		    t1 = _A.y.y;
-		    _A.y.x += (t0*dt[0] + t1*dt[3]);
-		    _A.y.y += (t0*dt[1] + t1*dt[4]);
-		    _b.y   += (t0*dt[2] + t1*dt[5]);
-
-		    return *this;
+    template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, param_type>
+		image_derivative0(T eH, T eV, T u, T v)
+		{
+		    return {eH*u, eH*v, eH,  eV*u, eV*v, eV};
 		}
 
     friend std::ostream&
@@ -1382,19 +1427,19 @@ template <class T, size_t D>
 class Rigidity : public Affinity<T, D, D>
 {
   public:
-    constexpr static size_t	NPARAMS = D*(D+1)/2;
-    constexpr static size_t	DOF	= NPARAMS;
+    constexpr static size_t	DOF = D*(D+1)/2;
 
     using base_type		= Affinity<T, D, D>;
     using			typename base_type::element_type;
     using			typename base_type::matrix_type;
     using			typename base_type::point_type;
-    using direction_type	= vec<T, D>;
-
+    using direction_type	= vec<element_type, D>;
+    using param_type		= array<element_type, DOF>;
+    
+    constexpr static size_t	dof()		{ return DOF; }
     constexpr static size_t	dim()		{ return D; }
 
   public:
-    __host__ __device__
 		Rigidity()			= default;
     __host__ __device__
 		Rigidity(const matrix_type& R, const point_type& t)
@@ -1439,13 +1484,6 @@ class Rigidity : public Affinity<T, D, D>
 			    dot(R(), rigidity.t()) + t()};
 		}
 
-    template <size_t D_=D> __host__ __device__
-    static std::enable_if_t<D_ == 2, vec<T, 3> >
-		image_derivative0(T eH, T eV, T u, T v)
-		{
-		    return {eH, eV, eV*u - eH*v};
-		}
-
     template <class ITER, size_t D_=D> __host__ __device__
     static std::enable_if_t<D_ == 2, Rigidity>
 		exp(ITER delta)
@@ -1472,6 +1510,13 @@ class Rigidity : public Affinity<T, D, D>
 		    dtheta.z = *++delta;
 
 		    return {rotation(dtheta), dt};
+		}
+
+    template <size_t D_=D> __host__ __device__
+    static std::enable_if_t<D_ == 2, param_type>
+		image_derivative0(T eH, T eV, T u, T v)
+		{
+		    return {eH, eV, eV*u - eH*v};
 		}
 
     using	base_type::initialize;
@@ -2061,7 +2106,6 @@ class Moment : public mat4x<T, 3>
     using transform_type= Rigidity<element_type, 3>;
 
   public:
-    __host__ __device__ __forceinline__
 			Moment()				= default;
     __host__ __device__ __forceinline__
     explicit		Moment(element_type c)	:super(c)	{}
@@ -2226,7 +2270,6 @@ class Plane
     using vector_type	= vec<element_type, 3>;
 
   public:
-    __host__ __device__ __forceinline__
 			Plane()					= default;
     __host__ __device__ __forceinline__
 			Plane(const matrix_type& m) :_m(m)	{}

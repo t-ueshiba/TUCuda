@@ -40,11 +40,12 @@
 */
 #pragma once
 
-#include "TU/Geometry++.h"
-#include "TU/Image++.h"
+#include <Eigen/Eigen>
+#include "TU/Profiler.h"
 #include "TU/cu/FIRGaussianConvolver.h"
 #include "TU/cu/chrono.h"
 #include "TU/cu/vec.h"
+#include "TU/cu/Texture.h"
 #include <cub/cub.cuh>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -54,576 +55,354 @@ namespace TU
 {
 namespace cu
 {
-#if defined(__NVCC__)
-namespace device
-{
 namespace detail
 {
-  template <class OUT, class VEC> __device__
-  std::enable_if_t<size1<VEC>() == 1, OUT>
-  assign_grad(OUT out, const VEC& v, int stride)
+  template <class MAP, class C>
+  class ICIAErrorMoment
   {
-      *out = v;
-      advance_stride(out, stride);
-      return out;
-  }
+    public:
+      constexpr static size_t	DOF = MAP::DOF;
 
-  template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const mat2x<T, C>& m, int stride)
-  {
-      return assign_grad(assign_grad(out, m.x, stride), m.y, stride);
-  }
+      using value_type		= typename MAP::element_type;
+      using moment_type		= array<value_type, DOF*(DOF+1)/2>;
+      using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
-  template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const mat3x<T, C>& m, int stride)
-  {
-      return assign_grad(assign_grad(assign_grad(out, m.x, stride),
-				     m.y, stride),
-			 m.z, stride);
-  }
+    private:
+      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
 
-  template <class OUT, class T, size_t C> __device__ OUT
-  assign_grad(OUT out, const mat4x<T, C>& m, int stride)
-  {
-      return assign_grad(assign_grad(assign_grad(assign_vec(out, m.x, stride),
-						 m.y, stride),
-				     m.z, stride),
-			 m.w, stride);
-  }
+    public:
+      static moment_matrix_type
+      A(const moment_type& moment)
+      {
+	  moment_matrix_type	m;
+	  auto		p = moment.data();
+	  for (int i = 0; i < m.rows(); ++i)
+	      for (int j = i; j < m.cols(); ++j)
+		  m(j, i) = m(i, j) = *p++;
+	  return m;
+      }
 
-  template <class OUT, class VEC> __device__
-  std::enable_if_t<size1<VEC>() == 1, OUT>
-  assign_moment(OUT out, const VEC& a, const VEC& b, int stride)
-  {
-      return assign_grad(out, ext(a, b), stride);
-  }
-
-  template <class OUT, class T, size_t C> __device__ void
-  assign_moment(OUT out, const mat2x<T, C>& a, const mat2x<T, C>& b, int stride)
-  {
-      assign_moment(assign_moment(out, a.x, b.x, 2*stride),
-		    a.y, b.x, 2*stride);
-      assign_moment(assign_moment(out + stride, a.x, b.y, 2*stride),
-		    a.y, b.y, 2*stride);
-  }
-}	// namespsace detail
-
-/************************************************************************
-*  __global__ functions							*
-************************************************************************/
-template <class MAP, class EDGE, class GRAD, class MOMENT>
-__global__ void
-compute_grad_and_moment(EDGE edgeH, EDGE edgeV, GRAD grad, MOMENT moment,
-			int strideE, int strideG, int strideM)
-{
-    const auto	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-    const auto	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
-    const auto	p = __mul24(y, strideE) + x;
-    const auto	g = MAP::image_derivative0(edgeH[p], edgeV[p], x, y);
-
-    advance_stride(grad, y*strideG);
-    detail::assign_grad(grad + x, g, strideG);
-    advance_stride(moment, y*strideM);
-    detail::assign_moment(moment + x, g, g, strideM);
-}
-
-template <class IN, class GRAD, class MAP, class T>
-__global__ void
-sqrerr(IN src, cudaTextureObject_t dst, GRAD grad, MAP map,
-       int x0, int y0, int strideI, int strideG, T intensityThresh)
-{
-    using value_t = iterator_value<IN>;
-
-    const int	x = x0 + __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
-    const int	y = y0 + __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
-    const auto	p = map(x, y);
-
-    advance_stride(src, y*strideI);
-
-    const auto	sval = src[x];
-    const auto	dval = tex2D<value_t>(dst, p.x, p.y);
-
-    if (sval > 0.5 && dval > 0.5)
-    {
-	const auto	dI = clamp(dval - sval,
-				   -intensityThresh, intensityThresh);
-	sqr = dI * dI;
-	dIg = dI * grad[y*strideG + x];
-    }
-    else
-    {
-	sqr = 0;
-	g   = 0;
-    }
-}
-
-}	//namespce device
-#endif	// __NVCC__
-
-/************************************************************************
-*  class ErrorMetric<MAP>						*
-************************************************************************/
-template <class C, class MAP>
-class ErrorMetrics
-{
-  public:
-    using color_type		= C;
-    using map_type		= MAP;
-    using value_type		= typename map_type::element_type;
-    using moment_type		= array<value_type, 29>;
-    using deviation_type	= array<value_type, 6>;
-    using moment_matrix_type	= Eigen::Matrix<value_type, 6, 6>;
-    using deviation_vector_type	= Eigen::Matrix<value_type, 6, 1>;
-
-    using colors_type		= range<range_iterator<
-					    thrust::device_ptr<
-						const color_type> > >;
-    using texture_type		= Texture<color_type>;
-
-  public:
-    static moment_matrix_type
-		A(const moment_type& moment)
-		{
-		    moment_matrix_type	m;
-		    auto		p = moment.data();
-		    for (int i = 0; i < m.rows(); ++i)
-		    {
-			for (int j = i; j < m.cols(); ++j)
-			    m(j, i) = m(i, j) = *p++;
-			++p;
-		    }
-
-		    return m;
-		}
-    static deviation_vector_type
-		b(const moment_type& moment)
-		{
-		    deviation_vector_type	v;
-		    v << moment[6],  moment[12], moment[17],
-			 moment[21], moment[24], moment[26];
-
-		    return v;
-		}
-    static value_type
-		npoints(const moment_type& moment)
-		{
-		    return moment[28];
-		}
-    static value_type
-		mse(const moment_type& moment)
-		{
-		    return moment[27] / moment[28];
-		}
-
-    ColorMetric(const map_type& map,
-		const Array2<color_type>& fc, const Texture<color_type>& fp)
-	:_map(map), _fc(fc.colors.cbegin(), fc.colors.nrow()), _fp(fp)
-    {
-    }
-
-    __device__ __forceinline__ moment_type
-    operator()(int i) const
-    {
-	const int		v    = i / ncol();
-	const int		u    = i - (v * ncol());
-	const color_type	fc   = _fc[v][u];
-	const auto		uv_p = _map(u, v);
-	const auto		fp   = tex2D<color_type>(_fp, uv_p.x, uv_p.y);
+      ICIAErrorMoment(const MAP& map,
+		      const Array2<C>& edgeH, const Array2<C>& edgeV)
+	  :_map(map),
+	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
+	   _edgeV(edgeV.cbegin(), edgeV.nrow())
+      {
+      }
 	
+      template <class C_=C> __host__ __device__
+      std::enable_if_t<std::is_arithmetic<C_>::value, moment_type>
+      operator ()(int i) const
+      {
+	  const int	v = i / ncol();
+	  const int	u = i - (v * ncol());
 
-	if (0 <= uc && uc < ncol() && 0 <= vc && vc < nrow() &&
-	    xp.z > 0 && xp_c.z > 0)
-	{
-	    const point_type		xc   = _xc[vc][uc];
-	    const color_type		fc   = _fc[vc][uc];
-	    const color_type		fp   = _fp[v][u];
+	  if (u >= ncol() || v >= nrow())
+	      return {0};
+	  
+	  return _map.image_derivative0(_edgeH[v][u], _edgeV[v][u], u, v)
+		.template ext();
+      }
 
-	    if (square(xc - xp_c)	< _sqdist_thresh  &&
-		square(fc - fp)		< _sqcolor_thresh)
-	    {
-		array<value_type, 7>	row;
-		// row[0] = nc.x;
-		// row[1] = nc.y;
-		// row[2] = nc.z;
-		// const auto	x_cross_n = cross(xp_c, nc);
-		// row[3] = x_cross_n.x;
-		// row[4] = x_cross_n.y;
-		// row[5] = x_cross_n.z;
-	      //row[6] = dot(nc, xc - xp_c);
+      template <class C_=C> __host__ __device__
+      std::enable_if_t<!std::is_arithmetic<C_>::value, moment_type>
+      operator ()(int i) const
+      {
+	  const int	v = i / ncol();
+	  const int	u = i - (v * ncol());
 
-		auto	m = row.template ext<28+1>();
-		m[28] = 1;
+	  if (u >= ncol() || v >= nrow())
+	      return {0};
 
-		return m;
-	    }
-	}
+	  const C	eH = _edgeH[v][u];
+	  const C	eV = _edgeV[v][u];
+	  auto		a  = _map.image_derivative0(eH.x, eV.x, u, v);
+	  auto		m  = a.template ext();
+	  a  = _map.image_derivative0(eH.y, eV.y, u, v);
+	  m += a.template ext();
+	  a  = _map.image_derivative0(eH.z, eV.z, u, v);
+	  m += a.template ext();
 
-	return {0};
-    }
+	  return m;
+      }
 
-    __host__ __device__ __forceinline__
-    int		size()		const	{ return nrow() * ncol(); }
-    __host__ __device__ __forceinline__
-    int		nrow()		const	{ return _fc.size(); }
-    __host__ __device__ __forceinline__
-    int		ncol()		const	{ return _fc.cbegin().size(); }
+      __host__ __device__ __forceinline__
+      int	size()		const	{ return nrow() * ncol(); }
+      __host__ __device__ __forceinline__
+      int	nrow()		const	{ return _edgeH.size(); }
+      __host__ __device__ __forceinline__
+      int	ncol()		const	{ return _edgeH.cbegin().size(); }
 
-  private:
-    const map_type	_map;
-    const colors_type	_fc;
-    const texture_type&	_fp;
-};
+    private:
+      const MAP		_map;
+      const colors_type	_edgeH;
+      const colors_type	_edgeV;
+  };
+    
+  template <class MAP, class C>
+  class ICIAErrorDeviation
+  {
+    public:
+      constexpr static size_t		DOF = MAP::DOF;
 
+      using value_type			= typename MAP::element_type;
+      using texture_type		= Texture<C>;
+      using deviation_type		= array<value_type, DOF+2>;
+      using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
+
+    private:
+      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
+
+    public:
+      static deviation_vector_type
+      b(const deviation_type& deviation)
+      {
+	  deviation_vector_type	v;
+	  for (int i = 0; i < v.rows(); ++i)
+	      v(i) = deviation[i];
+	  return v;
+      }
+      static value_type
+      npoints(const deviation_type& deviation)
+      {
+	  return deviation[DOF+1];
+      }
+      static value_type
+      mse(const deviation_type& deviation)
+      {
+	  return deviation[DOF] / deviation[DOF+1];
+      }
+
+      ICIAErrorDeviation(const MAP& map,
+			 const Array2<C>& edgeH, const Array2<C>& edgeV,
+			 const Array2<C>& colors, cudaTextureObject_t colors_p,
+			 value_type sqcolor_thresh)
+	  :_map(map),
+	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
+	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
+	   _colors(colors.cbegin(), colors.nrow()),
+	   _colors_p(colors_p),
+	   _sqcolor_thresh(sqcolor_thresh)
+      {
+      }
+	
+      template <class C_=C> __host__ __device__
+      std::enable_if_t<std::is_arithmetic<C_>::value, deviation_type>
+      operator ()(int i) const
+      {
+	  const int	v    = i / ncol();
+	  const int	u    = i - (v * ncol());
+	  const auto	uv_p = _map(u, v);
+
+	  if (u < ncol() && v < nrow() &&
+	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  {
+	      const auto	b = _colors[v][u] - tex2D<C>(_colors_p,
+							     uv_p.x, uv_p.y);
+
+	      if (b*b < _sqcolor_thresh)
+	      {
+		  const auto	ab = _map.image_derivative0(_edgeH[v][u],
+							    _edgeV[v][u], u, v)
+				   * b;
+		  auto		d  = ab.template extend<DOF+2>();
+		  d[DOF]   = b*b;
+		  d[DOF+1] = 1;
+
+		  return d;
+	      }
+	  }
+
+	  return {0};
+      }
+
+      template <class C_=C> __host__ __device__
+      std::enable_if_t<!std::is_arithmetic<C_>::value, deviation_type>
+      operator ()(int i) const
+      {
+	  const int	v    = i / ncol();
+	  const int	u    = i - (v * ncol());
+	  const auto	uv_p = _map(u, v);
+
+	  if (u < ncol() && v < nrow() &&
+	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  {
+	      const auto	b = _colors[v][u] - tex2D<C>(_colors_p,
+							     uv_p.x, uv_p.y);
+
+	      if (square(b) < _sqcolor_thresh)
+	      {
+		  const C	eH = _edgeH[v][u];
+		  const C	eV = _edgeV[v][u];
+		  const auto	ab = _map.image_derivative0(eH.x, eV.x, u, v)
+				   * b.x
+				   + _map.image_derivative0(eH.y, eV.y, u, v)
+				   * b.y
+				   + _map.image_derivative0(eH.z, eV.z, u, v)
+				   * b.z;
+		  auto		d  = ab.template extend<DOF+2>();
+		  d[DOF]   = sqaure(b);
+		  d[DOF+1] = 1;
+		  
+		  return d;
+	      }
+	  }
+
+	  return {0};
+      }
+
+      __host__ __device__ __forceinline__
+      int	size()		const	{ return nrow() * ncol(); }
+      __host__ __device__ __forceinline__
+      int	nrow()		const	{ return _colors.size(); }
+      __host__ __device__ __forceinline__
+      int	ncol()		const	{ return _colors.cbegin().size(); }
+
+    private:
+      const MAP			_map;
+      const colors_type		_edgeH;
+      const colors_type		_edgeV;
+      const colors_type		_colors;
+      const cudaTextureObject_t	_colors_p;
+      const value_type		_sqcolor_thresh;
+  };
+}	// namespace detail
+    
 /************************************************************************
 *  class ICIA<MAP, CLOCK>						*
 ************************************************************************/
 template <class MAP, class CLOCK=void>
 class ICIA : public Profiler<CLOCK>
 {
-  private:
-    template <class MAP_>	struct map_traits;
-    template <>
-    struct map_traits<Projectivity<float, 2, 2> >
-    {
-	using element_type	= float;
-	using vec_type		= float4;
-
-	constexpr static size_t	GRAD_NVECS   = 2;
-	constexpr static size_t	MOMENT_NVECS = 16;
-    };
-    template <class T>
-    struct map_traits<Affinity<T, 2, 2> >
-    {
-	using element_type	= float;
-	using vec_type		= float3;
-
-	constexpr static size_t	GRAD_NVECS   = 2;
-	constexpr static size_t	MOMENT_NVECS = 6;
-    };
-    template <class T>
-    struct map_traits<Rigidity<T, 2> >
-    {
-	using element_type	= float;
-	using vec_type		= float3;
-
-	constexpr static size_t	GRAD_NVECS   = 1;
-	constexpr static size_t	MOMENT_NVECS = 3;
-    };
-
-    constexpr static size_t	GRAD_NVECS   = map_traits<MAP>::GRAD_NVECS;
-    constexpr static size_t	MOMENT_NVECS = map_traits<MAP>::MOMENT_NVECS;
-
-
   public:
-    using element_type	= typename MAP::element_type;
-    using value_type	= typename MAP::value_type;
+    constexpr static size_t	DOF = MAP::DOF;
+
+    using value_type		= typename MAP::element_type;
+    using moment_type		= array<value_type, DOF*(DOF+1)/2>;
+    using deviation_type	= array<value_type, DOF+2>;
 
     struct Parameters
     {
 	Parameters()
 	    :sigma(1.0), newton(false), niter_max(100),
-	     intensityThresh(15), tol(1.0e-4)				{}
+	     sqcolor_thresh(15*15), tol(1.0e-4)				{}
 
 	float		sigma;
 	bool		newton;
 	size_t		niter_max;
-	value_type	intensityThresh;
+	value_type	sqcolor_thresh;
 	value_type	tol;
     };
 
   private:
-    using super		= Profiler<CLOCK>;
-    using params_type	= Array< value_type, MAP::DOF>;
-    using matrix_type	= Array2<value_type, MAP::DOF, MAP::DOF>;
-
+    using profiler_t		= Profiler<CLOCK>;
+    
   public:
-    using	super::start;
-    using	super::nextFrame;
+		ICIA(const Parameters& params=Parameters())
+		    :profiler_t(3), _params(params),
+		     _tmp(), _moment(1), _deviation(1) 			{}
 
-    ICIA(const Parameters& params=Parameters())
-	:super(3), _params(params)					{}
-
-    template <class T_>
-    void	initialize(const Array2<T_>& src)			;
-    void	initialize(const Array2<value_type>& edgeH,
-			   const Array2<value_type>& edgeV)		;
-    template <class T_>
-    value_type	operator ()(const Array2<T_>& src,
-			    const Array2<T_>& dst, MAP& f,
-			    size_t u0=0, size_t v0=0,
-			    size_t w=0, size_t h=0)			;
+    template <class C_>
+    value_type	operator ()(const Array2<C_>& src,
+			    const Array2<C_>& dst, MAP& f)	const	;
 
   private:
-    template <class T_>
-    value_type	sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
-		       const MAP& f, params_type& g,
-		       size_t u0, size_t v0, size_t w, size_t h) const	;
-    matrix_type	moment(size_t u0, size_t v0, size_t w, size_t h) const	;
+    Parameters				_params;
 
-  private:
-    Parameters			_params;
-    Texture<T>			_dst;
-    Array3<param_vec_type>	_grad;
-    Array3<param_vec_type>	_M;
+  // Temporary buffers
+    mutable Array<uint8_t>		_tmp;	// for CUB
+    mutable Array<moment_type>		_moment;
+    mutable Array<deviation_type>	_deviation;
 };
 
-template <class MAP, class CLOCK> template <class Array2<T_>> void
-ICIA<MAP, CLOCK>::initialize(const Array2<T_>& src)
+template <class MAP, class CLOCK> template <class C_>
+typename ICIA<MAP, CLOCK>::value_type
+ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
+			      const Array2<C_>& dst, MAP& map) const
 {
+    using error_moment_type	= detail::ICIAErrorMoment<MAP, C_>;
+    using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C_>;
+    
     using	std::cbegin;
     using	std::cend;
 
-    start(0);
-  // 位置に関する原画像の輝度勾配を求める．
-    Array2<value_type>			edgeH(size<0>(src), size<1>(src));
-    Array2<value_type>			edgeV(size<0>(src), size<1>(src));
-    FIRGaussianConvolver2<value_type>	convolver(_params.sigma);
+    profiler_t::start(0);
+
+    Array2<C_>			edgeH(size<0>(src), size<1>(src));
+    Array2<C_>			edgeV(size<0>(src), size<1>(src));
+    FIRGaussianConvolver2<C_>	convolver(_params.sigma);
     convolver.diffH(cbegin(src), cend(src), edgeH.begin());
     convolver.diffV(cbegin(src), cend(src), edgeV.begin());
+    Texture<C_>			dst_tex(dst);
+    error_moment_type		error_moment(map, edgeH, edgeV);
 
-    initialize(edgeH, edgeV);
-}
+  // Allocate temporary storage for parallel reduction.
+    profiler_t::start(1);
+    size_t	tmp_size = 0;
+    cub::DeviceReduce::Sum(nullptr, tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       error_moment),
+			   _moment.begin(), error_moment.size());
+    if (tmp_size > _tmp.size())
+	_tmp.resize(tmp_size);
 
-template <class MAP, class CLOCK> void
-ICIA<MAP, CLOCK>::initialize(const Array2<value_type>& edgeH,
-			     const Array2<value_type>& edgeV)
-{
-    const auto	nrow = size<0>(edgeH);
-    const auto	ncol = size<1>(edgeH);
-    _grad.resize(GRAD_NVECS,   nrow, ncol);
-    _M   .resize(MOMENT_NVECS, nrow, ncol);
-
-    const auto	strideH = edgeH.stride();
-    const auto	strideV = edgeV.stride();
-
-    const auto	stride_o = stride(out);
-
-    start(1);
-  // 左上
-    dim3	threads(BlockDimX, BlockDimY);
-    dim3	blocks(ncol/threads.x, nrow/threads.y);
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 op, 0, 0, stride_o);
+  // Perform parallel reduction of moments for source image.
+    cub::DeviceReduce::Sum(_tmp.data().get(), tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       error_moment),
+			   _moment.begin(), error_moment.size());
     gpuCheckLastError();
-  // 右上
-    const auto	x0 = blocks.x*threads.x;
-    threads.x = ncol - x0;
-    blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 op, x0, 0, stride_o);
-    gpuCheckLastError();
-  // 左下
-    const auto	y0 = blocks.y*threads.y;
-    threads.x = BlockDimX;
-    blocks.x  = ncol/threads.x;
-    threads.y = nrow - y0;
-    blocks.y  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 op, 0, y0, stride_o);
-    gpuCheckLastError();
-  // 右下
-    threads.x = ncol - x0;
-    blocks.x  = 1;
-    device::warp<T><<<blocks, threads>>>(tex.get(), begin(*out),
-					 op, x0, y0, stride_o);
-    gpuCheckLastError();
-}
 
-template <class MAP, class CLOCK> template <class T_> auto
-ICIA<MAP, CLOCK>::operator ()(const Array2<T_>& src,
-			      const Array2<T_>& dst, MAP& f)
-    -> value_type
-{
-    Texture<T_>	dsttex(dst);
+    const moment_type	moment = _moment[0];
+    const auto		A = error_moment_type::A(moment);
+    auto		mse = std::numeric_limits<value_type>::max();
 
-#ifdef ICIA_DEBUG
-    std::cout << 'M' << 2 << std::endl;
-    src.saveHeader(std::cout, ImageFormat::RGB_24);
-    src.saveHeader(std::cout, ImageFormat::U_CHAR);
-#endif
-    start(2);
-
-    if (w == 0)
-	w = size<1>(src) - u0;
-    if (h == 0)
-	h = size<0>(src) - v0;
-
-    if (_params.newton)
+    profiler_t::start(2);
+    for (size_t n = 0; n < _params.niter_max; ++n)
     {
-	const auto	Minv = inverse(moment(u0, v0, w, h));
-	value_type	sqr = 0;
-	for (size_t n = 0; n < _params.niter_max; ++n)
-	{
-	    params_type	g;
-	    const auto	sqr_new = sqrerr(src, dst, f, g, u0, v0, w, h);
-#ifdef _DEBUG
-	    std::cerr << "[" << std::setw(2) << n << "] sqr = " << sqr_new
-		      << std::endl;
+	error_deviation_type	error_deviation(map, edgeH, edgeV,
+						src, dst_tex.get(),
+						_params.sqcolor_thresh);
+	
+      // Allocate temporary storage for parallel reduction.
+	size_t	tmp_size = 0;
+	cub::DeviceReduce::Sum(nullptr, tmp_size,
+			       thrust::make_transform_iterator(
+				   thrust::make_counting_iterator(0),
+				   error_deviation),
+			       _deviation.begin(), error_deviation.size());
+	if (tmp_size > _tmp.size())
+	    _tmp.resize(tmp_size);
+
+      // Perform parallel reduction of deviations between source and
+      // destination images.
+	cub::DeviceReduce::Sum(_tmp.data().get(), tmp_size,
+			       thrust::make_transform_iterator(
+				   thrust::make_counting_iterator(0),
+				   error_deviation),
+			       _deviation.begin(), error_deviation.size());
+	gpuCheckLastError();
+
+      // Solve the linear system for updates of transform.
+	const deviation_type	deviation = _deviation[0];
+	const auto		b = error_deviation_type::b(deviation);
+	const auto		update = A.ldlt().solve(b).eval();
+	map = map * MAP::exp(update.data());
+
+	const auto	mse_old = mse;
+	mse = error_deviation_type::mse(deviation);
+#if !defined(NDEBUG)
+      //std::cerr << "  n=" << n << ", err=" << std::sqrt(mse) << std::endl;
 #endif
-	    f.compose(Minv*g);
-	    if (fabs(sqr - sqr_new) <= _params.tol*(sqr_new + sqr + 1.0e-7))
-	    {
-		nextFrame();
-		return sqr_new;
-	    }
-	    sqr = sqr_new;
-	}
+	constexpr static value_type	tol = 1.0e-5;
+	if (std::abs(mse - mse_old) <= tol*(mse + mse_old + 1.0e-10))
+	    break;
     }
-    else
-    {
-	auto		M = moment(u0, v0, w, h);
-	params_type	diagM(M.size());
-	for (size_t i = 0; i < diagM.size(); ++i)
-	    diagM[i] = M[i][i];
+    profiler_t::nextFrame();
 
-	params_type	g;
-	auto		sqr = sqrerr(src, dst, f, g, u0, v0, w, h);
-#ifdef _DEBUG
-	std::cerr << "     sqr = " << sqr << std::endl;
-#endif
-	value_type	lambda = 1.0e-4;
-	for (size_t n = 0; n < _params.niter_max; ++n)	// L-M反復
-	{
-	    for (size_t i = 0; i < M.size(); ++i)
-		M[i][i] = (1.0 + lambda) * diagM[i];
-
-	    auto	dtheta(g);
-	    solve(M, dtheta);
-	    auto	f_new(f);
-	    f_new.compose(dtheta);
-	    params_type	g_new;
-	    const auto	sqr_new = sqrerr(src, dst, f_new, g_new, u0, v0, w, h);
-#ifdef _DEBUG
-	    std::cerr << "[" << std::setw(2) << n << "] sqr = " << sqr_new
-		 << ", sqr_old = " << sqr
-		 << ",\tlambda = " << lambda << std::endl;
-#endif
-	    if (sqr_new <= sqr)		// 二乗誤差が減少するか調べる．
-	    {
-		f   = f_new;
-
-	      // 収束判定
-		if (fabs(sqr - sqr_new) <= _params.tol*(sqr_new + sqr + 1.0e-7))
-		{
-		    nextFrame();
-		    return sqr_new;
-		}
-
-		g   = g_new;
-		sqr = sqr_new;
-		lambda *= 0.1;		// L-M反復のパラメータを減らす．
-	    }
-	    else if (lambda < 1.0e-10)
-	    {
-		nextFrame();
-		return sqr;
-	    }
-	    else
-		lambda *= 10.0;		// L-M反復のパラメータを増やす．
-	}
-    }
-
-    throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");
-
-    return -1.0;
-}
-
-template <class MAP, class CLOCK> template <class T_> auto
-ICIA<MAP, CLOCK>::sqrerr(const Array2<T_>& src, const Array2<T_>& dst,
-			 const MAP& f, params_type& g,
-			 size_t u0, size_t v0, size_t w, size_t h) const
-    -> value_type
-{
-#ifdef ICIA_DEBUG
-    Image<RGB>		rgbImage(size<1>(src), size<0>(src));
-    Image<u_char>	composedImage(size<1>(src), size<0>(src));
-#endif
-    g.resize(MAP::DOF);
-    g = 0;
-
-    value_type	sqr = 0.0;
-    size_t	npoints = 0;
-    for (size_t v = v0; v < v0 + h; ++v)
-    {
-	using	std::cbegin;
-
-	auto	sval = cbegin(src[v]) + u0;
-	auto	grad = _grad[v].cbegin() + u0;
-
-	for (size_t u = u0; u < u0 + w; ++u)
-	{
-	    const auto	p = f(u, v);
-
-	    if (0 <= p[0] && p[0] < dst.ncol() - 1 &&
-		0 <= p[1] && p[1] < dst.nrow() - 1)
-	    {
-		const auto	dval = at(dst, p[0], p[1]);
-		if (dval > 0.5 && *sval > 0.5)
-		{
-		    auto	dI = dval - *sval;
-		    if (dI > _params.intensityThresh)
-			dI = _params.intensityThresh;
-		    else if (dI < -_params.intensityThresh)
-			dI = -_params.intensityThresh;
-#ifdef ICIA_DEBUG
-		    if (dI > 0.0)
-			rgbImage[v][u]
-			    = RGB(0, 255*dI/_params.intensityThresh, 0);
-		    else
-			rgbImage[v][u]
-			    = RGB(-255*dI/_params.intensityThresh, 0, 0);
-		    composedImage[v][u] = (dval + *sval) / 2;
-#endif
-		    g   += dI * *grad;
-		    sqr += dI * dI;
-		    ++npoints;
-		}
-#ifdef ICIA_DEBUG
-		else
-		    rgbImage[v][u] = RGB(0, 0, 255);
-#endif
-	    }
-	    ++sval;
-	    ++grad;
-	}
-    }
-#ifdef ICIA_DEBUG
-    rgbImage.saveData(std::cout, ImageFormat::RGB_24);
-    composedImage.saveData(std::cout, ImageFormat::U_CHAR);
-#endif
-    if (npoints < MAP::DOF)
-	throw std::runtime_error("ICIA::sqrerr(): not enough points!");
-
-    return sqr / npoints;
-}
-
-template <class MAP, class CLOCK> auto
-ICIA<MAP, CLOCK>::moment(size_t u0, size_t v0, size_t w, size_t h) const
-    -> matrix_type
-{
-    auto	u1 = std::min(u0 + w, _M.ncol()) - 1;
-    auto	v1 = std::min(v0 + h, _M.nrow()) - 1;
-    matrix_type	val;
-
-    if (u0 < _M.ncol() && v0 < _M.nrow() && u1 > 0 && v1 > 0)
-    {
-	if (u0-- > 0)
-	{
-	    if (v0-- > 0)
-		val = _M[v1][u1] - _M[v1][u0] + _M[v0][u0] - _M[v0][u1];
-	    else
-		val = _M[v1][u1] - _M[v1][u0];
-	}
-	else
-	{
-	    if (v0-- > 0)
-		val = _M[v1][u1] - _M[v0][u1];
-	    else
-		val = _M[v1][u1];
-	}
-    }
-
-    return val;
+    return mse;
 }
 
 }	// namespace cu

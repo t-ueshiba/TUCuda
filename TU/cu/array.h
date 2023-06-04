@@ -44,7 +44,7 @@ namespace TU
 namespace cu
 {
 /************************************************************************
-*  TU::cu::device::array<T, D>						*
+*  TU::cu::array<T, D>							*
 ************************************************************************/
 template <class T, size_t D>
 class array
@@ -79,6 +79,12 @@ class array
 			{
 			    return a[I]*b[I] + for_each<I + 1>::dot(a, b);
 			}
+	template <size_t D_> __host__ __device__ __forceinline__
+	static void	extend(const array& a, array<T, D_>& b)
+			{
+			    b[I] = a[I];
+			    for_each<I + 1>::extend(a, b);
+			}
     };
     template <class DUMMY>
     struct for_each<D, DUMMY>
@@ -89,6 +95,8 @@ class array
 	static void	apply(array& a, const array& b, OP_&& op)	{}
 	__host__ __device__ __forceinline__
 	static T	dot(const array& a, const array& b)	{ return T(0); }
+	template <size_t D_> __host__ __device__ __forceinline__
+	static void	extend(const array& a, array<T, D_>& b)		{}
     };
 
     template <size_t I=0, size_t J=0, class DUMMY=void>
@@ -336,6 +344,13 @@ class array
 			    array<T, D*D1_>	val;
 			    extpro<D1_>::apply(*this, b, val,
 					       std::forward<OP_>(op));
+			    return val;
+			}
+    template <size_t D_> __host__ __device__
+    array<T, D_>	extend() const
+			{
+			    array<T, D_>	val;
+			    for_each<>::extend(*this, val);
 			    return val;
 			}
 

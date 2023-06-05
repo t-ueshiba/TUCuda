@@ -1283,6 +1283,18 @@ class Projectivity
 			    -(eH*u + eV*v)*u, -(eH*u + eV*v)*v};
 		}
 
+    template <size_t D_=D> __host__ __device__
+    static std::enable_if_t<D_ == 2, void>
+		unnormalize_parameters(param_type& param, T scale)
+		{
+		    param[0] *= scale;
+		    param[1] *= scale;
+		    param[3] *= scale;
+		    param[4] *= scale;
+		    param[6] *= (scale * scale);
+		    param[7] *= (scale * scale);
+		}
+    
     friend std::ostream&
 		operator <<(std::ostream& out, const Projectivity& proj)
 		{
@@ -1401,6 +1413,16 @@ class Affinity
 		    return {eH*u, eH*v, eH,  eV*u, eV*v, eV};
 		}
 
+    template <size_t D_=D> __host__ __device__
+    static std::enable_if_t<D_ == 2, void>
+		unnormalize_parameters(param_type& param, T scale)
+		{
+		    param[0] *= scale;
+		    param[1] *= scale;
+		    param[3] *= scale;
+		    param[4] *= scale;
+		}
+    
     friend std::ostream&
 		operator <<(std::ostream& out, const Affinity& affinity)
 		{
@@ -1519,6 +1541,13 @@ class Rigidity : public Affinity<T, D, D>
 		    return {eH, eV, eV*u - eH*v};
 		}
 
+    template <size_t D_=D> __host__ __device__
+    static std::enable_if_t<D_ == 2, void>
+		unnormalize_parameters(param_type& param, T scale)
+		{
+		    param[2] *= scale;
+		}
+    
     using	base_type::initialize;
     using	base_type::print;
 };

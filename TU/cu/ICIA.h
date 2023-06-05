@@ -61,15 +61,14 @@ namespace detail
   template <class MAP, class C>
   class ICIAErrorMoment
   {
-    public:
+    private:
+      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
       constexpr static size_t	DOF = MAP::DOF;
 
+    public:
       using value_type		= typename MAP::element_type;
       using moment_type		= array<value_type, DOF*(DOF+1)/2>;
       using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
-
-    private:
-      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
 
     public:
       static moment_matrix_type
@@ -98,8 +97,12 @@ namespace detail
 
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
+
+	  const auto	s  = 1 / value_type(std::max(nrow(), ncol()));
+	  const auto	uf = s * u;
+	  const auto	vf = s * v;
 	  
-	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], u, v)
+	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], uf, vf)
 		.template ext();
       }
 
@@ -113,13 +116,17 @@ namespace detail
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
 
+	  const auto	s  = 1 / value_type(std::max(nrow(), ncol()));
+	  const auto	uf = s * u;
+	  const auto	vf = s * v;
 	  const C	eH = _edgeH[v][u];
 	  const C	eV = _edgeV[v][u];
-	  auto		a  = MAP::image_derivative0(eH.x, eV.x, u, v);
+	  auto		a  = MAP::image_derivative0(eH.x, eV.x, uf, vf);
 	  auto		m  = a.template ext();
-	  a  = MAP::image_derivative0(eH.y, eV.y, u, v);
+	  
+	  a  = MAP::image_derivative0(eH.y, eV.y, uf, vf);
 	  m += a.template ext();
-	  a  = MAP::image_derivative0(eH.z, eV.z, u, v);
+	  a  = MAP::image_derivative0(eH.z, eV.z, uf, vf);
 	  m += a.template ext();
 
 	  return m;
@@ -140,24 +147,27 @@ namespace detail
   template <class MAP, class C>
   class ICIAErrorDeviation
   {
-    public:
-      constexpr static size_t		DOF = MAP::DOF;
+    private:
+      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
+      constexpr static size_t	DOF = MAP::DOF;
 
+    public:
       using value_type			= typename MAP::element_type;
-      using texture_type		= Texture<C>;
       using deviation_type		= array<value_type, DOF+2>;
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
-    private:
-      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
-
     public:
-      static deviation_vector_type
-      b(const deviation_type& deviation)
+      deviation_vector_type
+      b(const deviation_type& deviation) const
       {
+	  typename MAP::param_type	param;
+	  for (int i = 0; i < params.size(); ++i)
+	      param[i] = deviation[i];
+	  MAP::unnormalize_parameters(param, std::max(nrow(), ncol()));
+	  
 	  deviation_vector_type	v;
 	  for (int i = 0; i < v.rows(); ++i)
-	      v(i) = deviation[i];
+	      v(i) = param[i];
 	  return v;
       }
       static value_type
@@ -200,8 +210,12 @@ namespace detail
 
 	      if (b*b < _sqcolor_thresh)
 	      {
+		  const auto	s  = value_type(std::max(nrow(), ncol()));
+		  const auto	uf = value_type(u)/s;
+		  const auto	vf = value_type(v)/s;
 		  const auto	ab = MAP::image_derivative0(_edgeH[v][u],
-							    _edgeV[v][u], u, v)
+							    _edgeV[v][u],
+							    uf, vf)
 				   * b;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = b*b;
@@ -232,11 +246,13 @@ namespace detail
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
-		  const auto	ab = MAP::image_derivative0(eH.x, eV.x, u, v)
+		  const auto	uf = value_type(u)/value_type(ncol());
+		  const auto	vf = value_type(v)/value_type(nrow());
+		  const auto	ab = MAP::image_derivative0(eH.x, eV.x, uf, vf)
 				   * b.x
-				   + MAP::image_derivative0(eH.y, eV.y, u, v)
+				   + MAP::image_derivative0(eH.y, eV.y, uf, vf)
 				   * b.y
-				   + MAP::image_derivative0(eH.z, eV.z, u, v)
+				   + MAP::image_derivative0(eH.z, eV.z, uf, vf)
 				   * b.z;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = sqaure(b);
@@ -283,7 +299,7 @@ class ICIA : public Profiler<CLOCK>
     {
 	Parameters()
 	    :sigma(2.0), newton(false), niter_max(100),
-	     sqcolor_thresh(15*15), tol(1.0e-4)				{}
+	     sqcolor_thresh(50*50), tol(1.0e-4)				{}
 
 	float		sigma;
 	bool		newton;
@@ -318,16 +334,21 @@ typename ICIA<MAP, CLOCK>::value_type
 ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			      const Array2<C_>& dst, MAP& map) const
 {
+#if !defined(NDEBUG)
+    Image<float>	diff(src.ncol(), src.nrow());
+    std::cout << 'M' << 1 << std::endl;
+    diff.saveHeader(std::cout, ImageFormat::FLOAT);
+#endif
     using error_moment_type	= detail::ICIAErrorMoment<MAP, C_>;
     using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C_>;
-    
+
+  // Compute horizontal and vertical derivatives.
     profiler_t::start(0);
     Array2<C_>			edgeH(src.nrow(), src.ncol());
     Array2<C_>			edgeV(src.nrow(), src.ncol());
     FIRGaussianConvolver2<C_>	convolver(_params.sigma);
     convolver.diffH(src.cbegin(), src.cend(), edgeH.begin(), true);
     convolver.diffV(src.cbegin(), src.cend(), edgeV.begin(), true);
-    Texture<C_>			dst_tex(dst);
 
   // Allocate temporary storage for parallel reduction.
     profiler_t::start(1);
@@ -357,7 +378,8 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	diagA[i] = A(i, i);
 
     profiler_t::start(2);
-    auto	mse = std::numeric_limits<value_type>::max();
+    Texture<C_>	dst_tex(dst);
+    auto	mse    = std::numeric_limits<value_type>::max();
     value_type	lambda = 1.0e-4;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
@@ -399,23 +421,29 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	    if (std::abs(mse_new - mse) <= tol)
 	    {
 		profiler_t::nextFrame();
-		return mse;
+		return mse_new;
 	    }
 
+	    mse = mse_new;
 	    map = map_new;
 	    lambda *= 0.1;
 	}
 	else if (lambda < 1.0e-10)
 	{
 	    profiler_t::nextFrame();
-	    return mse;
+	    return mse_new;
 	}
 	else
 	    lambda *= 10.0;
 	
 #if !defined(NDEBUG)
-	std::cerr << "  n=" << n << ", err=" << std::sqrt(mse_new)
+	std::cerr << "  n=" << n << ", err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
+	Array2<C_>	warped(dst.nrow(), dst.ncol());
+	warp(dst, warped.begin(), map);
+	diff = TU::Array2<C_>(src) - TU::Array2<C_>(warped);
+	diff.saveData(std::cout, ImageFormat::FLOAT);
+	usleep(50000);
 #endif
     }
 

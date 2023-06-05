@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../filterTest -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
-CPPFLAGS	= -DNDEBUG
+CPPFLAGS	= #-DNDEBUG
 CFLAGS		= -O3
 NVCCFLAGS	= -O3
 ifeq ($(shell arch), armv7l)

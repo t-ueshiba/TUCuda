@@ -7,56 +7,51 @@
 
 namespace TU
 {
-/************************************************************************
-*  static functions							*
-************************************************************************/
-template <class T> Image<T>
-warp(const Image<T>& src, double du, double dv, double theta)
+namespace cu
 {
-    Matrix33d	Htinv;
-    Htinv[0][0] = Htinv[1][1] = cos(theta);
-    Htinv[1][0] = sin(theta);
-    Htinv[0][1] = -Htinv[1][0];
-    Htinv[2][0] = -du;
-    Htinv[2][1] = -dv;
-    Htinv[2][2] = 1.0;
+Rigidity<float, 2>
+createRigidity(float u0, float du, float v0, float dv, float theta)
+{
+    const auto	c = std::cos(theta);
+    const auto	s = std::sin(theta);
 
-    Image<T>	dst(src.width(), src.height());
-    Warp	warp;
-    warp.initialize(Htinv,
-		    src.width(), src.height(), dst.width(), dst.height());
-    warp(src.cbegin(), dst.begin());
-
-    return dst;
+    return {{{c, -s}, {s,  c}},
+	    {(1 - c)*u0 + s*v0 + du, (1 - c)*v0 - s*u0 + dv}};
 }
-
+}	// namespace cu
+    
 template <class MAP, class T> void
-registerImages(const Image<T>& src, const Image<T>& dst,
-	       typename MAP::element_type thresh, bool newton)
+registerImages(const Image<T>& src, T du, T dv, T theta,
+	       T thresh, bool newton)
 {
-    using namespace	std;
     using Parameters	= typename cu::ICIA<MAP>::Parameters;
 
+    const cu::Array2<T>	src_d(src);
+    cu::Array2<T>	dst_d(src.nrow(), src.ncol());
+    const auto		op = cu::createRigidity(src.ncol()/2, du,
+						src.nrow()/2, dv, theta);
+    cu::warp(src_d, dst_d.begin(), op);
+#if 0
+    Image<T>		dst(dst_d);
+    src.save(std::cout);
+    dst.save(std::cout);			// 結果画像をセーブ
+#endif
+  // 位置合わせを実行．
     Parameters	params;
     params.newton	   = newton;
     params.sqcolor_thresh  = thresh*thresh;
     params.niter_max	   = 200;
 
-    const cu::Array2<T>	src_d(src);
-    const cu::Array2<T>	dst_d(dst);
-
-  // 位置合わせを実行．
     cu::ICIA<MAP>	registration(params);
     MAP			map;
     map.initialize();
-    auto		err = registration(src_d, dst_d, map);
-    cerr << "RMS-err = " << sqrt(err) << endl;
-    cerr << map;
+    const auto		err = registration(src_d, dst_d, map);
+    std::cerr << "RMS-err = " << std::sqrt(err) << std::endl;
+    std::cerr << map;
 
-    registration.print(cerr);
+    registration.print(std::cerr);
 }
-
-}
+}	// namespace TU
 
 /************************************************************************
 *  global functions							*
@@ -66,13 +61,13 @@ main(int argc, char* argv[])
 {
     using namespace	TU;
 
-    typedef float	T;
+    using T = float;
 
-    const double	DegToRad = M_PI / 180.0;
+    const float		DegToRad = M_PI / 180.0;
     enum Algorithm	{PROJECTIVE, AFFINE, RIGID};
     Algorithm		algorithm = PROJECTIVE;
-    double		du = 0.0, dv = 0.0, theta = 0.0;
-    T			thresh = 15.0;
+    float		du = 0.0, dv = 0.0, theta = 0.0;
+    T			thresh = 50.0;
     bool		newton = false;
     extern char		*optarg;
     for (int c; (c = getopt(argc, argv, "ARu:v:t:n:T:")) != -1; )
@@ -108,23 +103,18 @@ main(int argc, char* argv[])
 	src.restore(std::cin);
 	std::cerr << "done." << std::endl;
 
-	std::cerr << "Warping image...";
-	Image<T>	dst = warp(src, du, dv, theta);
-	std::cerr << "done." << std::endl;
-
-	src.save(std::cout);
-	dst.save(std::cout);
-
 	switch (algorithm)
 	{
 	  case RIGID:
-	    registerImages<cu::Rigidity<T, 2> >(src, dst, thresh, newton);
+	    registerImages<cu::Rigidity<T, 2> >(src, du, dv, theta,
+						thresh, newton);
 	    break;
 	  case AFFINE:
-	    registerImages<cu::Affinity<T, 2, 2> >(src, dst, thresh, newton);
+	    registerImages<cu::Affinity<T, 2, 2> >(src, du, dv, theta,
+						   thresh, newton);
 	    break;
 	  default:
-	    registerImages<cu::Projectivity<T, 2, 2> >(src, dst,
+	    registerImages<cu::Projectivity<T, 2, 2> >(src, du, dv, theta,
 						       thresh, newton);
 	    break;
 	}

@@ -13,7 +13,7 @@ IDLS		=
 MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include -I/usr/include/eigen3
-CPPFLAGS	= -DNDEBUG -DUSE_TBB
+CPPFLAGS	= #-DNDEBUG -DUSE_TBB
 CFLAGS		= -O3
 NVCCFLAGS	= -O3 #-arch=sm_53 -Xcompiler -mf16c
 CCFLAGS		= $(CFLAGS)

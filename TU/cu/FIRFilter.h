@@ -311,7 +311,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 	return;
 
     _buf.resize(nrow, ncol - 4*(_lobeSizeH/2) + 1);
-
+    
   // 横方向に畳み込む．
     switch (_lobeSizeH)
     {

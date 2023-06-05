@@ -1270,7 +1270,7 @@ class Projectivity
 		    projectivity._m.w.x = *++delta;
 		    projectivity._m.w.y = *++delta;
 		    projectivity._m.w.z = *++delta;
-		    projectivity._m.w.w = *++delta + 1;
+		    projectivity._m.w.w = 1;
 		    
 		    return projectivity;
 		}

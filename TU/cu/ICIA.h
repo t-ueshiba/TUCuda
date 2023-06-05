@@ -50,6 +50,7 @@
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <iomanip>
+#include "TU/Image++.h"
 
 namespace TU
 {
@@ -82,10 +83,8 @@ namespace detail
 	  return m;
       }
 
-      ICIAErrorMoment(const MAP& map,
-		      const Array2<C>& edgeH, const Array2<C>& edgeV)
-	  :_map(map),
-	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
+      ICIAErrorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
+	  :_edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow())
       {
       }
@@ -100,7 +99,7 @@ namespace detail
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
 	  
-	  return _map.image_derivative0(_edgeH[v][u], _edgeV[v][u], u, v)
+	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], u, v)
 		.template ext();
       }
 
@@ -116,11 +115,11 @@ namespace detail
 
 	  const C	eH = _edgeH[v][u];
 	  const C	eV = _edgeV[v][u];
-	  auto		a  = _map.image_derivative0(eH.x, eV.x, u, v);
+	  auto		a  = MAP::image_derivative0(eH.x, eV.x, u, v);
 	  auto		m  = a.template ext();
-	  a  = _map.image_derivative0(eH.y, eV.y, u, v);
+	  a  = MAP::image_derivative0(eH.y, eV.y, u, v);
 	  m += a.template ext();
-	  a  = _map.image_derivative0(eH.z, eV.z, u, v);
+	  a  = MAP::image_derivative0(eH.z, eV.z, u, v);
 	  m += a.template ext();
 
 	  return m;
@@ -134,7 +133,6 @@ namespace detail
       int	ncol()		const	{ return _edgeH.cbegin().size(); }
 
     private:
-      const MAP		_map;
       const colors_type	_edgeH;
       const colors_type	_edgeV;
   };
@@ -202,7 +200,7 @@ namespace detail
 
 	      if (b*b < _sqcolor_thresh)
 	      {
-		  const auto	ab = _map.image_derivative0(_edgeH[v][u],
+		  const auto	ab = MAP::image_derivative0(_edgeH[v][u],
 							    _edgeV[v][u], u, v)
 				   * b;
 		  auto		d  = ab.template extend<DOF+2>();
@@ -234,11 +232,11 @@ namespace detail
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
-		  const auto	ab = _map.image_derivative0(eH.x, eV.x, u, v)
+		  const auto	ab = MAP::image_derivative0(eH.x, eV.x, u, v)
 				   * b.x
-				   + _map.image_derivative0(eH.y, eV.y, u, v)
+				   + MAP::image_derivative0(eH.y, eV.y, u, v)
 				   * b.y
-				   + _map.image_derivative0(eH.z, eV.z, u, v)
+				   + MAP::image_derivative0(eH.z, eV.z, u, v)
 				   * b.z;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = sqaure(b);
@@ -284,7 +282,7 @@ class ICIA : public Profiler<CLOCK>
     struct Parameters
     {
 	Parameters()
-	    :sigma(1.0), newton(false), niter_max(100),
+	    :sigma(2.0), newton(false), niter_max(100),
 	     sqcolor_thresh(15*15), tol(1.0e-4)				{}
 
 	float		sigma;
@@ -323,22 +321,18 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
     using error_moment_type	= detail::ICIAErrorMoment<MAP, C_>;
     using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C_>;
     
-    using	std::cbegin;
-    using	std::cend;
-
     profiler_t::start(0);
-
-    Array2<C_>			edgeH(size<0>(src), size<1>(src));
-    Array2<C_>			edgeV(size<0>(src), size<1>(src));
+    Array2<C_>			edgeH(src.nrow(), src.ncol());
+    Array2<C_>			edgeV(src.nrow(), src.ncol());
     FIRGaussianConvolver2<C_>	convolver(_params.sigma);
-    convolver.diffH(cbegin(src), cend(src), edgeH.begin());
-    convolver.diffV(cbegin(src), cend(src), edgeV.begin());
+    convolver.diffH(src.cbegin(), src.cend(), edgeH.begin(), true);
+    convolver.diffV(src.cbegin(), src.cend(), edgeV.begin(), true);
     Texture<C_>			dst_tex(dst);
-    error_moment_type		error_moment(map, edgeH, edgeV);
 
   // Allocate temporary storage for parallel reduction.
     profiler_t::start(1);
-    size_t	tmp_size = 0;
+    error_moment_type		error_moment(edgeH, edgeV);
+    size_t			tmp_size = 0;
     cub::DeviceReduce::Sum(nullptr, tmp_size,
 			   thrust::make_transform_iterator(
 			       thrust::make_counting_iterator(0),
@@ -355,19 +349,23 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			   _moment.begin(), error_moment.size());
     gpuCheckLastError();
 
-    const moment_type	moment = _moment[0];
-    const auto		A = error_moment_type::A(moment);
-    auto		mse = std::numeric_limits<value_type>::max();
+  // Convert the error moment to a matrix and save its diagonals.
+    const moment_type		moment = _moment[0];
+    auto			A = error_moment_type::A(moment);
+    std::array<value_type, DOF>	diagA;
+    for (size_t i = 0; i < diagA.size(); ++i)
+	diagA[i] = A(i, i);
 
     profiler_t::start(2);
+    auto	mse = std::numeric_limits<value_type>::max();
+    value_type	lambda = 1.0e-4;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
+      // Allocate temporary storage for parallel reduction.
 	error_deviation_type	error_deviation(map, edgeH, edgeV,
 						src, dst_tex.get(),
 						_params.sqcolor_thresh);
-	
-      // Allocate temporary storage for parallel reduction.
-	size_t	tmp_size = 0;
+	size_t			tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
@@ -385,24 +383,45 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			       _deviation.begin(), error_deviation.size());
 	gpuCheckLastError();
 
-      // Solve the linear system for updates of transform.
 	const deviation_type	deviation = _deviation[0];
-	const auto		b = error_deviation_type::b(deviation);
-	const auto		update = A.ldlt().solve(b).eval();
-	map = map * MAP::exp(update.data());
+	const auto		mse_new = error_deviation_type::mse(deviation);
 
-	const auto	mse_old = mse;
-	mse = error_deviation_type::mse(deviation);
+      // Solve the linear system for updates of transform.
+	for (size_t i = 0; i < diagA.size(); ++i)
+	    A(i, i) = (1.0 + lambda) * diagA[i];
+	const auto	b       = error_deviation_type::b(deviation);
+	const auto	update  = A.ldlt().solve(b).eval();
+	const auto	map_new = map * MAP::exp(update.data());
+
+	if (mse_new <= mse)
+	{
+	    constexpr static value_type	tol = 1.0e-5;
+	    if (std::abs(mse_new - mse) <= tol)
+	    {
+		profiler_t::nextFrame();
+		return mse;
+	    }
+
+	    map = map_new;
+	    lambda *= 0.1;
+	}
+	else if (lambda < 1.0e-10)
+	{
+	    profiler_t::nextFrame();
+	    return mse;
+	}
+	else
+	    lambda *= 10.0;
+	
 #if !defined(NDEBUG)
-      //std::cerr << "  n=" << n << ", err=" << std::sqrt(mse) << std::endl;
+	std::cerr << "  n=" << n << ", err=" << std::sqrt(mse_new)
+		  << ", lambda=" << lambda << std::endl;
 #endif
-	constexpr static value_type	tol = 1.0e-5;
-	if (std::abs(mse - mse_old) <= tol*(mse + mse_old + 1.0e-10))
-	    break;
     }
-    profiler_t::nextFrame();
 
-    return mse;
+    throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");
+
+    return -1.0;
 }
 
 }	// namespace cu

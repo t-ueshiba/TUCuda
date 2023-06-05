@@ -419,7 +419,7 @@ class range<thrust::device_ptr<T> >
     decltype(auto)
 		operator [](int i) const
 		{
-		    assert(i < size());
+		  //assert(i < size());
 		    return *(_begin + i);
 		}
 

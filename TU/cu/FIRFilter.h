@@ -212,8 +212,8 @@ fir_filterV(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 
     constexpr int	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
-    const auto	x0 = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
-    const auto	y0 = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
+    const auto	x0   = __mul24(blockIdx.x, blockDim.x);  // ブロック左上隅
+    const auto	y0   = __mul24(blockIdx.y, blockDim.y);  // ブロック左上隅
     const int	xsiz = ::min(blockDim.x, in.begin().size() - x0);
     const int	ysiz = ::min(blockDim.y + 2*LobeSize, in.size() - y0);
 
@@ -285,7 +285,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
     device::fir_filterV<FIRFilter2, L><<<blocks, threads>>>(
 	cu::make_range(in, nrow),
 	cu::slice(out, (shift ? offsetV() : 0), outSizeV(nrow),
-			 (shift ? offsetH() : 0), outSizeH(ncol)));
+		       (shift ? offsetH() : 0), ncol));
     gpuCheckLastError();
 }
 #endif	// __NVCC__
@@ -303,14 +303,16 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
     using	std::cend;
 
     const size_t	nrow = std::distance(in, ie);
-    if (nrow < 4*(_lobeSizeV/2) + 1)
+    const size_t	lsV  = _lobeSizeV & ~0x1;
+    if (nrow <= 2*lsV)
 	return;
 
     const size_t	ncol = std::size(*in);
-    if (ncol < 4*(_lobeSizeH/2) + 1)
+    const size_t	lsH  = _lobeSizeH & ~0x1;
+    if (ncol <= 2*lsH)
 	return;
 
-    _buf.resize(nrow, ncol - 4*(_lobeSizeH/2) + 1);
+    _buf.resize(nrow, ncol - 2*lsH);
     
   // 横方向に畳み込む．
     switch (_lobeSizeH)

@@ -98,7 +98,7 @@ namespace detail
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
 
-	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
+	  const auto	s = 1 / value_type(max(nrow(), ncol()));
 	  
 	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], s*u, s*v)
 		.template ext();

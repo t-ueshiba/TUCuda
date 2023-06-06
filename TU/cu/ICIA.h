@@ -257,7 +257,7 @@ namespace detail
 				   + MAP::image_derivative0(eH.z, eV.z, uf, vf)
 				   * b.z;
 		  auto		d  = ab.template extend<DOF+2>();
-		  d[DOF]   = sqaure(b);
+		  d[DOF]   = square(b);
 		  d[DOF+1] = 1;
 		  
 		  return d;

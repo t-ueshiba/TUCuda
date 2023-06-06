@@ -187,6 +187,8 @@ struct mat2x<T, 1> : public detail::base_vec<T, 2>::type
     __host__ __device__ constexpr
     explicit		mat2x(T c)	:super{c, c}	{}
     __host__ __device__ constexpr
+    explicit		mat2x(const super& v) :super{v}	{}
+    __host__ __device__ constexpr
 			mat2x(T x, T y)	:super{x, y}	{}
 
     __host__ __device__
@@ -235,6 +237,9 @@ struct mat3x<T, 1> : public detail::base_vec<T, 3>::type
     __host__ __device__ constexpr
     explicit		mat3x(T c)
 			    :super{c, c, c}		{}
+    __host__ __device__ constexpr
+    explicit		mat3x(const super& v)
+			    :super{v}			{}
     __host__ __device__ constexpr
 			mat3x(T x, T y, T z)
 			    :super{x, y, z}		{}
@@ -287,6 +292,9 @@ struct mat4x<T, 1> : public detail::base_vec<T, 4>::type
     __host__ __device__ constexpr
     explicit		mat4x(T c)
 			    :super{c, c, c, c}		{}
+    __host__ __device__ constexpr
+    explicit		mat4x(const super& v)
+			    :super{v}			{}
     __host__ __device__ constexpr
 			mat4x(T x, T y, T z, T w)
 			    :super{x, y, z, w}		{}

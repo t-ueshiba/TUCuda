@@ -1229,7 +1229,7 @@ class Projectivity
     std::enable_if_t<DO_ == DI_, Projectivity>
 		operator *(const Projectivity& projectivity) const
 		{
-		    return Projectivity(_m * projectivity._m);
+		    return Projectivity(dot(_m, projectivity._m));
 		}
     
     template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
@@ -1283,16 +1283,18 @@ class Projectivity
 			    -(eH*u + eV*v)*u, -(eH*u + eV*v)*v};
 		}
 
-    template <size_t D_=D> __host__ __device__
-    static std::enable_if_t<D_ == 2, void>
-		unnormalize_parameters(param_type& param, T scale)
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, void>
+		unnormalize_updates(ITER delta, T scale)
 		{
-		    param[0] *= scale;
-		    param[1] *= scale;
-		    param[3] *= scale;
-		    param[4] *= scale;
-		    param[6] *= (scale * scale);
-		    param[7] *= (scale * scale);
+		    *delta   *= scale;
+		    *++delta *= scale;
+		    ++delta;
+		    *++delta *= scale;
+		    *++delta *= scale;
+		    ++delta;
+		    *++delta *= (scale * scale);
+		    *++delta *= (scale * scale);
 		}
     
     friend std::ostream&
@@ -1413,14 +1415,15 @@ class Affinity
 		    return {eH*u, eH*v, eH,  eV*u, eV*v, eV};
 		}
 
-    template <size_t D_=D> __host__ __device__
-    static std::enable_if_t<D_ == 2, void>
-		unnormalize_parameters(param_type& param, T scale)
+    template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
+    static std::enable_if_t<DO_ == 2 && DI_ == 2, void>
+		unnormalize_updates(ITER delta, T scale)
 		{
-		    param[0] *= scale;
-		    param[1] *= scale;
-		    param[3] *= scale;
-		    param[4] *= scale;
+		    *delta   *= scale;
+		    *++delta *= scale;
+		    ++delta;
+		    *++delta *= scale;
+		    *++delta *= scale;
 		}
     
     friend std::ostream&
@@ -1541,11 +1544,12 @@ class Rigidity : public Affinity<T, D, D>
 		    return {eH, eV, eV*u - eH*v};
 		}
 
-    template <size_t D_=D> __host__ __device__
+    template <class ITER, size_t D_=D> __host__ __device__
     static std::enable_if_t<D_ == 2, void>
-		unnormalize_parameters(param_type& param, T scale)
+		unnormalize_updates(ITER delta, T scale)
 		{
-		    param[2] *= scale;
+		    ++delta;
+		    *++delta *= scale;
 		}
     
     using	base_type::initialize;

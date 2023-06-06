@@ -9,8 +9,8 @@ namespace TU
 {
 namespace cu
 {
-Rigidity<float, 2>
-createRigidity(float u0, float du, float v0, float dv, float theta)
+template <class T> Rigidity<T, 2>
+createRigidity(T u0, T du, T v0, T dv, T theta)
 {
     const auto	c = std::cos(theta);
     const auto	s = std::sin(theta);
@@ -20,27 +20,24 @@ createRigidity(float u0, float du, float v0, float dv, float theta)
 }
 }	// namespace cu
     
-template <class MAP, class T> void
-registerImages(const Image<T>& src, T du, T dv, T theta,
-	       T thresh, bool newton)
+template <class MAP, class C, class T> void
+registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 {
     using Parameters	= typename cu::ICIA<MAP>::Parameters;
 
-    const cu::Array2<T>	src_d(src);
-    cu::Array2<T>	dst_d(src.nrow(), src.ncol());
-    const auto		op = cu::createRigidity(src.ncol()/2, du,
-						src.nrow()/2, dv, theta);
+    const cu::Array2<C>	src_d(src);
+    cu::Array2<C>	dst_d(src.nrow(), src.ncol());
+    const auto		op = cu::createRigidity(T(src.ncol()/2), du,
+						T(src.nrow()/2), dv, theta);
     cu::warp(src_d, dst_d.begin(), op);
 #if 0
-    Image<T>		dst(dst_d);
+    Image<C>		dst(dst_d);
     src.save(std::cout);
     dst.save(std::cout);			// 結果画像をセーブ
 #endif
   // 位置合わせを実行．
     Parameters	params;
-    params.newton	   = newton;
-    params.sqcolor_thresh  = thresh*thresh;
-    params.niter_max	   = 200;
+    params.sqcolor_thresh = thresh*thresh;
 
     cu::ICIA<MAP>	registration(params);
     MAP			map;
@@ -61,18 +58,20 @@ main(int argc, char* argv[])
 {
     using namespace	TU;
 
+    using C = float;
     using T = float;
 
-    const float		DegToRad = M_PI / 180.0;
+    const T		DegToRad = M_PI / 180.0;
     enum Algorithm	{PROJECTIVE, AFFINE, RIGID};
     Algorithm		algorithm = PROJECTIVE;
-    float		du = 0.0, dv = 0.0, theta = 0.0;
-    T			thresh = 50.0;
-    bool		newton = false;
+    T			du = 0.0, dv = 0.0, theta = 0.0, thresh = 50.0;
     extern char		*optarg;
-    for (int c; (c = getopt(argc, argv, "ARu:v:t:n:T:")) != -1; )
+    for (int c; (c = getopt(argc, argv, "PARu:v:t:T:")) != -1; )
 	switch (c)
 	{
+	  case 'P':
+	    algorithm = PROJECTIVE;
+	    break;
 	  case 'A':
 	    algorithm = AFFINE;
 	    break;
@@ -88,9 +87,6 @@ main(int argc, char* argv[])
 	  case 't':
 	    theta = DegToRad * atof(optarg);
 	    break;
-	  case 'n':
-	    newton = true;
-	    break;
 	  case 'T':
 	    thresh = atof(optarg);
 	    break;
@@ -99,23 +95,21 @@ main(int argc, char* argv[])
     try
     {
 	std::cerr << "Restoring image...";
-	Image<T>	src;
+	Image<C>	src;
 	src.restore(std::cin);
 	std::cerr << "done." << std::endl;
 
 	switch (algorithm)
 	{
 	  case RIGID:
-	    registerImages<cu::Rigidity<T, 2> >(src, du, dv, theta,
-						thresh, newton);
+	    registerImages<cu::Rigidity<T, 2> >(src, du, dv, theta, thresh);
 	    break;
 	  case AFFINE:
-	    registerImages<cu::Affinity<T, 2, 2> >(src, du, dv, theta,
-						   thresh, newton);
+	    registerImages<cu::Affinity<T, 2, 2> >(src, du, dv, theta, thresh);
 	    break;
 	  default:
 	    registerImages<cu::Projectivity<T, 2, 2> >(src, du, dv, theta,
-						       thresh, newton);
+						       thresh);
 	    break;
 	}
     }

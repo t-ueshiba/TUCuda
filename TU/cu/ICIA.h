@@ -98,11 +98,9 @@ namespace detail
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
 
-	  const auto	s  = 1 / value_type(std::max(nrow(), ncol()));
-	  const auto	uf = s * u;
-	  const auto	vf = s * v;
+	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 	  
-	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], uf, vf)
+	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], s*u, s*v)
 		.template ext();
       }
 
@@ -116,11 +114,11 @@ namespace detail
 	  if (u >= ncol() || v >= nrow())
 	      return {0};
 
-	  const auto	s  = 1 / value_type(std::max(nrow(), ncol()));
-	  const auto	uf = s * u;
-	  const auto	vf = s * v;
 	  const C	eH = _edgeH[v][u];
 	  const C	eV = _edgeV[v][u];
+	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
+	  const auto	uf = s * u;
+	  const auto	vf = s * v;
 	  auto		a  = MAP::image_derivative0(eH.x, eV.x, uf, vf);
 	  auto		m  = a.template ext();
 	  
@@ -157,30 +155,35 @@ namespace detail
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      deviation_vector_type
-      b(const deviation_type& deviation) const
+      static deviation_vector_type
+      b(const deviation_type& deviation)
       {
-	  typename MAP::param_type	param;
-	  for (int i = 0; i < params.size(); ++i)
-	      param[i] = deviation[i];
-	  MAP::unnormalize_parameters(param, std::max(nrow(), ncol()));
-	  
 	  deviation_vector_type	v;
 	  for (int i = 0; i < v.rows(); ++i)
-	      v(i) = param[i];
+	      v(i) = deviation[i];
 	  return v;
       }
+
       static value_type
       npoints(const deviation_type& deviation)
       {
 	  return deviation[DOF+1];
       }
+
       static value_type
       mse(const deviation_type& deviation)
       {
 	  return deviation[DOF] / deviation[DOF+1];
       }
 
+      deviation_vector_type&
+      unnormalize_updates(deviation_vector_type& updates) const
+      {
+	  MAP::unnormalize_updates(updates.data(), 
+				   1 / value_type(max(nrow(), ncol())));
+	  return updates;
+      }
+      
       ICIAErrorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
 			 const Array2<C>& colors, cudaTextureObject_t colors_p,
@@ -210,12 +213,10 @@ namespace detail
 
 	      if (b*b < _sqcolor_thresh)
 	      {
-		  const auto	s  = value_type(std::max(nrow(), ncol()));
-		  const auto	uf = value_type(u)/s;
-		  const auto	vf = value_type(v)/s;
+		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	ab = MAP::image_derivative0(_edgeH[v][u],
 							    _edgeV[v][u],
-							    uf, vf)
+							    s*u, s*v)
 				   * b;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = b*b;
@@ -246,8 +247,9 @@ namespace detail
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
-		  const auto	uf = value_type(u)/value_type(ncol());
-		  const auto	vf = value_type(v)/value_type(nrow());
+		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
+		  const auto	uf = s * u;
+		  const auto	vf = s * v;
 		  const auto	ab = MAP::image_derivative0(eH.x, eV.x, uf, vf)
 				   * b.x
 				   + MAP::image_derivative0(eH.y, eV.y, uf, vf)
@@ -297,15 +299,10 @@ class ICIA : public Profiler<CLOCK>
 
     struct Parameters
     {
-	Parameters()
-	    :sigma(2.0), newton(false), niter_max(100),
-	     sqcolor_thresh(50*50), tol(1.0e-4)				{}
-
-	float		sigma;
-	bool		newton;
-	size_t		niter_max;
-	value_type	sqcolor_thresh;
-	value_type	tol;
+	float		sigma		= 2.0;
+	value_type	sqcolor_thresh	= 50*50;
+	value_type	tol		= 1.0e-2;
+	size_t		niter_max	= 100;
     };
 
   private:
@@ -379,8 +376,9 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
     profiler_t::start(2);
     Texture<C_>	dst_tex(dst);
-    auto	mse    = std::numeric_limits<value_type>::max();
-    value_type	lambda = 1.0e-4;
+    auto	map_old = map;
+    auto	mse_old = std::numeric_limits<value_type>::max();
+    value_type	lambda  = 1.0e-4;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Allocate temporary storage for parallel reduction.
@@ -406,36 +404,45 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	gpuCheckLastError();
 
 	const deviation_type	deviation = _deviation[0];
-	const auto		mse_new = error_deviation_type::mse(deviation);
+	const auto		mse = error_deviation_type::mse(deviation);
 
-      // Solve the linear system for updates of transform.
-	for (size_t i = 0; i < diagA.size(); ++i)
-	    A(i, i) = (1.0 + lambda) * diagA[i];
-	const auto	b       = error_deviation_type::b(deviation);
-	const auto	update  = A.ldlt().solve(b).eval();
-	const auto	map_new = map * MAP::exp(update.data());
-
-	if (mse_new <= mse)
+	std::cerr << "err_old=" << std::sqrt(mse_old)
+		  << ", err=" << std::sqrt(mse)
+		  << std::endl;
+	
+	if (mse < mse_old)
 	{
-	    constexpr static value_type	tol = 1.0e-5;
-	    if (std::abs(mse_new - mse) <= tol)
+	    if (std::abs(mse - mse_old) <= _params.tol)
 	    {
 		profiler_t::nextFrame();
-		return mse_new;
+		return mse;
 	    }
 
-	    mse = mse_new;
-	    map = map_new;
+	    mse_old = mse;
 	    lambda *= 0.1;
 	}
-	else if (lambda < 1.0e-10)
-	{
-	    profiler_t::nextFrame();
-	    return mse_new;
-	}
 	else
+	{
+	    map = map_old;
+
+	    if (lambda < 1.0e-20)
+	    {
+		profiler_t::nextFrame();
+		return mse_old;
+	    }
+
 	    lambda *= 10.0;
+	}
 	
+      // Solve the linear system for updates of transform.
+	map_old = map;
+	for (size_t i = 0; i < diagA.size(); ++i)
+	    A(i, i) = (1.0 + lambda) * diagA[i];
+	const auto	b     = error_deviation_type::b(deviation);
+	auto		delta = A.ldlt().solve(b).eval();
+	error_deviation.unnormalize_updates(delta);
+	map = map_old * MAP::exp(delta.data());
+
 #if !defined(NDEBUG)
 	std::cerr << "  n=" << n << ", err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;

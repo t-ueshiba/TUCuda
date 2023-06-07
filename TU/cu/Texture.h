@@ -41,6 +41,7 @@
 
 #include "TU/cu/algorithm.h"
 #include "TU/cu/Array++.h"
+#include "TU/cu/vec.h"
 #include <cuda_texture_types.h>
 
 namespace TU
@@ -59,9 +60,20 @@ namespace cu
 template <class T>
 class Texture
 {
+  private:
+    template <class T_>
+    struct base			{ using	type = T_; };
+    template <class T_>
+    struct base<mat2x<T_, 1> >	{ using	type = typename mat2x<T_, 1>::super; };
+    template <class T_>
+    struct base<mat3x<T_, 1> >	{ using	type = typename mat3x<T_, 1>::super; };
+    template <class T_>
+    struct base<mat4x<T_, 1> >	{ using	type = typename mat4x<T_, 1>::super; };
+    
   public:
     using value_type	= T;
-
+    using base_type	= typename base<T>::type;
+    
   public:
     Texture(const Array<T>& a, bool normalize=false, bool interpolate=true,
 	    enum cudaTextureAddressMode addressMode=cudaAddressModeBorder);
@@ -69,7 +81,16 @@ class Texture
 	    enum cudaTextureAddressMode addressMode=cudaAddressModeBorder);
     ~Texture()							;
 
-    cudaTextureObject_t	get()				const	{ return _tex; }
+    __device__
+    value_type	operator()(float x) const
+		{
+		    return value_type(tex1D<base_type>(_tex, x));
+		}
+    __device__
+    value_type	operator()(float x, float y) const
+		{
+		    return value_type(tex2D<base_type>(_tex, x, y));
+		}
 
   private:
     cudaTextureObject_t	_tex;
@@ -173,7 +194,7 @@ warp(const Array2<T>& a, OUT out, MAP map)				;
 namespace device
 {
   template <class T, class OUT, class MAP> __global__ void
-  warp(cudaTextureObject_t tex, range<range_iterator<OUT> > out, MAP map)
+  warp(Texture<T> tex, range<range_iterator<OUT> > out, MAP map)
   {
       const int	x = __mul24(blockIdx.x, blockDim.x) + threadIdx.x;
       const int	y = __mul24(blockIdx.y, blockDim.y) + threadIdx.y;
@@ -182,7 +203,7 @@ namespace device
       {
 	  const auto	p = map(x, y);
 
-	  out[y][x] = tex2D<T>(tex, p.x, p.y);
+	  out[y][x] = tex(p.x, p.y);
       }
   }
 }	// namespace device
@@ -202,8 +223,7 @@ warp(const Array2<T>& a, OUT out, MAP map)
 
     const dim3	threads(BLOCK_TRAITS::BlockDimX, BLOCK_TRAITS::BlockDimY);
     const dim3	blocks(divUp(ncol, threads.x), divUp(nrow, threads.y));
-    device::warp<T><<<blocks, threads>>>(tex.get(),
-					 cu::make_range(out, nrow), map);
+    device::warp<T><<<blocks, threads>>>(tex, cu::make_range(out, nrow), map);
     gpuCheckLastError();
 }
 #endif

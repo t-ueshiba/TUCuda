@@ -186,7 +186,7 @@ namespace detail
       
       ICIAErrorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
-			 const Array2<C>& colors, cudaTextureObject_t colors_p,
+			 const Array2<C>& colors, const Texture<C>& colors_p,
 			 value_type sqcolor_thresh)
 	  :_map(map),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
@@ -208,8 +208,7 @@ namespace detail
 	  if (u < ncol() && v < nrow() &&
 	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
-	      const auto	b = _colors[v][u] - tex2D<C>(_colors_p,
-							     uv_p.x, uv_p.y);
+	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
 
 	      if (b*b < _sqcolor_thresh)
 	      {
@@ -240,8 +239,7 @@ namespace detail
 	  if (u < ncol() && v < nrow() &&
 	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
-	      const auto	b = _colors[v][u] - tex2D<C>(_colors_p,
-							     uv_p.x, uv_p.y);
+	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
 
 	      if (square(b) < _sqcolor_thresh)
 	      {
@@ -275,12 +273,12 @@ namespace detail
       int	ncol()		const	{ return _colors.cbegin().size(); }
 
     private:
-      const MAP			_map;
-      const colors_type		_edgeH;
-      const colors_type		_edgeV;
-      const colors_type		_colors;
-      const cudaTextureObject_t	_colors_p;
-      const value_type		_sqcolor_thresh;
+      const MAP		_map;
+      const colors_type	_edgeH;
+      const colors_type	_edgeV;
+      const colors_type	_colors;
+      const Texture<C>	_colors_p;
+      const value_type	_sqcolor_thresh;
   };
 }	// namespace detail
     
@@ -383,7 +381,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
     {
       // Allocate temporary storage for parallel reduction.
 	error_deviation_type	error_deviation(map, edgeH, edgeV,
-						src, dst_tex.get(),
+						src, dst_tex,
 						_params.sqcolor_thresh);
 	size_t			tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,

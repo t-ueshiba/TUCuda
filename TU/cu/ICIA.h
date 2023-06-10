@@ -87,7 +87,7 @@ namespace detail
 	   _edgeV(edgeV.cbegin(), edgeV.nrow())
       {
       }
-	
+
       template <class C_=C> __host__ __device__
       std::enable_if_t<std::is_arithmetic<C_>::value, moment_type>
       operator ()(int i) const
@@ -99,7 +99,7 @@ namespace detail
 	      return {0};
 
 	  const auto	s = 1 / value_type(max(nrow(), ncol()));
-	  
+
 	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], s*u, s*v)
 		.template ext();
       }
@@ -121,7 +121,7 @@ namespace detail
 	  const auto	vf = s * v;
 	  auto		a  = MAP::image_derivative0(eH.x, eV.x, uf, vf);
 	  auto		m  = a.template ext();
-	  
+
 	  a  = MAP::image_derivative0(eH.y, eV.y, uf, vf);
 	  m += a.template ext();
 	  a  = MAP::image_derivative0(eH.z, eV.z, uf, vf);
@@ -141,7 +141,7 @@ namespace detail
       const colors_type	_edgeH;
       const colors_type	_edgeV;
   };
-    
+
   template <class MAP, class C>
   class ICIAErrorDeviation
   {
@@ -179,11 +179,11 @@ namespace detail
       deviation_vector_type&
       unnormalize_updates(deviation_vector_type& updates) const
       {
-	  MAP::unnormalize_updates(updates.data(), 
+	  MAP::unnormalize_updates(updates.data(),
 				   1 / value_type(max(nrow(), ncol())));
 	  return updates;
       }
-      
+
       ICIAErrorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
 			 const Array2<C>& colors, const Texture<C>& colors_p,
@@ -196,7 +196,7 @@ namespace detail
 	   _sqcolor_thresh(sqcolor_thresh)
       {
       }
-	
+
       template <class C_=C> __host__ __device__
       std::enable_if_t<std::is_arithmetic<C_>::value, deviation_type>
       operator ()(int i) const
@@ -257,7 +257,7 @@ namespace detail
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = square(b);
 		  d[DOF+1] = 1;
-		  
+
 		  return d;
 	      }
 	  }
@@ -281,7 +281,7 @@ namespace detail
       const value_type	_sqcolor_thresh;
   };
 }	// namespace detail
-    
+
 /************************************************************************
 *  class ICIA<MAP, CLOCK>						*
 ************************************************************************/
@@ -305,7 +305,7 @@ class ICIA : public Profiler<CLOCK>
 
   private:
     using profiler_t		= Profiler<CLOCK>;
-    
+
   public:
 		ICIA(const Parameters& params=Parameters())
 		    :profiler_t(3), _params(params),
@@ -347,7 +347,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
   // Allocate temporary storage for parallel reduction.
     profiler_t::start(1);
-    error_moment_type		error_moment(edgeH, edgeV);
+    const error_moment_type	error_moment(edgeH, edgeV);
     size_t			tmp_size = 0;
     cub::DeviceReduce::Sum(nullptr, tmp_size,
 			   thrust::make_transform_iterator(
@@ -366,24 +366,23 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
     gpuCheckLastError();
 
   // Convert the error moment to a matrix and save its diagonals.
-    const moment_type		moment = _moment[0];
-    auto			A = error_moment_type::A(moment);
+    auto			A = error_moment_type::A(_moment[0]);
     std::array<value_type, DOF>	diagA;
     for (size_t i = 0; i < diagA.size(); ++i)
 	diagA[i] = A(i, i);
 
     profiler_t::start(2);
-    Texture<C_>	dst_tex(dst);
-    auto	map_old = map;
-    auto	mse_old = std::numeric_limits<value_type>::max();
-    value_type	lambda  = 1.0e-4;
+    const Texture<C_>	dst_tex(dst);
+    auto		map_old = map;
+    auto		mse_old = std::numeric_limits<value_type>::max();
+    value_type		lambda  = 1.0e-4;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Allocate temporary storage for parallel reduction.
-	error_deviation_type	error_deviation(map, edgeH, edgeV,
-						src, dst_tex,
-						_params.sqcolor_thresh);
-	size_t			tmp_size = 0;
+	const error_deviation_type	error_deviation(map, edgeH, edgeV,
+							src, dst_tex,
+							_params.sqcolor_thresh);
+	size_t				tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
@@ -407,7 +406,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	std::cerr << "err_old=" << std::sqrt(mse_old)
 		  << ", err=" << std::sqrt(mse)
 		  << std::endl;
-	
+
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
@@ -431,7 +430,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
 	    lambda *= 10.0;
 	}
-	
+
       // Solve the linear system for updates of transform.
 	map_old = map;
 	for (size_t i = 0; i < diagA.size(); ++i)

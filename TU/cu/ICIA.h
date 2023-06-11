@@ -94,10 +94,6 @@ namespace detail
       {
 	  const int	v = i / ncol();
 	  const int	u = i - (v * ncol());
-
-	  if (u >= ncol() || v >= nrow())
-	      return {0};
-
 	  const auto	s = 1 / value_type(max(nrow(), ncol()));
 
 	  return MAP::image_derivative0(s*u, s*v, _edgeH[v][u], _edgeV[v][u])
@@ -108,12 +104,8 @@ namespace detail
       std::enable_if_t<!std::is_arithmetic<C_>::value, moment_type>
       operator ()(int i) const
       {
-	  const int	v = i / ncol();
-	  const int	u = i - (v * ncol());
-
-	  if (u >= ncol() || v >= nrow())
-	      return {0};
-
+	  const int	v  = i / ncol();
+	  const int	u  = i - (v * ncol());
 	  const C	eH = _edgeH[v][u];
 	  const C	eV = _edgeV[v][u];
 	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
@@ -205,8 +197,7 @@ namespace detail
 	  const int	u    = i - (v * ncol());
 	  const auto	uv_p = _map(u, v);
 
-	  if (u < ncol() && v < nrow() &&
-	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
 	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
 
@@ -236,8 +227,7 @@ namespace detail
 	  const int	u    = i - (v * ncol());
 	  const auto	uv_p = _map(u, v);
 
-	  if (u < ncol() && v < nrow() &&
-	      0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
 	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
 
@@ -310,6 +300,10 @@ class ICIA : public Profiler<CLOCK>
 		ICIA(const Parameters& params=Parameters())
 		    :profiler_t(3), _params(params),
 		     _tmp(), _moment(1), _deviation(1) 			{}
+
+    const Parameters&
+		getParameters()			const	{ return _params; }
+    void	setParameters(const Parameters& params)	{ _params = params; }
 
     template <class C_>
     value_type	operator ()(const Array2<C_>& src,
@@ -403,10 +397,6 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	const deviation_type	deviation = _deviation[0];
 	const auto		mse = error_deviation_type::mse(deviation);
 
-	std::cerr << "err_old=" << std::sqrt(mse_old)
-		  << ", err=" << std::sqrt(mse)
-		  << std::endl;
-
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
@@ -441,7 +431,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	map = map_old * MAP::exp(delta.data());
 
 #if !defined(NDEBUG)
-	std::cerr << "  n=" << n << ", err=" << std::sqrt(mse)
+	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
 	Array2<C_>	warped(dst.nrow(), dst.ncol());
 	warp(dst, warped.begin(), map);

@@ -1670,7 +1670,7 @@ class Intrinsics
 	const auto		a  = element_type(2)*xy.x*xy.y;
 	vec<element_type, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
 				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
-	xy = k*xy + delta;
+	xy = _flen*(k*xy + delta);
 
 	return {eH/p.z, eV/p.z, -(eH*xy.x + eV*xy.y)/p.z};
     }

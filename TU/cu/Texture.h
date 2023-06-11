@@ -61,19 +61,20 @@ template <class T>
 class Texture
 {
   private:
+  // Texture objects only with 1, 2 or 4 components are allowed.
     template <class T_>
     struct base			{ using	type = T_; };
     template <class T_>
     struct base<mat2x<T_, 1> >	{ using	type = typename mat2x<T_, 1>::super; };
     template <class T_>
-    struct base<mat3x<T_, 1> >	{ using	type = typename mat3x<T_, 1>::super; };
+    struct base<mat3x<T_, 1> >	{ using	type = void; };
     template <class T_>
     struct base<mat4x<T_, 1> >	{ using	type = typename mat4x<T_, 1>::super; };
-    
+
   public:
     using value_type	= T;
     using base_type	= typename base<T>::type;
-    
+
   public:
     Texture(const Array<T>& a, bool normalize=false, bool interpolate=true,
 	    enum cudaTextureAddressMode addressMode=cudaAddressModeBorder);
@@ -115,8 +116,8 @@ Texture<T>::Texture(const Array<T>& a, bool normalize, bool interpolate,
     memset(&resdesc, 0, sizeof(resdesc));
     resdesc.resType		   = cudaResourceTypeLinear;
     resdesc.res.linear.devPtr	   = a.data().get();
-    resdesc.res.linear.desc	   = cudaCreateChannelDesc<T>();
-    resdesc.res.linear.sizeInBytes = a.size()*sizeof(T);
+    resdesc.res.linear.desc	   = cudaCreateChannelDesc<base_type>();
+    resdesc.res.linear.sizeInBytes = a.size()*sizeof(base_type);
 
     cudaTextureDesc	texdesc;
     memset(&texdesc, 0, sizeof(texdesc));
@@ -151,15 +152,16 @@ Texture<T>::Texture(const Array2<T>& a, bool normalize, bool interpolate,
     memset(&resdesc, 0, sizeof(resdesc));
     resdesc.resType			= cudaResourceTypePitch2D;
     resdesc.res.pitch2D.devPtr		= a.data().get();
-    resdesc.res.pitch2D.desc		= cudaCreateChannelDesc<T>();
+    resdesc.res.pitch2D.desc		= cudaCreateChannelDesc<base_type>();
     resdesc.res.pitch2D.width		= a.ncol();
     resdesc.res.pitch2D.height		= a.nrow();
-    resdesc.res.pitch2D.pitchInBytes	= a.stride()*sizeof(T);
+    resdesc.res.pitch2D.pitchInBytes	= a.stride()*sizeof(base_type);
 
     cudaTextureDesc	texdesc;
     memset(&texdesc, 0, sizeof(texdesc));
     texdesc.addressMode[0]   = addressMode;
     texdesc.addressMode[1]   = addressMode;
+    texdesc.addressMode[2]   = addressMode;
     texdesc.filterMode	     = (interpolate ? cudaFilterModeLinear
 					    : cudaFilterModePoint);
     texdesc.readMode	     = (normalize   ? cudaReadModeNormalizedFloat
@@ -167,6 +169,7 @@ Texture<T>::Texture(const Array2<T>& a, bool normalize, bool interpolate,
     texdesc.normalizedCoords = 0;
 
     const auto	err = cudaCreateTextureObject(&_tex, &resdesc, &texdesc, NULL);
+    gpuCheckLastError();
     if (err != cudaSuccess)
 	throw std::runtime_error("Texture<T>::Texture(): failed to create a texture object bound to the given 2D array!");
 }

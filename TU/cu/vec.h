@@ -1186,7 +1186,7 @@ class Projectivity
     using point_type	= vec<element_type, DO>;
     using ppoint_type	= vec<element_type, DO1>;
     using param_type	= array<element_type, DOF>;
-    
+
     constexpr static size_t	inDim()		{ return DI; }
     constexpr static size_t	outDim()	{ return DO; }
     constexpr static size_t	dof()		{ return DOF; }
@@ -1239,7 +1239,7 @@ class Projectivity
 		{
 		    return Projectivity(dot(_m, projectivity._m));
 		}
-    
+
     template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2 && DI_ == 2, Projectivity>
 		exp(ITER delta)
@@ -1254,7 +1254,7 @@ class Projectivity
 		    projectivity._m.z.x = *++delta;
 		    projectivity._m.z.y = *++delta;
 		    projectivity._m.z.z = 1;
-		    
+
 		    return projectivity;
 		}
 
@@ -1279,13 +1279,13 @@ class Projectivity
 		    projectivity._m.w.y = *++delta;
 		    projectivity._m.w.z = *++delta;
 		    projectivity._m.w.w = 1;
-		    
+
 		    return projectivity;
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2 && DI_ == 2, param_type>
-		image_derivative0(T eH, T eV, T u, T v)
+		image_derivative0(T u, T v, T eH, T eV)
 		{
 		    return {eH*u, eH*v, eH, eV*u, eV*v, eV,
 			    -(eH*u + eV*v)*u, -(eH*u + eV*v)*v};
@@ -1304,7 +1304,7 @@ class Projectivity
 		    *++delta *= (scale * scale);
 		    *++delta *= (scale * scale);
 		}
-    
+
     friend std::ostream&
 		operator <<(std::ostream& out, const Projectivity& proj)
 		{
@@ -1379,7 +1379,7 @@ class Affinity
 		{
 		    return {dot(_A, affinity._A), _b + dot(_A, affinity._b)};
 		}
-    
+
     template <class ITER, size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2 && DI_ == 2, Affinity>
 		exp(ITER delta)
@@ -1391,7 +1391,7 @@ class Affinity
 		    affinity._A.y.x = *++delta;
 		    affinity._A.y.y = *++delta + 1;
 		    affinity._b.y   = *++delta;
-		    
+
 		    return affinity;
 		}
 
@@ -1412,13 +1412,13 @@ class Affinity
 		    affinity._A.z.y = *++delta;
 		    affinity._A.z.z = *++delta + 1;
 		    affinity._b.y   = *++delta;
-		    
+
 		    return affinity;
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__
     static std::enable_if_t<DO_ == 2 && DI_ == 2, param_type>
-		image_derivative0(T eH, T eV, T u, T v)
+		image_derivative0(T u, T v, T eH, T eV)
 		{
 		    return {eH*u, eH*v, eH,  eV*u, eV*v, eV};
 		}
@@ -1433,7 +1433,7 @@ class Affinity
 		    *++delta *= scale;
 		    *++delta *= scale;
 		}
-    
+
     friend std::ostream&
 		operator <<(std::ostream& out, const Affinity& affinity)
 		{
@@ -1468,7 +1468,7 @@ class Rigidity : public Affinity<T, D, D>
     using			typename base_type::point_type;
     using direction_type	= vec<element_type, D>;
     using param_type		= array<element_type, DOF>;
-    
+
     constexpr static size_t	dof()		{ return DOF; }
     constexpr static size_t	dim()		{ return D; }
 
@@ -1547,7 +1547,7 @@ class Rigidity : public Affinity<T, D, D>
 
     template <size_t D_=D> __host__ __device__
     static std::enable_if_t<D_ == 2, param_type>
-		image_derivative0(T eH, T eV, T u, T v)
+		image_derivative0(T u, T v, T eH, T eV)
 		{
 		    return {eH, eV, eV*u - eH*v};
 		}
@@ -1559,7 +1559,7 @@ class Rigidity : public Affinity<T, D, D>
 		    ++delta;
 		    *++delta *= scale;
 		}
-    
+
     using	base_type::initialize;
     using	base_type::print;
 };
@@ -1571,9 +1571,10 @@ template <class T>
 class Intrinsics
 {
   public:
-    using element_type	= T;
-    using point2_type	= vec<element_type, 2>;
-    using point3_type	= vec<element_type, 3>;
+    using element_type		= T;
+    using point2_type		= vec<element_type, 2>;
+    using point3_type		= vec<element_type, 3>;
+    using derivative_type	= vec<element_type, 3>;
 
   public:
     Intrinsics()						= default;
@@ -1616,9 +1617,9 @@ class Intrinsics
 	    if (k < element_type(0))
 		break;
 
-	    const auto	a = element_type(2)*xy.x*xy.y;
-	    vec<T, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
-			      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
+	    const auto		 a = element_type(2)*xy.x*xy.y;
+	    vec<element_type, 2> delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+				       _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
 	    const auto	uv_proj = _flen*(k*xy + delta) + _uv0;
 
 	    if (cu::square(uv_proj - uv) < MAX_ERR)
@@ -1653,10 +1654,25 @@ class Intrinsics
 	const auto		r2 = cu::square(xy);
 	const auto		k  = 1 + (_d[0] + _d[1]*r2)*r2;
 	const auto		a  = element_type(2)*xy.x*xy.y;
-	vec<T, 2>		delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+	vec<element_type, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
 				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
 
 	return _flen*(k*xy + delta) + _uv0;
+    }
+
+    __host__ __device__ derivative_type
+    image_derivative0(const point3_type& p,
+		      element_type eH, element_type eV) const
+    {
+	point2_type		xy(p.x/p.z, p.y/p.z);
+	const auto		r2 = cu::square(xy);
+	const auto		k  = 1 + (_d[0] + _d[1]*r2)*r2;
+	const auto		a  = element_type(2)*xy.x*xy.y;
+	vec<element_type, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
+	xy = k*xy + delta;
+
+	return {eH/p.z, eV/p.z, -(eH*xy.x + eV*xy.y)/p.z};
     }
 
   private:
@@ -2504,6 +2520,11 @@ struct to_vec<mat3x<T, 1> >
 		{
 		    return {T(val.x), T(val.y), T(val.z)};
 		}
+    template <class T_>
+    result_type	operator ()(const mat4x<T_, 1>& val) const
+		{
+		    return {T(val.x), T(val.y), T(val.z)};
+		}
 };
 
 template <class T>
@@ -2520,6 +2541,11 @@ struct to_vec<mat4x<T, 1> >
     result_type	operator ()(const RGB_<E_>& rgb) const
 		{
 		    return {T(rgb.r), T(rgb.g), T(rgb.b), T(rgb.a)};
+		}
+    template <class T_>
+    result_type	operator ()(const mat3x<T_, 1>& val) const
+		{
+		    return {T(val.x), T(val.y), T(val.z), T(255)};
 		}
     template <class T_>
     result_type	operator ()(const mat4x<T_, 1>& val) const

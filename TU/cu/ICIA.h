@@ -100,7 +100,7 @@ namespace detail
 
 	  const auto	s = 1 / value_type(max(nrow(), ncol()));
 
-	  return MAP::image_derivative0(_edgeH[v][u], _edgeV[v][u], s*u, s*v)
+	  return MAP::image_derivative0(s*u, s*v, _edgeH[v][u], _edgeV[v][u])
 		.template ext();
       }
 
@@ -119,12 +119,12 @@ namespace detail
 	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 	  const auto	uf = s * u;
 	  const auto	vf = s * v;
-	  auto		a  = MAP::image_derivative0(eH.x, eV.x, uf, vf);
+	  auto		a  = MAP::image_derivative0(uf, vf, eH.x, eV.x);
 	  auto		m  = a.template ext();
 
-	  a  = MAP::image_derivative0(eH.y, eV.y, uf, vf);
+	  a  = MAP::image_derivative0(uf, vf, eH.y, eV.y);
 	  m += a.template ext();
-	  a  = MAP::image_derivative0(eH.z, eV.z, uf, vf);
+	  a  = MAP::image_derivative0(uf, vf, eH.z, eV.z);
 	  m += a.template ext();
 
 	  return m;
@@ -213,9 +213,9 @@ namespace detail
 	      if (b*b < _sqcolor_thresh)
 	      {
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
-		  const auto	ab = MAP::image_derivative0(_edgeH[v][u],
-							    _edgeV[v][u],
-							    s*u, s*v)
+		  const auto	ab = MAP::image_derivative0(s*u, s*v,
+							    _edgeH[v][u],
+							    _edgeV[v][u])
 				   * b;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = b*b;
@@ -248,11 +248,11 @@ namespace detail
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	uf = s * u;
 		  const auto	vf = s * v;
-		  const auto	ab = MAP::image_derivative0(eH.x, eV.x, uf, vf)
+		  const auto	ab = MAP::image_derivative0(uf, vf, eH.x, eV.x)
 				   * b.x
-				   + MAP::image_derivative0(eH.y, eV.y, uf, vf)
+				   + MAP::image_derivative0(uf, vf, eH.y, eV.y)
 				   * b.y
-				   + MAP::image_derivative0(eH.z, eV.z, uf, vf)
+				   + MAP::image_derivative0(uf, vf, eH.z, eV.z)
 				   * b.z;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = square(b);

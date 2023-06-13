@@ -339,7 +339,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
     convolver.diffH(src.cbegin(), src.cend(), edgeH.begin(), true);
     convolver.diffV(src.cbegin(), src.cend(), edgeV.begin(), true);
 
-  // Allocate temporary storage for parallel reduction.
+  // Compute error moment matrix by parallel reduction.
     profiler_t::start(1);
     const error_moment_type	error_moment(edgeH, edgeV);
     size_t			tmp_size = 0;
@@ -350,29 +350,23 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			   _moment.begin(), error_moment.size());
     if (tmp_size > _tmp.size())
 	_tmp.resize(tmp_size);
-
-  // Perform parallel reduction of moments for source image.
     cub::DeviceReduce::Sum(_tmp.data().get(), tmp_size,
 			   thrust::make_transform_iterator(
 			       thrust::make_counting_iterator(0),
 			       error_moment),
 			   _moment.begin(), error_moment.size());
     gpuCheckLastError();
+    const moment_type	moment = _moment[0];
 
   // Convert the error moment to a matrix and save its diagonals.
-    auto			A = error_moment_type::A(_moment[0]);
-    std::array<value_type, DOF>	diagA;
-    for (size_t i = 0; i < diagA.size(); ++i)
-	diagA[i] = A(i, i);
-
     profiler_t::start(2);
     const Texture<C_>	dst_tex(dst);
     auto		map_old = map;
     auto		mse_old = std::numeric_limits<value_type>::max();
-    value_type		lambda  = 1.0e-4;
+    value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
-      // Allocate temporary storage for parallel reduction.
+      // Compute error derivation vector by parallel reduction.
 	const error_deviation_type	error_deviation(map, edgeH, edgeV,
 							src, dst_tex,
 							_params.sqcolor_thresh);
@@ -384,19 +378,16 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			       _deviation.begin(), error_deviation.size());
 	if (tmp_size > _tmp.size())
 	    _tmp.resize(tmp_size);
-
-      // Perform parallel reduction of deviations between source and
-      // destination images.
 	cub::DeviceReduce::Sum(_tmp.data().get(), tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
 				   error_deviation),
 			       _deviation.begin(), error_deviation.size());
 	gpuCheckLastError();
-
 	const deviation_type	deviation = _deviation[0];
-	const auto		mse = error_deviation_type::mse(deviation);
 
+      // Evaluate residual mean square_error.
+	const auto		mse = error_deviation_type::mse(deviation);
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
@@ -405,16 +396,16 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 		return mse;
 	    }
 
+	    map_old = map;
 	    mse_old = mse;
 	    lambda *= 0.1;
 	}
 	else
 	{
-	    map = map_old;
-
 	    if (lambda < 1.0e-20)
 	    {
 		profiler_t::nextFrame();
+		map = map_old;
 		return mse_old;
 	    }
 
@@ -422,9 +413,9 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	}
 
       // Solve the linear system for updates of transform.
-	map_old = map;
-	for (size_t i = 0; i < diagA.size(); ++i)
-	    A(i, i) = (1.0 + lambda) * diagA[i];
+	auto		A = error_moment_type::A(moment);
+	for (size_t i = 0; i < A.rows(); ++i)
+	    A(i, i) *= (1.0 + lambda);
 	const auto	b     = error_deviation_type::b(deviation);
 	auto		delta = A.ldlt().solve(b).eval();
 	error_deviation.unnormalize_updates(delta);

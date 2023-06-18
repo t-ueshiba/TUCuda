@@ -64,6 +64,10 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
 
     float			sigma()				const	;
     FIRGaussianConvolver2&	initialize(float sigma)			;
+    static void			initialize(float sigma,
+					   TU::Array<float>& lobe0,
+					   TU::Array<float>& lobe1,
+					   TU::Array<float>& lobe2)	;
 
     template <class IN, class OUT>
     void	smooth(IN in, IN ie, OUT out, bool shift=true)		;
@@ -107,57 +111,62 @@ FIRGaussianConvolver2<T>::sigma() const
   \param sigma	Gauss核のスケール
   \return	このGauss核
 */
-template <class T>
-FIRGaussianConvolver2<T>&
+template <class T> FIRGaussianConvolver2<T>&
 FIRGaussianConvolver2<T>::initialize(float sigma)
 {
-    using namespace	std;
-
     _sigma = sigma;
+    initialize(_sigma, _lobe0, _lobe1, _lobe2);
 
+    return *this;
+}
+
+template <class T> void
+FIRGaussianConvolver2<T>::initialize(float sigma,
+				     TU::Array<float>& lobe0,
+				     TU::Array<float>& lobe1,
+				     TU::Array<float>& lobe2)
+{
   // 0/1/2階微分のためのローブを計算する．
-    const size_t	sizMax = super::LobeSizeMax;
-    float		lobe0[sizMax], lobe1[sizMax], lobe2[sizMax];
+    constexpr size_t	sizMax = super::LobeSizeMax;
+    float		lb0[sizMax], lb1[sizMax], lb2[sizMax];
     for (size_t i = 0; i < sizMax; ++i)
     {
-	float	dx = float(i) / _sigma, dxdx = dx*dx;
+	float	dx = float(i) / sigma, dxdx = dx*dx;
 
-	lobe0[i] = exp(-0.5f * dxdx);
-	lobe1[i] = -dx * lobe0[i];
-	lobe2[i] = (dxdx - 1.0f) * lobe0[i];
+	lb0[i] = exp(-0.5f * dxdx);
+	lb1[i] = -dx * lb0[i];
+	lb2[i] = (dxdx - 1.0f) * lb0[i];
     }
 
   // 0階微分用のローブを正規化して格納する．
-    _lobe0.resize(detail::lobeSize(lobe0, true));
-    float	sum = lobe0[0];
-    for (size_t i = 1; i < _lobe0.size(); ++i)
-	sum += (2.0f * lobe0[i]);
-    for (size_t i = 0; i < _lobe0.size(); ++i)
-	_lobe0[i] = lobe0[_lobe0.size() - 1 - i] / abs(sum);
+    lobe0.resize(detail::lobeSize(lb0, true));
+    float	sum = lb0[0];
+    for (size_t i = 1; i < lobe0.size(); ++i)
+	sum += (2.0f * lb0[i]);
+    for (size_t i = 0; i < lobe0.size(); ++i)
+	lobe0[i] = lb0[lobe0.size() - 1 - i] / abs(sum);
 
   // 1階微分用のローブを正規化して格納する．
-    _lobe1.resize(detail::lobeSize(lobe1, false));
+    lobe1.resize(detail::lobeSize(lb1, false));
     sum = 0.0f;
-    for (size_t i = 0; i < _lobe1.size(); ++i)
-	sum += (2.0f * i * lobe1[i]);
-    for (size_t i = 0; i < _lobe1.size(); ++i)
-	_lobe1[i] = lobe1[_lobe1.size() - i] / abs(sum);
+    for (size_t i = 0; i < lobe1.size(); ++i)
+	sum += (2.0f * i * lb1[i]);
+    for (size_t i = 0; i < lobe1.size(); ++i)
+	lobe1[i] = lb1[lobe1.size() - i] / abs(sum);
 
   // 2階微分用のローブを正規化して格納する．
-    _lobe2.resize(detail::lobeSize(lobe2, true));
+    lobe2.resize(detail::lobeSize(lb2, true));
     sum = 0.0f;
-    for (size_t i = 1; i < _lobe2.size(); ++i)
-	sum += (i * i * lobe2[i]);
-    for (size_t i = 0; i < _lobe2.size(); ++i)
-	_lobe2[i] = lobe2[_lobe2.size() - 1 - i] / abs(sum);
+    for (size_t i = 1; i < lobe2.size(); ++i)
+	sum += (i * i * lb2[i]);
+    for (size_t i = 0; i < lobe2.size(); ++i)
+	lobe2[i] = lb2[lobe2.size() - 1 - i] / abs(sum);
 
 #ifdef _DEBUG
-    cerr << "lobe0: " << _lobe0;
-    cerr << "lobe1: " << _lobe1;
-    cerr << "lobe2: " << _lobe2;
+    cerr << "lobe0: " << lobe0;
+    cerr << "lobe1: " << lobe1;
+    cerr << "lobe2: " << lobe2;
 #endif
-
-    return *this;
 }
 
 //! Gauss核によるスムーシング

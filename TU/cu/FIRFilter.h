@@ -32,8 +32,7 @@ class FIRFilter2 : public BLOCK_TRAITS
     FIRFilter2&	initialize(const TU::Array<float>& lobeH,
 			   const TU::Array<float>& lobeV)		;
     template <class IN, class OUT>
-    void	convolve(IN ib, IN ie,
-			 OUT out, bool shift=false)		const	;
+    void	convolve(IN ib, IN ie, OUT out, bool shift=true) const	;
 
     size_t	outSizeH(size_t inSize)	const	{return inSize - 2*offsetH();}
     size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
@@ -313,7 +312,7 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 	return;
 
     _buf.resize(nrow, ncol - 2*lsH);
-    
+
   // 横方向に畳み込む．
     switch (_lobeSizeH)
     {

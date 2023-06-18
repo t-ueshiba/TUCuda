@@ -66,17 +66,17 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
     FIRGaussianConvolver2&	initialize(float sigma)			;
 
     template <class IN, class OUT>
-    void	smooth(IN in, IN ie, OUT out, bool shift=false)		;
+    void	smooth(IN in, IN ie, OUT out, bool shift=true)		;
     template <class IN, class OUT>
-    void	diffH( IN in, IN ie, OUT out, bool shift=false)		;
+    void	diffH( IN in, IN ie, OUT out, bool shift=true)		;
     template <class IN, class OUT>
-    void	diffV( IN in, IN ie, OUT out, bool shift=false)		;
+    void	diffV( IN in, IN ie, OUT out, bool shift=true)		;
     template <class IN, class OUT>
-    void	diffHH(IN in, IN ie, OUT out, bool shift=false)		;
+    void	diffHH(IN in, IN ie, OUT out, bool shift=true)		;
     template <class IN, class OUT>
-    void	diffHV(IN in, IN ie, OUT out, bool shift=false)		;
+    void	diffHV(IN in, IN ie, OUT out, bool shift=true)		;
     template <class IN, class OUT>
-    void	diffVV(IN in, IN ie, OUT out, bool shift=false)		;
+    void	diffVV(IN in, IN ie, OUT out, bool shift=true)		;
 
   private:
     float		_sigma;

@@ -48,7 +48,7 @@
 namespace TU
 {
 template <class T>	class TD;
-    
+
 namespace cu
 {
 namespace device
@@ -195,9 +195,9 @@ class GuidedFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
 
     template <class IN, class GUIDE, class OUT>
     void	convolve(IN ib, IN ie, GUIDE gb, GUIDE ge,
-			 OUT out, bool shift=false)		  const	;
+			 OUT out, bool shift=true)		  const	;
     template <class IN, class OUT>
-    void	convolve(IN ib, IN ie, OUT out, bool shift=false) const	;
+    void	convolve(IN ib, IN ie, OUT out, bool shift=true) const	;
 
     size_t	outSizeH(size_t inSize)	const	{return inSize - 2*offsetH();}
     size_t	outSizeV(size_t inSize)	const	{return inSize - 2*offsetV();}
@@ -231,7 +231,7 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
     using	std::cend;
     using	std::begin;
     using	std::size;
-    
+
     if (ib == ie)
 	return;
 
@@ -262,7 +262,8 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 				   device::init_coeffs<T>(n, _e),
 				   _c.begin()->begin()),
 			       stride(_c.begin()),
-			       _c.ncol()));
+			       _c.ncol()),
+			   false);
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．
     profiler_t::start(2);
@@ -276,7 +277,8 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 				   begin(*gb)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			       cu::stride(gb, out),
-			       size(*out)));
+			       size(*out)),
+			   false);
     profiler_t::nextFrame();
 }
 
@@ -296,7 +298,7 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
     using	std::cend;
     using	std::begin;
     using	std::size;
-    
+
     if (ib == ie)
 	return;
 
@@ -321,7 +323,8 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 			       make_assignment_iterator(
 				   device::init_coeffs<T>(n, _e),
 				   _c.begin()->begin()),
-			       stride(_c.begin()), _c.ncol()));
+			       stride(_c.begin()), _c.ncol()),
+			   false);
 
   // 係数ベクトルの平均値を求め，それによってガイドデータ列を線型変換する．
     profiler_t::start(2);
@@ -335,7 +338,8 @@ GuidedFilter2<T, BLOCK_TRAITS, WMAX, CLOCK>::convolve(IN ib, IN ie,
 				   begin(*ib)  + offsetH(),
 				   begin(*out) + (shift ? offsetH() : 0)),
 			       cu::stride(ib, out),
-			       size(*out)));
+			       size(*out)),
+			   false);
     profiler_t::nextFrame();
 }
 

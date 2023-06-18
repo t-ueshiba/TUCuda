@@ -515,7 +515,7 @@ class BoxFilter2 : public BLOCK_TRAITS, public Profiler<CLOCK>
   */
     template <class ROW, class ROW_O>
     void	convolve(ROW row, ROW rowe,
-			 ROW_O rowO, bool shift=false)		const	;
+			 ROW_O rowO, bool shift=true)		const	;
 
   //! 2組の2次元配列間の相違度とこのフィルタの畳み込みを行う
   /*!

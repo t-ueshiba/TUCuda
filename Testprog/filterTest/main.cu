@@ -29,7 +29,7 @@ computeGaussianCoefficients(float sigma, u_int lobeSize)
     float	sum = coeff[lobeSize];
     for (u_int i = 0; i < lobeSize; ++i)
 	sum += (2.0f * coeff[i]);
-    
+
     for (u_int i = 0; i <= lobeSize; ++i)
 	coeff[i] /= sum;
 
@@ -45,7 +45,7 @@ computeGaussianCoefficients(float sigma, u_int lobeSize)
   //#endif
     return coeff;
 }
-    
+
 }
 
 /************************************************************************
@@ -78,7 +78,7 @@ main(int argc, char *argv[])
 	    lobeSize = atoi(optarg);
 	    break;
 	}
-    
+
     try
     {
 	Array<float>	coeff = computeGaussianCoefficients(sigma, lobeSize);
@@ -89,10 +89,10 @@ main(int argc, char *argv[])
       // GPUによって計算する．
 	cu::FIRFilter2<mid_t>	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
-    
+
 	cu::Array2<mid_t>	in_d(in);
 	cu::Array2<mid_t>	out_d(in.nrow(), in.ncol());
-	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
+	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaDeviceSynchronize();
 
 	Profiler<cu::clock>	cuProfiler(1);
@@ -100,12 +100,11 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)		// フィルタリング
 	{
 	    cuProfiler.start(0);
-	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(),
-				out_d.begin(), true);
+	    cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(std::cerr);
-	
+
 	Image<out_t>	out(out_d);
 	out.save(cout);					// 結果画像をセーブ
 

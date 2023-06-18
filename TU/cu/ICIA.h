@@ -71,17 +71,6 @@ namespace detail
       using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
     public:
-      static moment_matrix_type
-      A(const moment_type& moment)
-      {
-	  moment_matrix_type	m;
-	  auto		p = moment.data();
-	  for (int i = 0; i < m.rows(); ++i)
-	      for (int j = i; j < m.cols(); ++j)
-		  m(j, i) = m(i, j) = *p++;
-	  return m;
-      }
-
       ICIAErrorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
 	  :_edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow())
@@ -122,8 +111,24 @@ namespace detail
 	  return m;
       }
 
-      __host__ __device__ __forceinline__
-      int	size()		const	{ return nrow() * ncol(); }
+      int
+      size() const
+      {
+	  return nrow() * ncol();
+      }
+
+      static moment_matrix_type
+      A(const moment_type& moment)
+      {
+	  moment_matrix_type	m;
+	  auto		p = moment.data();
+	  for (int i = 0; i < m.rows(); ++i)
+	      for (int j = i; j < m.cols(); ++j)
+		  m(j, i) = m(i, j) = *p++;
+	  return m;
+      }
+
+    private:
       __host__ __device__ __forceinline__
       int	nrow()		const	{ return _edgeH.size(); }
       __host__ __device__ __forceinline__
@@ -147,35 +152,6 @@ namespace detail
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      static deviation_vector_type
-      b(const deviation_type& deviation)
-      {
-	  deviation_vector_type	v;
-	  for (int i = 0; i < v.rows(); ++i)
-	      v(i) = deviation[i];
-	  return v;
-      }
-
-      static value_type
-      npoints(const deviation_type& deviation)
-      {
-	  return deviation[DOF+1];
-      }
-
-      static value_type
-      mse(const deviation_type& deviation)
-      {
-	  return deviation[DOF] / deviation[DOF+1];
-      }
-
-      deviation_vector_type&
-      unnormalize_updates(deviation_vector_type& updates) const
-      {
-	  MAP::unnormalize_updates(updates.data(),
-				   1 / value_type(max(nrow(), ncol())));
-	  return updates;
-      }
-
       ICIAErrorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
 			 const Array2<C>& colors, const Texture<C>& colors_p,
@@ -255,8 +231,42 @@ namespace detail
 	  return {0};
       }
 
-      __host__ __device__ __forceinline__
-      int	size()		const	{ return nrow() * ncol(); }
+      int
+      size() const
+      {
+	  return nrow() * ncol();
+      }
+
+      deviation_vector_type&
+      unnormalize_updates(deviation_vector_type& updates) const
+      {
+	  MAP::unnormalize_updates(updates.data(),
+				   1 / value_type(max(nrow(), ncol())));
+	  return updates;
+      }
+
+      static deviation_vector_type
+      b(const deviation_type& deviation)
+      {
+	  deviation_vector_type	v;
+	  for (int i = 0; i < v.rows(); ++i)
+	      v(i) = deviation[i];
+	  return v;
+      }
+
+      static value_type
+      npoints(const deviation_type& deviation)
+      {
+	  return deviation[DOF+1];
+      }
+
+      static value_type
+      mse(const deviation_type& deviation)
+      {
+	  return deviation[DOF] / deviation[DOF+1];
+      }
+
+    private:
       __host__ __device__ __forceinline__
       int	nrow()		const	{ return _colors.size(); }
       __host__ __device__ __forceinline__

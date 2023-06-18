@@ -29,7 +29,7 @@ computeGaussianCoefficients(float sigma, u_int lobeSize)
     float	sum = coeff[lobeSize];
     for (u_int i = 0; i < lobeSize; ++i)
 	sum += (2.0f * coeff[i]);
-    
+
     for (u_int i = 0; i <= lobeSize; ++i)
 	coeff[i] /= sum;
 
@@ -45,7 +45,7 @@ computeGaussianCoefficients(float sigma, u_int lobeSize)
   //#endif
     return coeff;
 }
-    
+
 }
 
 /************************************************************************
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
     // using in_t	= RGB;
     // using mid_t	= float3;
     // using out_t	= RGB;
-    
+
     float		sigma	 = 1.0;
     u_int		lobeSize = 16;
     extern char*	optarg;
@@ -79,7 +79,7 @@ main(int argc, char *argv[])
 	    lobeSize = atoi(optarg);
 	    break;
 	}
-    
+
     try
     {
 	Image<in_t>	in;
@@ -91,7 +91,7 @@ main(int argc, char *argv[])
 	cu::Array2<in_t>			in_d(in);
 	cu::Array2<out_t>			out_d(in_d.nrow(),
 						      in_d.ncol());
-	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin(), true);
+	cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaDeviceSynchronize();
 
 	Profiler<cu::clock>	cuProfiler(1);
@@ -100,8 +100,7 @@ main(int argc, char *argv[])
 	for (size_t n = 0; n < NITER; ++n)
 	{
 	    cuProfiler.start(0);
-	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(),
-				out_d.begin(), true);
+	    cudaFilter.CONVOLVE(in_d.cbegin(), in_d.cend(), out_d.begin());
 	    cuProfiler.nextFrame();
 	}
 	cuProfiler.print(cerr);

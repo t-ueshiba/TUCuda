@@ -1642,6 +1642,11 @@ class Intrinsics
     __host__ __device__ point3_type
     operator ()(element_type u, element_type v, element_type d) const
     {
+	if (d <= 0)
+	    return {device::nan<element_type>,
+		    device::nan<element_type>,
+		    device::nan<element_type>};
+
 	const auto	xy = (*this)(u, v);
 	return {d*xy.x, d*xy.y, d};
     }

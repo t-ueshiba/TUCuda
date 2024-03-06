@@ -1,46 +1,13 @@
-// Software License Agreement (BSD License)
-//
-// Copyright (c) 2021, National Institute of Advanced Industrial Science and Technology (AIST)
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above
-//    copyright notice, this list of conditions and the following
-//    disclaimer in the documentation and/or other materials provided
-//    with the distribution.
-//  * Neither the name of National Institute of Advanced Industrial
-//    Science and Technology (AIST) nor the names of its contributors
-//    may be used to endorse or promote products derived from this software
-//    without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.
-//
-// Author: Toshio Ueshiba
-//
 /*!
   \file		tuple.h
   \author	Toshio UESHIBA
-  \brief	thrust::tupleの用途拡張のためのユティリティ
+  \brief	cuda::std::tupleの用途拡張のためのユティリティ
 */
 #pragma once
 
-#include "TU/type_traits.h"
+#include "TU/type_traits.h"	// for TU::any<PRED, T...>
+#include <cuda/std/tuple>
+#include <cuda/std/utility>
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
 
@@ -49,212 +16,300 @@ namespace TU
 namespace cu
 {
 /************************************************************************
-*  predicate: is_cons<T>						*
+*  predicate: is_tuple<T>						*
 ************************************************************************/
-namespace detail
-{
-  template <class HEAD, class TAIL>
-  std::true_type	check_cons(thrust::detail::cons<HEAD, TAIL>)	;
-  std::false_type	check_cons(...)					;
-}	// namespace detail
-
-//! 与えられた型が thrust::tuple 又はそれに変換可能であるか判定する
+//! 与えられた型が cuda::std::tuple 又はそれに変換可能であるか判定する
 /*!
   \param T	判定対象となる型
 */
 template <class T>
-using is_cons = decltype(detail::check_cons(std::declval<T>()));
+using is_tuple = is_convertible<T, cuda::std::tuple>;
 
 /************************************************************************
-*  predicate: is_null<T>						*
+*  type alias: tuple_head<T>						*
 ************************************************************************/
+namespace detail
+{
+  template <class HEAD, class... TAIL>
+  HEAD	tuple_head(const cuda::std::tuple<HEAD, TAIL...>&)		;
+  template <class T>
+  T	tuple_head(const T&)						;
+}	// namespace detail
+    
+//! 与えられた型がtupleならばその先頭要素の型を，そうでなければ元の型を返す．
+/*! 
+  \param T	その先頭要素の型を調べるべき型
+*/
 template <class T>
-using is_null = std::is_convertible<T, thrust::null_type>;
+using tuple_head = decltype(detail::tuple_head(std::declval<T>()));
 
 /************************************************************************
-*  tuple_for_each(TUPLES..., FUNC)				`	*
+*  type alias: replace_element<S, T>					*
 ************************************************************************/
 namespace detail
 {
-  template <class T, std::enable_if_t<!is_cons<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
-  get_head(T&& x)
+  template <class S, class T>
+  struct replace_element : std::conditional<std::is_void<T>::value, S, T>
   {
-      return std::forward<T>(x);
-  }
-  template <class T, std::enable_if_t<is_cons<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
-  get_head(T&& x)
+  };
+  template <class... S, class T>
+  struct replace_element<cuda::std::tuple<S...>, T>
   {
-      return x.get_head();
-  }
-
-  template <class T, std::enable_if_t<!is_cons<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
-  get_tail(T&& x)
-  {
-      return std::forward<T>(x);
-  }
-  template <class T, std::enable_if_t<is_cons<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
-  get_tail(T&& x)
-  {
-      return x.get_tail();
-  }
+      using type = cuda::std::tuple<typename replace_element<S, T>::type...>;
+  };
 }	// namespace detail
-
-template <class FUNC, class... TUPLES> __host__ __device__ __forceinline__
-std::enable_if_t<any<is_null, TUPLES...>::value>
-tuple_for_each(FUNC, TUPLES&&...)
-{
-}
-
-template <class FUNC, class... TUPLES> __host__ __device__ __forceinline__
-std::enable_if_t<any<is_cons, TUPLES...>::value>
-tuple_for_each(FUNC f, TUPLES&&... x)
-{
-    f(detail::get_head(std::forward<TUPLES>(x))...);
-    tuple_for_each(f, detail::get_tail(std::forward<TUPLES>(x))...);
-}
+    
+//! 与えられた型がcuda::std::tupleならばその要素の型を，そうでなければ元の型自身を別の型で置き換える．
+/*!
+  \param S	要素型置換の対象となる型
+  \param T	置換後の要素の型．voidならば置換しない．
+*/
+template <class S, class T>
+using replace_element = typename detail::replace_element<S, T>::type;
 
 /************************************************************************
-*  tuple_transform(TUPLES..., FUNC)					*
+*  make_reference_wrapper(T&&)						*
+************************************************************************/
+//! 与えられた値の型に応じて実引数を生成する
+/*!
+  \param x	関数に渡す引数
+  \return	xが右辺値参照ならばx自身，定数参照ならばstd::cref(x),
+		非定数参照ならばstd::ref(x)
+*/
+template <class T>
+inline std::conditional_t<std::is_lvalue_reference<T>::value,
+			  std::reference_wrapper<std::remove_reference_t<T> >,
+			  T&&>
+make_reference_wrapper(T&& x)
+{
+    return std::forward<T>(x);
+}
+    
+/************************************************************************
+*  tuple_for_each(FUNC, TUPLES&&...)				`	*
 ************************************************************************/
 namespace detail
 {
-  template <class HEAD, class TAIL> __host__ __device__ __forceinline__ auto
-  make_cons(HEAD&& head, TAIL&& tail)
+  template <size_t I, class T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
+  __host__ __device__ __forceinline__ decltype(auto)
+  tuple_get(T&& x)
   {
-      return thrust::detail::cons<HEAD, TAIL>(std::forward<HEAD>(head),
-					      std::forward<TAIL>(tail));
+      return std::forward<T>(x);
+  }
+  template <size_t I, class T, std::enable_if_t<is_tuple<T>::value>* = nullptr>
+  __host__ __device__ __forceinline__ decltype(auto)
+  tuple_get(T&& x)
+  {
+      return cuda::std::get<I>(std::forward<T>(x));
+  }
+    
+  template <class... T>
+  struct first_tuple_size;
+  template<>
+  struct first_tuple_size<>
+  {
+      constexpr static size_t	value = 0;
+  };
+  template <class HEAD, class... TAIL>
+  struct first_tuple_size<HEAD, TAIL...>
+  {
+      template <class T_>
+      struct tuple_size
+      {
+	  constexpr static size_t	value = 0;
+      };
+      template <class... T_>
+      struct tuple_size<cuda::std::tuple<T_...> >
+      {
+	  constexpr static size_t	value = sizeof...(T_);
+      };
+
+      using TUPLE = std::decay_t<HEAD>;
+      
+      constexpr static size_t	value = (tuple_size<TUPLE>::value ?
+					 tuple_size<TUPLE>::value :
+					 first_tuple_size<TAIL...>::value);
+  };
+    
+  template <class FUNC, class... TUPLES>
+  __host__ __device__ __forceinline__ void
+  tuple_for_each(std::index_sequence<>, FUNC&&, TUPLES&&...)
+  {
+  }
+  template <size_t I, size_t... IDX, class FUNC, class... TUPLES>
+  __host__ __device__ __forceinline__ void
+  tuple_for_each(std::index_sequence<I, IDX...>, FUNC&& f, TUPLES&&... x)
+  {
+      f(tuple_get<I>(std::forward<TUPLES>(x))...);
+      tuple_for_each(std::index_sequence<IDX...>(),
+		     std::forward<FUNC>(f), std::forward<TUPLES>(x)...);
   }
 }	// namespace detail
-
-template <class FUNC, class... TUPLES> __host__ __device__ __forceinline__
-std::enable_if_t<!any<is_cons, TUPLES...>::value, thrust::null_type>
-tuple_transform(FUNC, TUPLES&&...)
+    
+template <class FUNC, class... TUPLES>
+inline std::enable_if_t<any<is_tuple, TUPLES...>::value>
+tuple_for_each(FUNC&& f, TUPLES&&... x)
 {
-    return thrust::null_type();
+    detail::tuple_for_each(std::make_index_sequence<
+			       detail::first_tuple_size<TUPLES...>::value>(),
+			   std::forward<FUNC>(f), std::forward<TUPLES>(x)...);
 }
+
+/************************************************************************
+*  tuple_transform(FUNC, TUPLES&&...)					*
+************************************************************************/
+namespace detail
+{
+  template <class FUNC, class... TUPLES>
+  __host__ __device__ __forceinline__ auto
+  tuple_transform(std::index_sequence<>, FUNC&&, TUPLES&&...)
+  {
+      return cuda::std::tuple<>();
+  }
+  template <class FUNC, class... TUPLES, size_t I, size_t... IDX>
+  __host__ __device__ __forceinline__ auto
+  tuple_transform(std::index_sequence<I, IDX...>, FUNC&& f, TUPLES&&... x)
+  {
+      auto&&	val = f(tuple_get<I>(std::forward<TUPLES>(x))...);
+      return cuda::std::tuple_cat(
+		 cuda::std::make_tuple(
+		    make_reference_wrapper(std::forward<decltype(val)>(val))),
+		tuple_transform(std::index_sequence<IDX...>(),
+				std::forward<FUNC>(f),
+				std::forward<TUPLES>(x)...));
+  }
+}	// namespace detail
+    
 template <class FUNC, class... TUPLES,
-	  std::enable_if_t<any<is_cons, TUPLES...>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, TUPLES...>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-tuple_transform(FUNC f, TUPLES&&... x)
+tuple_transform(FUNC&& f, TUPLES&&... x)
 {
-    return detail::make_cons(f(detail::get_head(std::forward<TUPLES>(x))...),
-			     tuple_transform(
-				 f,
-				 detail::get_tail(std::forward<TUPLES>(x))...));
+    return detail::tuple_transform(
+	       std::make_index_sequence<
+		   detail::first_tuple_size<TUPLES...>::value>(),
+	       std::forward<FUNC>(f), std::forward<TUPLES>(x)...);
 }
 
 /************************************************************************
 *  Arithmetic operators							*
 ************************************************************************/
-template <class T, std::enable_if_t<cu::is_cons<T>::value>* = nullptr>
-__host__ __device__ __forceinline__ auto
-operator -(const T& t)
+template <class E, std::enable_if_t<is_tuple<E>::value>* = nullptr> inline auto
+operator -(E&& expr)
 {
-    return cu::tuple_transform([](const auto& x){ return -x; }, t);
+    return tuple_transform([](auto&& x)
+			   { return -std::forward<decltype(x)>(x); },
+			   std::forward<E>(expr));
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<cu::is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-operator +(const L& l, const R& r)
+operator +(L&& l, R&& r)
 {
-    return cu::tuple_transform([](const auto& x, const auto& y)
-			       { return x + y; }, l, r);
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  + std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<cu::is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-operator -(const L& l, const R& r)
+operator -(L&& l, R&& r)
 {
-    return cu::tuple_transform([](const auto& x, const auto& y)
-			       { return x - y; }, l, r);
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  - std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<cu::is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-operator *(const L& l, const R& r)
+operator *(L&& l, R&& r)
 {
-    return cu::tuple_transform([](const auto& x, const auto& y)
-			       { return x * y; }, l, r);
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  * std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<cu::is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-operator /(const L& l, const R& r)
+operator /(L&& l, R&& r)
 {
-    return cu::tuple_transform([](const auto& x, const auto& y)
-			       { return x / y; }, l, r);
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  / std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
 }
 
 template <class L, class R,
-	  std::enable_if_t<any<cu::is_cons, L, R>::value>* = nullptr>
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
 __host__ __device__ __forceinline__ auto
-operator %(const L& l, const R& r)
+operator %(L&& l, R&& r)
 {
-    return cu::tuple_transform([](const auto& x, const auto& y)
-			       { return x % y; }, l, r);
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  % std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
 }
 
 template <class L, class R>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<L>::value, L&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
 operator +=(L&& l, const R& r)
 {
-    cu::tuple_for_each([](auto&& x, const auto& y){ x += y; }, l, r);
+    tuple_for_each([](auto&& x, const auto& y){ x += y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<L>::value, L&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
 operator -=(L&& l, const R& r)
 {
-    cu::tuple_for_each([](auto&& x, const auto& y){ x -= y; }, l, r);
+    tuple_for_each([](auto&& x, const auto& y){ x -= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<L>::value, L&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
 operator *=(L&& l, const R& r)
 {
-    cu::tuple_for_each([](auto&& x, const auto& y){ x *= y; }, l, r);
+    tuple_for_each([](auto&& x, const auto& y){ x *= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<L>::value, L&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
 operator /=(L&& l, const R& r)
 {
-    cu::tuple_for_each([](auto&& x, const auto& y){ x /= y; }, l, r);
+    tuple_for_each([](auto&& x, const auto& y){ x /= y; }, l, r);
     return l;
 }
 
 template <class L, class R>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<L>::value, L&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
 operator %=(L&& l, const R& r)
 {
-    cu::tuple_for_each([](auto&& x, const auto& y){ x %= y; }, l, r);
+    tuple_for_each([](auto&& x, const auto& y){ x %= y; }, l, r);
     return l;
 }
 
 template <class T>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<T>::value, T&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<T>::value, T&>
 operator ++(T&& t)
 {
-    cu::tuple_for_each([](auto&& x){ ++x; }, t);
+    tuple_for_each([](auto&& x){ ++x; }, t);
     return t;
 }
 
 template <class T>
-__host__ __device__ __forceinline__ std::enable_if_t<cu::is_cons<T>::value, T&>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<T>::value, T&>
 operator --(T&& t)
 {
-    cu::tuple_for_each([](auto&& x){ --x; }, t);
+    tuple_for_each([](auto&& x){ --x; }, t);
     return t;
 }
 
@@ -269,136 +324,234 @@ namespace detail
       return out;
   }
   template <class T>
-  inline std::enable_if_t<!cu::is_cons<T>::value, std::ostream&>
+  inline std::enable_if_t<!cu::is_tuple<T>::value, std::ostream&>
   print(std::ostream& out, const T& x)
   {
       return out << x;
   }
-  template <class HEAD, class TAIL> inline std::ostream&
-  print(std::ostream& out, const thrust::detail::cons<HEAD, TAIL>& x)
+  template <class... T> inline std::ostream&
+  print(std::ostream& out, const cuda::std::tuple<T...>& x)
   {
-      return print(print(out << ' ', get_head(x)), get_tail(x));
+      return print(print(out << ' ', cuda::std::get<0>(x)), get_tail(x));
   }
 
-  template <class HEAD, class TAIL> inline std::ostream&
-  operator <<(std::ostream& out, const thrust::detail::cons<HEAD, TAIL>& x)
+  template <class... T> inline std::ostream&
+  operator <<(std::ostream& out, const cuda::std::tuple<T...>& x)
   {
       return print(out << '(', x) << ')';
   }
 }
 
 /************************************************************************
-*  Applying a multi-input function to a tuple of arguments		*
+*  type alias: decayed_iterator_value<ITER>				*
 ************************************************************************/
 namespace detail
 {
-  template <class FUNC, class TUPLE, size_t... IDX>
-  __host__ __device__ __forceinline__ decltype(auto)
-  cu_apply(FUNC&& f, TUPLE&& t, std::index_sequence<IDX...>)
+  template <class ITER>
+  struct decayed_iterator_value
   {
-      return f(thrust::get<IDX>(std::forward<TUPLE>(t))...);
-  }
+      using type = typename std::iterator_traits<ITER>::value_type;
+  };
+  template <class... ITER>
+  struct decayed_iterator_value<zip_iterator<cuda::std::tuple<ITER...> > >
+  {
+      using type = cuda::std::tuple<typename decayed_iterator_value<ITER>::type...>;
+  };
+}	// namespace detail
+
+//! 反復子が指す型を返す．
+/*!
+  zip_iterator<ITER_TUPLE>::value_type はITER_TUPLE中の各反復子が指す値への
+  参照のtupleの型であるが，decayed_iterator_value<zip_iterator<ITER_TUPLE> >
+  は，ITER_TUPLE中の各反復子が指す値そのもののtupleの型を返す．
+  \param ITER	反復子
+*/
+template <class ITER>
+using decayed_iterator_value = typename detail::decayed_iterator_value<ITER>
+					      ::type;
+
+/************************************************************************
+*  Applying a multi-input function to a tuple of arguments		*
+************************************************************************/
+template <class FUNC, class TUPLE,
+	  std::enable_if_t<is_tuple<TUPLE>::value>* = nullptr>
+__host__ __device__ __forceinline__ decltype(auto)
+apply(FUNC&& f, TUPLE&& t)
+{
+    return cuda::std::apply(std::forward<FUNC>(f), std::forward<TUPLE>(t));
 }
 
-template <class FUNC, class TUPLE,
-	  std::enable_if_t<cu::is_cons<TUPLE>::value>* = nullptr>
-__host__ __device__ __forceinline__ decltype(auto)
-cu_apply(FUNC&& f, TUPLE&& t)
-{
-    return detail::cu_apply(
-		std::forward<FUNC>(f), std::forward<TUPLE>(t),
-		std::make_index_sequence<
-			thrust::tuple_size<std::decay_t<TUPLE> >::value>());
-}
 template <class FUNC, class T,
-	  std::enable_if_t<!cu::is_cons<T>::value>* = nullptr>
+	  std::enable_if_t<!is_tuple<T>::value>* = nullptr>
 __host__ __device__ __forceinline__ decltype(auto)
-cu_apply(FUNC&& f, T&& t)
+apply(FUNC&& f, T&& t)
 {
     return f(std::forward<T>(t));
 }
 
 }	// namespace cu
-}	// namespace TU
+}	// namesrace TU
+
+namespace cuda::std
+{
+/************************************************************************
+*  TU::[begin|end|rbegin|rend|size](TUPLE&&)				*
+************************************************************************/
+namespace detail
+{
+  template <class T>
+  auto	check_begin(const T& x) -> decltype(begin(x), std::true_type())	;
+  auto	check_begin(...)	-> std::false_type			;
+
+  template <class T>
+  using has_begin = decltype(check_begin(std::declval<T>()));
+}	// namespace detail
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+begin(cuda::std::tuple<T...>& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
+}
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+end(cuda::std::tuple<T...>& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rbegin(cuda::std::tuple<T...>& t) -> decltype(std::make_reverse_iterator(end(t)))
+{
+    return std::make_reverse_iterator(end(t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rend(cuda::std::tuple<T...>& t) -> decltype(std::make_reverse_iterator(begin(t)))
+{
+    return std::make_reverse_iterator(begin(t));
+}
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+begin(cuda::std::tuple<T...>&& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
+}
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+end(cuda::std::tuple<T...>&& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rbegin(cuda::std::tuple<T...>&& t) -> decltype(std::make_reverse_iterator(end(t)))
+{
+    return std::make_reverse_iterator(end(t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rend(cuda::std::tuple<T...>&& t) -> decltype(std::make_reverse_iterator(begin(t)))
+{
+    return std::make_reverse_iterator(begin(t));
+}
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+begin(const cuda::std::tuple<T...>& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
+}
+
+template <class... T,
+	  std::enable_if_t<TU::all<detail::has_begin, T...>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+end(const cuda::std::tuple<T...>& t)
+{
+    return thrust::make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rbegin(const cuda::std::tuple<T...>& t)
+    -> decltype(std::make_reverse_iterator(end(t)))
+{
+    return std::make_reverse_iterator(end(t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+rend(const cuda::std::tuple<T...>& t)
+    -> decltype(std::make_reverse_iterator(begin(t)))
+{
+    return std::make_reverse_iterator(begin(t));
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+cbegin(const cuda::std::tuple<T...>& t) -> decltype(begin(t))
+{
+    return begin(t);
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+cend(const cuda::std::tuple<T...>& t) -> decltype(end(t))
+{
+    return end(t);
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+crbegin(const cuda::std::tuple<T...>& t) -> decltype(rbegin(t))
+{
+    return rbegin(t);
+}
+
+template <class... T> __host__ __device__ __forceinline__ auto
+crend(const cuda::std::tuple<T...>& t) -> decltype(rend(t))
+{
+    return rend(t);
+}
+
+template <class... T> __host__ __device__ __forceinline__ std::size_t
+size(const cuda::std::tuple<T...>& t)
+{
+    using	std::size;
+    
+    return size(std::get<0>(t));
+}
+
+}	// namespace cuda::std
 
 namespace thrust
 {
-/************************************************************************
-*  begin|end|rbegin|rend|size for tuples				*
-************************************************************************/
-template <class HEAD, class TAIL> inline auto
-begin(thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return thrust::make_zip_iterator(
-		TU::cu::tuple_transform(
-		    [](auto&& x){ using std::begin; return begin(x); }, t));
-}
-
-template <class HEAD, class TAIL> inline auto
-end(thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return thrust::make_zip_iterator(
-		TU::cu::tuple_transform(
-		    [](auto&& x){ using std::end; return end(x); }, t));
-}
-
-template <class HEAD, class TAIL> inline auto
-rbegin(thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return std::make_reverse_iterator(end(t));
-}
-
-template <class HEAD, class TAIL> inline auto
-rend(thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return std::make_reverse_iterator(begin(t));
-}
-
-template <class HEAD, class TAIL> inline auto
-begin(const thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return thrust::make_zip_iterator(
-		TU::cu::tuple_transform(
-		    [](auto&& x){ using std::begin; return begin(x); }, t));
-}
-
-template <class HEAD, class TAIL> inline auto
-end(const thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return thrust::make_zip_iterator(
-		TU::cu::tuple_transform(
-		    [](auto&& x){ using std::end; return end(x); }, t));
-}
-
-template <class HEAD, class TAIL> inline auto
-rbegin(const thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return std::make_reverse_iterator(end(t));
-}
-
-template <class HEAD, class TAIL> inline auto
-rend(const thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return std::make_reverse_iterator(begin(t));
-}
-
-template <class HEAD, class TAIL> inline size_t
-size(const thrust::detail::cons<HEAD, TAIL>& t)
-{
-    return size(thrust::get<0>(t));
-}
-
 /************************************************************************
 *  thrust::stride(const ITER&)						*
 ************************************************************************/
 template <class T> __host__ __device__ ptrdiff_t
 stride(device_ptr<T>)							;
 
-template <class HEAD, class TAIL> __host__ __device__ __forceinline__ auto
-stride(const detail::cons<HEAD, TAIL>& iter_tuple)
+template <class... T> __host__ __device__ __forceinline__ auto
+stride(const tuple<T...>& iter_tuple)
 {
     return TU::cu::tuple_transform([](const auto& iter)
-				     { return stride(iter); }, iter_tuple);
+				   { return stride(iter); }, iter_tuple);
 }
 	    
 template <class ITER_TUPLE> __host__ __device__ __forceinline__ auto

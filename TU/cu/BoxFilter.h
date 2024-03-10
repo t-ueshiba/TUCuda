@@ -544,15 +544,13 @@ BoxFilter2<CONVOLVER, BOX_TRAITS, WMAX, CLOCK>::convolve(ROW row, ROW rowe,
 							 ROW_O rowO,
 							 bool shift) const
 {
-    using	std::size;
-
     profiler_t::start(0);
 
     const size_t nrows = std::distance(row, rowe);
     if (nrows < _winSizeV)
 	return;
 
-    const size_t ncols = size(*row);
+    const size_t ncols = std::size(*row);
     if (ncols < _winSizeH)
 	return;
 

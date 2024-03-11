@@ -73,13 +73,13 @@ make_reference_wrapper(T&& x)
 namespace detail
 {
   template <size_t I, class T, std::enable_if_t<!is_tuple<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
+  inline decltype(auto)
   tuple_get(T&& x)
   {
       return std::forward<T>(x);
   }
   template <size_t I, class T, std::enable_if_t<is_tuple<T>::value>* = nullptr>
-  __host__ __device__ __forceinline__ decltype(auto)
+  inline decltype(auto)
   tuple_get(T&& x)
   {
       return cuda::std::get<I>(std::forward<T>(x));
@@ -113,13 +113,11 @@ namespace detail
 					 first_tuple_size<TAIL...>::value);
   };
     
-  template <class FUNC, class... TUPLES>
-  __host__ __device__ __forceinline__ void
+  template <class FUNC, class... TUPLES> inline void
   tuple_for_each(std::index_sequence<>, FUNC&&, TUPLES&&...)
   {
   }
-  template <size_t I, size_t... IDX, class FUNC, class... TUPLES>
-  __host__ __device__ __forceinline__ void
+  template <size_t I, size_t... IDX, class FUNC, class... TUPLES> inline void
   tuple_for_each(std::index_sequence<I, IDX...>, FUNC&& f, TUPLES&&... x)
   {
       f(detail::tuple_get<I>(std::forward<TUPLES>(x))...);
@@ -142,14 +140,12 @@ tuple_for_each(FUNC&& f, TUPLES&&... x)
 ************************************************************************/
 namespace detail
 {
-  template <class FUNC, class... TUPLES>
-  __host__ __device__ __forceinline__ auto
+  template <class FUNC, class... TUPLES> inline auto
   tuple_transform(std::index_sequence<>, FUNC&&, TUPLES&&...)
   {
       return thrust::tuple<>();
   }
-  template <class FUNC, class... TUPLES, size_t I, size_t... IDX>
-  __host__ __device__ __forceinline__ auto
+  template <class FUNC, class... TUPLES, size_t I, size_t... IDX> inline auto
   tuple_transform(std::index_sequence<I, IDX...>, FUNC&& f, TUPLES&&... x)
   {
       auto&&	val = f(detail::tuple_get<I>(std::forward<TUPLES>(x))...);
@@ -164,7 +160,7 @@ namespace detail
     
 template <class FUNC, class... TUPLES,
 	  std::enable_if_t<any<is_tuple, TUPLES...>::value>* = nullptr>
-__host__ __device__ __forceinline__ auto
+inline auto
 tuple_transform(FUNC&& f, TUPLES&&... x)
 {
     return detail::tuple_transform(

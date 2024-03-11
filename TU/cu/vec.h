@@ -45,7 +45,7 @@
 #include <vector>
 #include <thrust/device_ptr.h>
 #include "TU/cu/array.h"
-#include "TU/Image++.h"		// for TU::RGB_<E>
+#include "TU/Image++.h"		// for TU::element_t<E> and TU::RGB_<E>
 
 namespace TU
 {
@@ -583,7 +583,6 @@ size1()
 }
 
 // TU::element_t<E> requires begin(std::decval<E>()) be valid.
-// We have to override TU::cu::begin() defined in tuple.h,
 template <class T, size_t C> const typename mat2x<T, C>::value_type*
 begin(const mat2x<T, C>&)						;
 

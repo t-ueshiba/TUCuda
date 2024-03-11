@@ -11,9 +11,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/zip_iterator.h>
 
-namespace TU
-{
-namespace cu
+namespace TU::cu
 {
 /************************************************************************
 *  predicate: is_tuple<T>						*
@@ -367,142 +365,149 @@ cu_apply(FUNC&& f, T&& t)
     return f(std::forward<T>(t));
 }
 
-}	// namespace cu
+}	// namespace TU::cu
 
+namespace cuda::std
+{
 /************************************************************************
-*  TU::[begin|end|rbegin|rend|size](thrust::tuple<T...>&)		*
+*  cuda::std::[begin|end|rbegin|rend|size](cuda::std::tuple<T...>&)	*
 ************************************************************************/
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-begin(thrust::tuple<T...>& t)
+begin(tuple<T...>& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-end(thrust::tuple<T...>& t)
+end(tuple<T...>& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> inline auto
-rbegin(thrust::tuple<T...>& t) -> decltype(std::make_reverse_iterator(end(t)))
+rbegin(tuple<T...>& t) -> decltype(std::make_reverse_iterator(end(t)))
 {
     return std::make_reverse_iterator(end(t));
 }
 
 template <class... T> inline auto
-rend(thrust::tuple<T...>& t) -> decltype(std::make_reverse_iterator(begin(t)))
+rend(tuple<T...>& t) -> decltype(std::make_reverse_iterator(begin(t)))
 {
     return std::make_reverse_iterator(begin(t));
 }
 
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-begin(thrust::tuple<T...>&& t)
+begin(tuple<T...>&& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-end(thrust::tuple<T...>&& t)
+end(tuple<T...>&& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> __host__ __device__ __forceinline__ auto
-rbegin(thrust::tuple<T...>&& t) -> decltype(std::make_reverse_iterator(end(t)))
+rbegin(tuple<T...>&& t) -> decltype(std::make_reverse_iterator(end(t)))
 {
     return std::make_reverse_iterator(end(t));
 }
 
 template <class... T> inline auto
-rend(thrust::tuple<T...>&& t) -> decltype(std::make_reverse_iterator(begin(t)))
+rend(tuple<T...>&& t) -> decltype(std::make_reverse_iterator(begin(t)))
 {
     return std::make_reverse_iterator(begin(t));
 }
 
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-begin(const thrust::tuple<T...>& t)
+begin(const tuple<T...>& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
-	  std::enable_if_t<all<detail::has_begin, T...>::value>* = nullptr>
+	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  = nullptr>
 inline auto
-end(const thrust::tuple<T...>& t)
+end(const tuple<T...>& t)
 {
     return thrust::make_zip_iterator(
-		cu::tuple_transform(
+		TU::cu::tuple_transform(
 		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> inline auto
-rbegin(const thrust::tuple<T...>& t)
+rbegin(const tuple<T...>& t)
     -> decltype(std::make_reverse_iterator(end(t)))
 {
     return std::make_reverse_iterator(end(t));
 }
 
 template <class... T> __host__ __device__ __forceinline__ auto
-rend(const thrust::tuple<T...>& t)
-    -> decltype(std::make_reverse_iterator(begin(t)))
+rend(const tuple<T...>& t) -> decltype(std::make_reverse_iterator(begin(t)))
 {
     return std::make_reverse_iterator(begin(t));
 }
 
 template <class... T> __host__ __device__ __forceinline__ auto
-cbegin(const thrust::tuple<T...>& t) -> decltype(begin(t))
+cbegin(const tuple<T...>& t) -> decltype(begin(t))
 {
     return begin(t);
 }
 
 template <class... T> inline auto
-cend(const thrust::tuple<T...>& t) -> decltype(end(t))
+cend(const tuple<T...>& t) -> decltype(end(t))
 {
     return end(t);
 }
 
 template <class... T> inline auto
-crbegin(const thrust::tuple<T...>& t) -> decltype(rbegin(t))
+crbegin(const tuple<T...>& t) -> decltype(rbegin(t))
 {
     return rbegin(t);
 }
 
 template <class... T> inline auto
-crend(const thrust::tuple<T...>& t) -> decltype(rend(t))
+crend(const tuple<T...>& t) -> decltype(rend(t))
 {
     return rend(t);
 }
 
 template <class... T> inline std::size_t
-size(const thrust::tuple<T...>& t)
+size(const tuple<T...>& t)
 {
     using	std::size;
     
-    return size(std::get<0>(t));
+    return size(get<0>(t));
 }
 
-}	// namesrace TU
+}	// namespace cuda::std
 
 namespace thrust
 {

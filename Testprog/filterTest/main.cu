@@ -65,7 +65,7 @@ main(int argc, char *argv[])
     using mid_t = float4;
     using out_t	= RGBA;
 #endif
-    float		sigma	 = 1.0;
+    float		sigma	 = 2.0;
     u_int		lobeSize = 16;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "s:l:")) != -1; )

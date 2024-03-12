@@ -37,6 +37,7 @@ box_convolver_test(const Image<T>& in, size_t winSize)
 {
     using convolver_t = cu::device::box_convolver<S>;
 
+  // GPUによって計算する．
     std::cerr << "=== box_convolver_test ===\n[GPU] ";
     const cu::Array2<T>	in_d(in);
     cu::Array2<T>	out_d(in_d.nrow(), in_d.ncol());
@@ -46,6 +47,7 @@ box_convolver_test(const Image<T>& in, size_t winSize)
     out *= float(1)/float(winSize*winSize);
     out.save(std::cout);				// 結果画像をセーブ
 
+  // CPUによって計算する．
     std::cerr << "[CPU] ";
     BoxFilter2<T>	box(winSize, winSize);
     Profiler<>		profiler(1);
@@ -90,7 +92,7 @@ extrema_value_test(const Image<T>& in, size_t winSize)
 			minval = in[vv][uu];
 	    outGold[v][u] = minval;
 	}
-    outGold.save(std::cout);
+    outGold.save(std::cout);				// 結果画像をセーブ
 
   // 結果を比較する．
     const int	V = 160;
@@ -155,6 +157,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 			    cu::device::extrema_value_position<
 				thrust::greater<T> > >;
 
+  // GPUによって計算する．
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";
     const cu::Array2<T>			in_d(in);
     cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
@@ -164,12 +167,18 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 			 cu::make_range_iterator(
 			     thrust::make_zip_iterator(out_d.begin()->begin(),
 						       pos_d.begin()->begin()),
-			     cu::stride(out_d.begin(), pos_d.begin()),
+			     stride(out_d.begin(), pos_d.begin()),
 			     out_d.size()),
 			 winSize, true);
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
 
+    auto	s = stride(out_d.begin(), pos_d.begin());
+    std::cerr << '[' << cuda::std::get<0>(s)
+	      << ',' << cuda::std::get<1>(s) << ']' << std::endl;
+    
+
+  // CPUによって計算する．
     Array2<cu::vec<int, 2> >	pos(pos_d);
     Image<T>			out2(in.width(), in.height());
     for (size_t v = 0; v < out2.nrow(); ++v)
@@ -180,7 +189,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
     	    out2[v][u] = in[p.y][p.x];
     	}
     }
-    out2.save(std::cout);
+    out2.save(std::cout);				// 結果画像をセーブ
 
   // 結果を比較する．
     const int	V = 160;
@@ -198,7 +207,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 int
 main(int argc, char* argv[])
 {
-    size_t		winSize = 3;
+    size_t		winSize = 7;
     extern char*	optarg;
     for (int c; (c = getopt(argc, argv, "w:")) != -1; )
 	switch (c)

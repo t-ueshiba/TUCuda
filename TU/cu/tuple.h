@@ -507,6 +507,17 @@ size(const tuple<T...>& t)
     return size(get<0>(t));
 }
 
+/************************************************************************
+*  cuda::std::stride(const ITER&)					*
+************************************************************************/
+template <class... T> __host__ __device__ __forceinline__ auto
+stride(const tuple<T...>& iter_tuple)
+{
+    return TU::cu::tuple_transform([](const auto& iter)
+				   { return stride(iter); },
+				   iter_tuple);
+}
+
 }	// namespace cuda::std
 
 namespace thrust
@@ -517,13 +528,6 @@ namespace thrust
 template <class T> __host__ __device__ ptrdiff_t
 stride(device_ptr<T>)							;
 
-template <class... T> __host__ __device__ __forceinline__ auto
-stride(const thrust::tuple<T...>& iter_tuple)
-{
-    return TU::cu::tuple_transform([](const auto& iter)
-				   { return stride(iter); }, iter_tuple);
-}
-	    
 template <class ITER_TUPLE> __host__ __device__ __forceinline__ auto
 stride(const zip_iterator<ITER_TUPLE>& iter)
     -> decltype(stride(iter.get_iterator_tuple()))

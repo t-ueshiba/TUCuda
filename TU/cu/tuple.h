@@ -1,7 +1,7 @@
 /*!
   \file		tuple.h
   \author	Toshio UESHIBA
-  \brief	thrust::tupleの用途拡張のためのユティリティ
+  \brief	cuda::std::tupleの用途拡張のためのユティリティ
 */
 #pragma once
 
@@ -16,12 +16,12 @@ namespace TU::cu
 /************************************************************************
 *  predicate: is_tuple<T>						*
 ************************************************************************/
-//! 与えられた型が thrust::tuple 又はそれに変換可能であるか判定する
+//! 与えられた型が cuda::std::tuple 又はそれに変換可能であるか判定する
 /*!
   \param T	判定対象となる型
 */
 template <class T>
-using is_tuple = is_convertible<T, thrust::tuple>;
+using is_tuple = is_convertible<T, cuda::std::tuple>;
 
 /************************************************************************
 *  type alias: replace_element<S, T>					*
@@ -33,13 +33,13 @@ namespace detail
   {
   };
   template <class... S, class T>
-  struct replace_element<thrust::tuple<S...>, T>
+  struct replace_element<cuda::std::tuple<S...>, T>
   {
-      using type = thrust::tuple<typename replace_element<S, T>::type...>;
+      using type = cuda::std::tuple<typename replace_element<S, T>::type...>;
   };
 }	// namespace detail
     
-//! 与えられた型がthrust::tupleならばその要素の型を，そうでなければ元の型自身を別の型で置き換える．
+//! 与えられた型がcuda::std::tupleならばその要素の型を，そうでなければ元の型自身を別の型で置き換える．
 /*!
   \param S	要素型置換の対象となる型
   \param T	置換後の要素の型．voidならば置換しない．
@@ -99,7 +99,7 @@ namespace detail
 	  constexpr static size_t	value = 0;
       };
       template <class... T_>
-      struct tuple_size<thrust::tuple<T_...> >
+      struct tuple_size<cuda::std::tuple<T_...> >
       {
 	  constexpr static size_t	value = sizeof...(T_);
       };
@@ -141,7 +141,7 @@ namespace detail
   template <class FUNC, class... TUPLES> inline auto
   tuple_transform(std::index_sequence<>, FUNC&&, TUPLES&&...)
   {
-      return thrust::tuple<>();
+      return cuda::std::tuple<>();
   }
   template <class FUNC, class... TUPLES, size_t I, size_t... IDX> inline auto
   tuple_transform(std::index_sequence<I, IDX...>, FUNC&& f, TUPLES&&... x)
@@ -306,13 +306,13 @@ namespace detail
       return out << x;
   }
   template <class... T> inline std::ostream&
-  print(std::ostream& out, const thrust::tuple<T...>& x)
+  print(std::ostream& out, const cuda::std::tuple<T...>& x)
   {
       return print(print(out << ' ', cuda::std::get<0>(x)), get_tail(x));
   }
 
   template <class... T> inline std::ostream&
-  operator <<(std::ostream& out, const thrust::tuple<T...>& x)
+  operator <<(std::ostream& out, const cuda::std::tuple<T...>& x)
   {
       return print(out << '(', x) << ')';
   }
@@ -329,9 +329,10 @@ namespace detail
       using type = typename std::iterator_traits<ITER>::value_type;
   };
   template <class... ITER>
-  struct decayed_iterator_value<thrust::zip_iterator<thrust::tuple<ITER...> > >
+  struct decayed_iterator_value<thrust::zip_iterator<cuda::std::tuple<ITER...> > >
   {
-      using type = thrust::tuple<typename decayed_iterator_value<ITER>::type...>;
+      using type = cuda::std::tuple<
+			typename decayed_iterator_value<ITER>::type...>;
   };
 }	// namespace detail
 

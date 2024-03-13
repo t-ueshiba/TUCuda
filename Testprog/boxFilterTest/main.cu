@@ -155,7 +155,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 {
     using convolver_t = cu::device::extrema_finder<
 			    cu::device::extrema_value_position<
-				thrust::greater<T> > >;
+				thrust::less<T> > >;
 
   // GPUによって計算する．
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";
@@ -167,14 +167,15 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 			 cu::make_range_iterator(
 			     thrust::make_zip_iterator(out_d.begin()->begin(),
 						       pos_d.begin()->begin()),
-			     stride(out_d.begin(), pos_d.begin()),
+			     cu::stride(out_d.begin(), pos_d.begin()),
 			     out_d.size()),
 			 winSize, true);
     Image<T>		out(out_d);
     out.save(std::cout);				// 結果画像をセーブ
 
-    auto	s = stride(out_d.begin(), pos_d.begin());
-    std::cerr << '[' << cuda::std::get<0>(s)
+    auto	s = cu::stride(out_d.begin(), pos_d.begin());
+    std::cerr << demangle<decltype(s)>()
+	      << '[' << cuda::std::get<0>(s)
 	      << ',' << cuda::std::get<1>(s) << ']' << std::endl;
     
 

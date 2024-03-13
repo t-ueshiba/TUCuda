@@ -551,7 +551,7 @@ make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 }
 
 /************************************************************************
-*  TU::cu::make_range()						*
+*  TU::cu::make_range()							*
 ************************************************************************/
 template <class ITER> __host__ __device__ __forceinline__ range<ITER>
 make_range(const ITER& iter, int size)

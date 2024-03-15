@@ -5,7 +5,7 @@
 */
 #pragma once
 
-#include "TU/tuple.h"	// for TU::any<PRED, T...> and detail::has_begin
+#include "TU/type_traits.h"	// for TU::any<PRED, T...> and TU::iterable<T>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>
 #include <thrust/iterator/zip_iterator.h>
@@ -486,7 +486,7 @@ namespace cuda::std
 *  cuda::std::[begin|end|rbegin|rend|size](cuda::std::tuple<T...>&)	*
 ************************************************************************/
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 begin(tuple<T...>& t)
@@ -497,7 +497,7 @@ begin(tuple<T...>& t)
 }
 
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 end(tuple<T...>& t)
@@ -520,7 +520,7 @@ rend(tuple<T...>& t) -> decltype(::std::make_reverse_iterator(begin(t)))
 }
 
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 begin(tuple<T...>&& t)
@@ -531,7 +531,7 @@ begin(tuple<T...>&& t)
 }
 
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 end(tuple<T...>&& t)
@@ -554,7 +554,7 @@ rend(tuple<T...>&& t) -> decltype(::std::make_reverse_iterator(begin(t)))
 }
 
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 begin(const tuple<T...>& t)
@@ -565,7 +565,7 @@ begin(const tuple<T...>& t)
 }
 
 template <class... T,
-	  std::enable_if_t<TU::all<TU::detail::has_begin, T...>::value>*
+	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>
 inline auto
 end(const tuple<T...>& t)

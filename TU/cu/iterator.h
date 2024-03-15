@@ -46,7 +46,6 @@
 #include "TU/range.h"
 #include "TU/cu/tuple.h"
 
-
 namespace thrust
 {
 /************************************************************************

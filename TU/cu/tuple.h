@@ -23,23 +23,6 @@ template <class T>
 using is_tuple = is_convertible<T, cuda::std::tuple>;
 
 /************************************************************************
-*  make_reference_wrapper(T&&)						*
-************************************************************************/
-//! 与えられた値の型に応じて実引数を生成する
-/*!
-  \param x	関数に渡す引数
-  \return	xが右辺値参照ならばx自身，定数参照ならばstd::cref(x),
-		非定数参照ならばstd::ref(x)
-*/
-template <class T> __host__ __device__ __forceinline__
-std::conditional_t<std::is_lvalue_reference<T>::value,
-		   std::reference_wrapper<std::remove_reference_t<T> >, T&&>
-make_reference_wrapper(T&& x)
-{
-    return cuda::std::forward<T>(x);
-}
-    
-/************************************************************************
 *  tuple_for_each(FUNC, TUPLES&&...)				`	*
 ************************************************************************/
 namespace detail
@@ -117,6 +100,20 @@ tuple_for_each(FUNC&& f, TUPLES&&... x)
 ************************************************************************/
 namespace detail
 {
+  //! 与えられた値の型に応じて実引数を生成する
+  /*!
+    \param x	関数に渡す引数
+    \return	xが右辺値参照ならばx自身，定数参照ならばstd::cref(x),
+		非定数参照ならばstd::ref(x)
+  */
+  template <class T> __host__ __device__ __forceinline__
+  std::conditional_t<std::is_lvalue_reference<T>::value,
+		     std::reference_wrapper<std::remove_reference_t<T> >, T&&>
+  make_reference_wrapper(T&& x)
+  {
+      return cuda::std::forward<T>(x);
+  }
+    
   template <class FUNC, class... TUPLES>
   __host__ __device__ __forceinline__ auto
   tuple_transform(std::index_sequence<>, FUNC&&, TUPLES&&...)
@@ -296,134 +293,6 @@ select(const cuda::std::tuple<S...>& s, X&& x, Y&& y)
 			   cuda::std::forward<X>(x), cuda::std::forward<Y>(y));
 }
 
-#if 0
-/************************************************************************
-*  class TU::cu::zip_iterator<ITER_TUPLE>				*
-************************************************************************/
-namespace detail
-{
-  struct generic_dereference
-  {
-    // assignment_iterator<FUNC, ITER> のように dereference すると
-    // その base iterator への参照を内包する proxy を返す反復子もあるので，
-    // 引数は const ITER_& 型にする．もしも ITER_ 型にすると，呼出側から
-    // コピーされたローカルな反復子 iter への参照を内包する proxy を
-    // 返してしまい，dangling reference が生じる．
-      template <class ITER_> __host__ __device__
-      decltype(auto)	operator ()(const ITER_& iter) const
-			{
-			    return *iter;
-			}
-  };
-}	// namespace detail
-
-template <class ITER_TUPLE>
-class zip_iterator : public thrust::iterator_facade<
-			zip_iterator<ITER_TUPLE>,
-			decltype(tuple_transform(detail::generic_dereference(),
-						 std::declval<ITER_TUPLE>())),
-			thrust::use_default,
-			typename cuda::std::iterator_traits<
-			    cuda::std::tuple_element_t<0, ITER_TUPLE> >
-			        ::iterator_category,
-			decltype(tuple_transform(detail::generic_dereference(),
-						 std::declval<ITER_TUPLE>()))>
-{
-  private:
-    using super = thrust::iterator_facade<
-			zip_iterator,
-			decltype(tuple_transform(detail::generic_dereference(),
-						 std::declval<ITER_TUPLE>())),
-			thrust::use_default,
-			typename cuda::std::iterator_traits<
-			    cuda::std::tuple_element_t<0, ITER_TUPLE> >
-			        ::iterator_category,
-			decltype(tuple_transform(detail::generic_dereference(),
-						 std::declval<ITER_TUPLE>()))>;
-    friend	class thrust::iterator_core_access;
-    
-  public:
-    using	typename super::reference;
-    using	typename super::difference_type;
-    
-  public:
-    __host__ __device__
-		zip_iterator(ITER_TUPLE iter_tuple)
-		    :_iter_tuple(iter_tuple)				{}
-    template <class ITER_TUPLE_,
-	      std::enable_if_t<
-		  std::is_convertible<ITER_TUPLE_, ITER_TUPLE>::value>*
-	      = nullptr>  __host__ __device__
-		zip_iterator(const zip_iterator<ITER_TUPLE_>& iter)
-		    :_iter_tuple(iter.get_iterator_tuple())		{}
-
-    __host__ __device__
-    const auto&	get_iterator_tuple() const
-		{
-		    return _iter_tuple;
-		}
-    
-  private:
-    __host__ __device__
-    reference	dereference() const
-		{
-		    return tuple_transform(detail::generic_dereference(),
-					   _iter_tuple);
-		}
-    template <class ITER_TUPLE_> __host__ __device__
-    std::enable_if_t<std::is_convertible<ITER_TUPLE_, ITER_TUPLE>::value, bool>
-		equal(const zip_iterator<ITER_TUPLE_>& iter) const
-		{
-		    return cuda::std::get<0>(iter.get_iterator_tuple())
-			== cuda::std::get<0>(_iter_tuple);
-		}
-    __host__ __device__
-    void	increment()
-		{
-		    ++_iter_tuple;
-		}
-    __host__ __device__
-    void	decrement()
-		{
-		    --_iter_tuple;
-		}
-    __host__ __device__
-    void	advance(difference_type n)
-		{
-		    _iter_tuple += n;
-		}
-    template <class ITER_TUPLE_>
-    std::enable_if_t<std::is_convertible<ITER_TUPLE_, ITER_TUPLE>::value,
-		     difference_type> __host__ __device__
-		distance_to(const zip_iterator<ITER_TUPLE_>& iter) const
-		{
-		    return cuda::std::get<0>(iter.get_iterator_tuple())
-			 - cuda::std::get<0>(_iter_tuple);
-		}
-
-  private:
-    ITER_TUPLE	_iter_tuple;
-};
-
-template <class... ITERS> __host__ __device__ __forceinline__
-zip_iterator<cuda::std::tuple<ITERS...> >
-make_zip_iterator(const std::tuple<ITERS...>& iter_tuple)
-{
-    return {iter_tuple};
-}
-
-template <class ITER> __host__ __device__ __forceinline__ ITER
-make_zip_iterator(const ITER& iter)
-{
-    return iter;
-}
-
-template <class ITER, class... ITERS> __host__ __device__ __forceinline__ auto
-make_zip_iterator(const ITER& iter, const ITERS&... iters)
-{
-    return TU::cu::make_zip_iterator(cuda::std::make_tuple(iter, iters...));
-}
-#endif 
 /************************************************************************
 *  type alias: decayed_iterator_value<ITER>				*
 ************************************************************************/
@@ -477,8 +346,11 @@ cu_apply(FUNC&& f, T&& t)
 }	// namespace TU::cu
 
 /*
- *  Define global functions below in the namespace cuda::std
- *  so that they can be invoked in a unqualied manner using ADL.
+ *  cuda::std::tuple<T...> を引数とする以下の関数は，ADLを用いて非修飾名で
+ *  呼び出せるように namespace cuda::std で定義する．これにより，
+ *  TU::detail::element_t(E&&) や
+ *  thrust::stride(const thrust::zip_iterator<ITER_TUPLE>&) 等からの
+ *  begin() や stride() の呼び出しに於いて，これらが候補関数となる．
  */
 namespace cuda::std
 {

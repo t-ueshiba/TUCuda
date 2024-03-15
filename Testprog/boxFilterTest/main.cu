@@ -155,7 +155,7 @@ extrema_value_position_test(const Image<T>& in, size_t winSize)
 {
     using convolver_t = cu::device::extrema_finder<
 			    cu::device::extrema_value_position<
-				thrust::less<T> > >;
+				thrust::greater<T> > >;
 
   // GPUによって計算する．
     std::cerr << "=== extrema_value_position_test ===\n[GPU] ";

@@ -41,9 +41,27 @@
 
 #include <cuda/std/cassert>
 #include <type_traits>
+#include <thrust/device_ptr.h>
 #include <thrust/iterator/iterator_adaptor.h>
 #include "TU/range.h"
 #include "TU/cu/tuple.h"
+
+
+namespace thrust
+{
+/************************************************************************
+*  thrust::stride(const ITER&)						*
+************************************************************************/
+template <class T> __host__ __device__ ptrdiff_t
+stride(device_ptr<T>)							;
+
+template <class ITER_TUPLE> __host__ __device__ __forceinline__ auto
+stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
+    -> decltype(stride(iter.get_iterator_tuple()))
+{
+    return stride(iter.get_iterator_tuple());
+}
+}	// namespace thrust
 
 namespace TU
 {
@@ -59,19 +77,15 @@ class map_iterator
 	ITER,
 	std::decay_t<
 	    decltype(cu_apply(std::declval<FUNC>(),
-			      std::declval<typename std::iterator_traits<ITER>
-						   ::reference>()))>,
+			      std::declval<iterator_reference<ITER> >()))>,
 	thrust::use_default,
 	thrust::use_default,
 	decltype(cu_apply(std::declval<FUNC>(),
-			  std::declval<typename std::iterator_traits<ITER>
-						   ::reference>()))>
+			  std::declval<iterator_reference<ITER> >()))>
 {
   private:
     using ref	= decltype(cu_apply(std::declval<FUNC>(),
-				    std::declval<
-				        typename std::iterator_traits<ITER>
-						    ::reference>()));
+				    std::declval<iterator_reference<ITER> >()));
     using super	= thrust::iterator_adaptor<map_iterator,
 					   ITER,
 					   std::decay_t<ref>,
@@ -90,7 +104,10 @@ class map_iterator
 
   private:
     __host__ __device__
-    reference	dereference()	const	{ return cu_apply(_func, *super::base()); }
+    reference	dereference() const
+		{
+		    return cu_apply(_func, *super::base());
+		}
 
   private:
     FUNC	_func;	//!< 演算子
@@ -100,15 +117,14 @@ template <class FUNC, class ITER> __host__ __device__ __forceinline__
 map_iterator<FUNC, ITER>
 make_map_iterator(FUNC&& func, const ITER& iter)
 {
-    return {std::forward<FUNC>(func), iter};
+    return {cuda::std::forward<FUNC>(func), iter};
 }
 
-template <class FUNC, class... ITERS>
-__host__ __device__ __forceinline__
+template <class FUNC, class... ITERS> __host__ __device__ __forceinline__
 map_iterator<FUNC, thrust::zip_iterator<cuda::std::tuple<ITERS...> > >
 make_map_iterator(FUNC&& func, const ITERS&... iters)
 {
-    return {std::forward<FUNC>(func),
+    return {cuda::std::forward<FUNC>(func),
 	    thrust::make_zip_iterator(cuda::std::make_tuple(iters...))};
 }
 
@@ -142,56 +158,56 @@ namespace detail
       std::enable_if_t<is_binary_func<T_>::value, assignment_proxy&>
 			operator =(T_&& val)
 			{
-			    _func(*_iter, std::forward<T_>(val));
+			    _func(*_iter, cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       std::enable_if_t<!is_binary_func<T_>::value, assignment_proxy&>
 			operator =(T_&& val)
 			{
-			    *_iter  = _func(std::forward<T_>(val));
+			    *_iter  = _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator +=(T_&& val)
 			{
-			    *_iter += _func(std::forward<T_>(val));
+			    *_iter += _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator -=(T_&& val)
 			{
-			    *_iter -= _func(std::forward<T_>(val));
+			    *_iter -= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator *=(T_&& val)
 			{
-			    *_iter *= _func(std::forward<T_>(val));
+			    *_iter *= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator /=(T_&& val)
 			{
-			    *_iter /= _func(std::forward<T_>(val));
+			    *_iter /= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator &=(T_&& val)
 			{
-			    *_iter &= _func(std::forward<T_>(val));
+			    *_iter &= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator |=(T_&& val)
 			{
-			    *_iter |= _func(std::forward<T_>(val));
+			    *_iter |= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
       template <class T_> __host__ __device__
       assignment_proxy&	operator ^=(T_&& val)
 			{
-			    *_iter ^= _func(std::forward<T_>(val));
+			    *_iter ^= _func(cuda::std::forward<T_>(val));
 			    return *this;
 			}
 
@@ -244,32 +260,24 @@ class assignment_iterator
 };
 #endif	// __NVCC__
 
-template <class FUNC, class ITER>
-__host__ __device__ __forceinline__ assignment_iterator<FUNC, ITER>
+template <class FUNC, class ITER> __host__ __device__ __forceinline__
+assignment_iterator<FUNC, ITER>
 make_assignment_iterator(FUNC&& func, const ITER& iter)
 {
-    return {std::forward<FUNC>(func), iter};
+    return {cuda::std::forward<FUNC>(func), iter};
 }
 
-template <class FUNC, class... ITERS>
-__host__ __device__ __forceinline__
+template <class FUNC, class... ITERS> __host__ __device__ __forceinline__
 assignment_iterator<FUNC, thrust::zip_iterator<cuda::std::tuple<ITERS...> > >
 make_assignment_iterator(FUNC&& func, const ITERS&... iters)
 {
-    return {std::forward<FUNC>(func),
+    return {cuda::std::forward<FUNC>(func),
 	    thrust::make_zip_iterator(cuda::std::make_tuple(iters...))};
 }
 
 /************************************************************************
 *  TU::cu::stride(const ITER&, const ITER1&, const ITERS&...)		*
 ************************************************************************/
-template <class... ITERS>
-__host__ __device__ __forceinline__ auto
-stride(const ITERS&... iters)
-{
-    return stride(cuda::std::make_tuple(iters...));
-}
-
 template <class FUNC, class ITER> __host__ __device__ __forceinline__ auto
 stride(const map_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
@@ -282,6 +290,12 @@ stride(const assignment_iterator<FUNC, ITER>& iter)
     -> decltype(stride(iter.base()))
 {
     return stride(iter.base());
+}
+
+template <class ITER0, class ITER1, class... ITERS> inline auto
+stride(const ITER0& iter0, const ITER1& iter1, const ITERS&... iters)
+{
+    return stride(cuda::std::make_tuple(iter0, iter1, iters...));
 }
 
 /************************************************************************
@@ -306,8 +320,7 @@ cu_advance_stride(thrust::zip_iterator<ITER_TUPLE>& iter,
 		   const_cast<tuple_t&>(iter.get_iterator_tuple()), stride);
 }
 
-template <class ITER, class... T>
-__host__ __device__ __forceinline__ auto
+template <class ITER, class... T> __host__ __device__ __forceinline__ auto
 cu_advance_stride(ITER& iter, const cuda::std::tuple<T...>& stride)
     -> void_t<decltype(iter.base())>
 {
@@ -504,7 +517,7 @@ class range_iterator
     __host__ __device__
     static auto	leftmost(const STRIDE_& stride)
 		{
-		    using	std::get;
+		    using	cuda::std::get;
 		    
 		    return leftmost(get<0>(stride));
 		}
@@ -537,7 +550,7 @@ make_range_iterator(const ITER& iter,
     return make_range_iterator(make_range_iterator(iter, ss...), stride, size);
 }
 
-template <class ITER> inline const ITER&
+template <class ITER> __host__ __device__ __forceinline__ const ITER&
 make_range_iterator(const ITER& iter)
 {
     return iter;

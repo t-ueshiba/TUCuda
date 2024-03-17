@@ -271,6 +271,150 @@ operator --(T&& t)
 }
 
 /************************************************************************
+*  Bit operators							*
+************************************************************************/
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator &(L&& l, R&& r)
+{
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  & std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
+}
+
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator |(L&& l, R&& r)
+{
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  | std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
+}
+
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator ^(L&& l, R&& r)
+{
+    return tuple_transform([](auto&& x, auto&& y)
+			   { return std::forward<decltype(x)>(x)
+				  ^ std::forward<decltype(y)>(y); },
+			   std::forward<L>(l), std::forward<R>(r));
+}
+    
+template <class L, class R>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
+operator &=(L&& l, const R& r)
+{
+    tuple_for_each([](auto& x, const auto& y){ x &= y; }, l, r);
+    return l;
+}
+
+template <class L, class R>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
+operator |=(L&& l, const R& r)
+{
+    tuple_for_each([](auto& x, const auto& y){ x |= y; }, l, r);
+    return l;
+}
+
+template <class L, class R>
+__host__ __device__ __forceinline__ std::enable_if_t<is_tuple<L>::value, L&>
+operator ^=(L&& l, const R& r)
+{
+    tuple_for_each([](auto& x, const auto& y){ x ^= y; }, l, r);
+    return l;
+}
+
+/************************************************************************
+*  Logical operators							*
+************************************************************************/
+template <class... T> __host__ __device__ __forceinline__ auto
+operator !(const std::tuple<T...>& t)
+{
+    return tuple_transform([](const auto& x){ return !x; }, t);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator &&(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x && y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator ||(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x || y; }, l, r);
+}
+    
+/************************************************************************
+*  Relational operators							*
+************************************************************************/
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator ==(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x == y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator !=(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x != y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator <(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x < y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator >(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x > y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator <=(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x <= y; }, l, r);
+}
+    
+template <class L, class R,
+	  std::enable_if_t<any<is_tuple, L, R>::value>* = nullptr>
+__host__ __device__ __forceinline__ auto
+operator >=(const L& l, const R& r)
+{
+    return tuple_transform([](const auto& x, const auto& y)
+			   { return x >= y; }, l, r);
+}
+
+/************************************************************************
 *  Selection								*
 ************************************************************************/
 template <class X, class Y> __host__ __device__ __forceinline__ auto

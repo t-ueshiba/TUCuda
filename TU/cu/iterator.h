@@ -549,7 +549,7 @@ make_range_iterator(const ITER& iter,
     return make_range_iterator(make_range_iterator(iter, ss...), stride, size);
 }
 
-template <class ITER> __host__ __device__ __forceinline__ const ITER&
+template <class ITER> inline const ITER&
 make_range_iterator(const ITER& iter)
 {
     return iter;
@@ -558,8 +558,8 @@ make_range_iterator(const ITER& iter)
 template <class ITER> inline auto
 make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 {
-    return make_range_iterator(make_range_iterator(iter->begin()),
-			       iter.stride(), iter.size());
+    return cu::make_range_iterator(cu::make_range_iterator(iter->begin()),
+				   iter.stride(), iter.size());
 }
 
 /************************************************************************

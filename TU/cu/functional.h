@@ -248,7 +248,7 @@ class gaussian5x5 : public OperatorTraits<5, 5>
     template <class T_> __host__ __device__ T_
     smooth(int i, const T_ in[]) const
     {
-	constexpr static T_	_weights[] = {0.375, 0.25, 0.0625};
+	constexpr static element_t<T_>	_weights[] = {0.375, 0.25, 0.0625};
 
 	return _weights[0]*in[i] + _weights[1]*(in[i-1] + in[i+1])
 				 + _weights[2]*(in[i-2] + in[i+2]);

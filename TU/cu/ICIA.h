@@ -435,6 +435,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
 	Array2<C_>	warped(dst.nrow(), dst.ncol());
+	warped = 0;
 	warp(dst, warped.begin(), map);
 	diff = TU::Array2<C_>(src) - TU::Array2<C_>(warped);
 	diff.saveData(std::cout, ImageFormat::FLOAT);

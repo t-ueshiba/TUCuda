@@ -19,7 +19,7 @@ createRigidity(T u0, T du, T v0, T dv, T theta)
 	    {(1 - c)*u0 + s*v0 + du, (1 - c)*v0 - s*u0 + dv}};
 }
 }	// namespace cu
-    
+
 template <class MAP, class C, class T> void
 registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 {
@@ -64,7 +64,8 @@ main(int argc, char* argv[])
     const T		DegToRad = M_PI / 180.0;
     enum Algorithm	{PROJECTIVE, AFFINE, RIGID};
     Algorithm		algorithm = PROJECTIVE;
-    T			du = 0.0, dv = 0.0, theta = 0.0, thresh = 50.0;
+    T			du = 3.0, dv = -2.0, theta = DegToRad * 3.0,
+			thresh = 50.0;
     extern char		*optarg;
     for (int c; (c = getopt(argc, argv, "PARu:v:t:T:")) != -1; )
 	switch (c)

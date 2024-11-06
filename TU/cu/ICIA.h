@@ -398,6 +398,10 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
       // Evaluate residual mean square_error.
 	const auto		mse = error_deviation_type::mse(deviation);
+      //#if !defined(NDEBUG)
+	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
+		  << ", mse_absdiff=" << std::abs(mse - mse_old) << std::endl;
+      //#endif
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
@@ -412,7 +416,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	}
 	else
 	{
-	    if (lambda < 1.0e-20)
+	    if (std::abs(mse - mse_old) <= _params.tol || lambda < 1.0e-20)
 	    {
 		profiler_t::nextFrame();
 		map = map_old;
@@ -431,9 +435,9 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	error_deviation.unnormalize_updates(delta);
 	map = map_old * MAP::exp(delta.data());
 
-#if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
+#if !defined(NDEBUG)
 	Array2<C_>	warped(dst.nrow(), dst.ncol());
 	warped = 0;
 	warp(dst, warped.begin(), map);

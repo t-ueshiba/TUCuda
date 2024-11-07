@@ -501,7 +501,6 @@ namespace cuda::std
 /************************************************************************
 *  cuda::std::[begin|end|rbegin|rend|size](cuda::std::tuple<T...>&)	*
 ************************************************************************/
-
 template <class... T,
 	  std::enable_if_t<TU::all<TU::is_iterable, T...>::value>*
 	  = nullptr>

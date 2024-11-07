@@ -24,13 +24,13 @@ doJob(const Array2<T>& in, size_t winSize)
     const cu::Array2<T>			in_d(in);
     cu::Array2<T>			out_d(in_d.nrow(), in_d.ncol());
     cu::Array2<cu::vec<int, 2> >	pos_d(in_d.nrow(), in_d.ncol());
-
-    auto	zi = thrust::make_zip_iterator(out_d.begin()->begin(),
-					       pos_d.begin()->begin());
-    auto	it = zi.get_iterator_tuple();
-    auto	st = cu::stride(out_d.begin(), pos_d.begin());
+	
     filter.convolve(in_d.cbegin(), in_d.cend(),
-		    cu::make_range_iterator(zi, st, out_d.size()),
+		    cu::make_range_iterator(
+			thrust::make_zip_iterator(out_d.begin()->begin(),
+						  pos_d.begin()->begin()),
+			cu::stride(out_d.begin(), pos_d.begin()),
+			out_d.size()),
 		    false);
 
     std::cerr << "--- out ---" << std::endl;

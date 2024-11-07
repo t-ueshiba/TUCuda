@@ -333,7 +333,7 @@ typename ICIA<MAP, CLOCK>::value_type
 ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 			      const Array2<C_>& dst, MAP& map) const
 {
-#if !defined(NDEBUG)
+#if defined(DEBUG)
     Image<float>	diff(src.ncol(), src.nrow());
     std::cout << 'M' << 1 << std::endl;
     diff.saveHeader(std::cout, ImageFormat::FLOAT);
@@ -373,6 +373,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
     const Texture<C_>	dst_tex(dst);
     auto		map_old = map;
     auto		mse_old = std::numeric_limits<value_type>::max();
+    auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
@@ -398,10 +399,10 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
       // Evaluate residual mean square_error.
 	const auto		mse = error_deviation_type::mse(deviation);
-      //#if !defined(NDEBUG)
+#if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old) << std::endl;
-      //#endif
+#endif
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
@@ -416,7 +417,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	}
 	else
 	{
-	    if (std::abs(mse - mse_old) <= _params.tol || lambda < 1.0e-20)
+	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-20)
 	    {
 		profiler_t::nextFrame();
 		map = map_old;
@@ -425,6 +426,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 
 	    lambda *= 10.0;
 	}
+	mse_prev = mse;
 
       // Solve the linear system for updates of transform.
 	auto		A = error_moment_type::A(moment);
@@ -434,10 +436,11 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	auto		delta = A.ldlt().solve(b).eval();
 	error_deviation.unnormalize_updates(delta);
 	map = map_old * MAP::exp(delta.data());
-
+#if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
-#if !defined(NDEBUG)
+#endif
+#if defined(DEBUG)
 	Array2<C_>	warped(dst.nrow(), dst.ncol());
 	warped = 0;
 	warp(dst, warped.begin(), map);

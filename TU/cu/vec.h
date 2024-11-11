@@ -1201,6 +1201,9 @@ class Projectivity
 		}
 
     __host__ __device__
+    const auto&	M()			const	{ return _m; }
+
+    __host__ __device__
     point_type	operator ()(const vec<T, DI>& p) const
 		{
 		    return inhomogeneous(mapP(p));

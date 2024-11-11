@@ -403,6 +403,9 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old) << std::endl;
 #endif
+	if (isnan(mse))
+	    return mse;
+
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)

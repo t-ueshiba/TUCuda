@@ -43,6 +43,7 @@
 #include <Eigen/Eigen>
 #include "TU/Profiler.h"
 #include "TU/cu/FIRGaussianConvolver.h"
+#include "TU/cu/BoxFilter.h"
 #include "TU/cu/chrono.h"
 #include "TU/cu/vec.h"
 #include "TU/cu/Texture.h"
@@ -280,6 +281,33 @@ namespace detail
       const Texture<C>	_colors_p;
       const value_type	_sqcolor_thresh;
   };
+
+  template <class T>
+  struct GradMoment
+  {
+      __host__ __device__
+      vec<T, 3>	operator ()(T eH, T eV) const
+		{
+		    return {eH*eH, eH*eV, eV*eH, eV*eV};
+		}
+      __host__ __device__
+      vec<T, 3>	operator ()(vec<T, 4> eH, vec<T, 4> eV) const
+		{
+		    return {dot(eH, eH), dot(eH, eV), dot(eV, eV)};
+		}
+  };
+
+  template <class T>
+  struct MinEigenvalue
+  {
+      __host__ __device__
+      T		operator ()(vec<T, 3> gm) const
+		{
+		    return T(0.5)*(gm.x + gm.z -
+				   sqrt((gm.x - gm.z)*(gm.x - gm.z) +
+					T(2)*gm.y*gm.y));
+		}
+  };
 }	// namespace detail
 
 /************************************************************************
@@ -301,6 +329,8 @@ class ICIA : public Profiler<CLOCK>
 	value_type	sqcolor_thresh	= 50*50;
 	value_type	tol		= 1.0e-2;
 	size_t		niter_max	= 100;
+	size_t		win_size	= 5;
+	size_t		min_distance	= 30;
     };
 
   private:
@@ -308,16 +338,17 @@ class ICIA : public Profiler<CLOCK>
 
   public:
 		ICIA(const Parameters& params=Parameters())
-		    :profiler_t(3), _params(params),
-		     _tmp(), _moment(1), _deviation(1) 			{}
+		    :profiler_t(3), _params(params), _tmp(),
+		     _moment(1), _deviation(1),
+		     _min_eigenvalues(), _extrema_positions()	{}
 
     const Parameters&
 		getParameters()			const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
 
     template <class C_>
-    value_type	operator ()(const Array2<C_>& src,
-			    const Array2<C_>& dst, MAP& f)	const	;
+    value_type	operator ()(const Array2<C_>& src, const Array2<C_>& dst,
+			    MAP& f, bool compute_klt=false)	const	;
 
   private:
     Parameters				_params;
@@ -326,12 +357,14 @@ class ICIA : public Profiler<CLOCK>
     mutable Array<uint8_t>		_tmp;	// for CUB
     mutable Array<moment_type>		_moment;
     mutable Array<deviation_type>	_deviation;
+    mutable Array2<value_type>		_min_eigenvalues;
+    mutable Array2<vec<int, 2> >	_extrema_positions;
 };
 
 template <class MAP, class CLOCK> template <class C_>
 typename ICIA<MAP, CLOCK>::value_type
-ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
-			      const Array2<C_>& dst, MAP& map) const
+ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
+			      MAP& map, bool compute_klt) const
 {
 #if defined(DEBUG)
     Image<float>	diff(src.ncol(), src.nrow());
@@ -451,6 +484,46 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src,
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
+    }
+
+  // Compute KLT
+    if (compute_klt)
+    {
+	BoxFilter2<device::box_convolver<vec<value_type, 3> > >
+		evalueFilter(_params.win_size, _params.win_size);
+	_min_eigenvalues.resize(edgeH.nrow(), edgeH.ncol());
+	evalueFilter.convolve(make_range_iterator(
+				  make_map_iterator(
+				      detail::GradMoment<value_type>(),
+				      edgeH.cbegin()->cbegin(),
+				      edgeV.cbegin()->cbegin()),
+				  cu::stride(edgeH.cbegin(), edgeV.cbegin()),
+				  edgeH.ncol()),
+			      make_range_iterator(
+				  make_map_iterator(
+				      detail::GradMoment<value_type>(),
+				      edgeH.cend()->cbegin(),
+				      edgeV.cend()->cbegin()),
+				  cu::stride(edgeH.cend(), edgeV.cend()),
+				  edgeH.ncol()),
+			      make_range_iterator(
+				  make_assignment_iterator(
+				      detail::MinEigenvalue<value_type>(),
+				      _min_eigenvalues.begin()->begin()),
+				  stride(_min_eigenvalues.begin()),
+				  _min_eigenvalues.ncol()),
+			      true);
+
+	using finder_t = device::extrema_finder<
+			    device::extrema_position<
+				thrust::greater<value_type> > >;
+	BoxFilter2<finder_t>	finderFilter(2*_params.min_distance + 1,
+					     2*_params.min_distance + 1);
+	_extrema_positions.resize(_min_eigenvalues.nrow(),
+				  _min_eigenvalues.ncol());
+	finderFilter.convolve(_min_eigenvalues.cbegin(),
+			      _min_eigenvalues.cend(),
+			      _extrema_positions.begin(), true);
     }
 
     throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");

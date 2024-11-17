@@ -13,8 +13,8 @@ MOCHDRS		=
 
 INCDIRS		= -I../.. -I$(PREFIX)/include -I$(CUDAHOME)/include
 CPPFLAGS	= -DNDEBUG
-CFLAGS		= -O3 `pkg-config --cflags opencv`
-NVCCFLAGS	= -O3 --extended-lambda
+CFLAGS		= -O3 `pkg-config --cflags opencv4`
+NVCCFLAGS	= -O3 `pkg-config --cflags opencv4` --extended-lambda
 ifeq ($(shell arch), armv7l)
   CPPFLAGS     += -DNEON
 else ifeq ($(shell arch), aarch64)
@@ -25,7 +25,7 @@ else
 endif
 CCFLAGS		= $(CFLAGS)
 
-LIBS		= `pkg-config --libs opencv` -lTUCuda -lTUTools
+LIBS		= `pkg-config --libs opencv4` -lTUCuda -lTUTools
 LINKER		= $(NVCC)
 
 BINDIR		= $(PREFIX)/bin

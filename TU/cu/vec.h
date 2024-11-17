@@ -1172,7 +1172,7 @@ atomicOp(mat4x<T, C>* p, const mat4x<T, C>& val, OP op)
 /************************************************************************
 *  class Projectivity<T, DO, DI>					*
 ************************************************************************/
-template <class T, size_t DO, size_t DI>
+template <class T, size_t DO, size_t DI=DO>
 class Projectivity
 {
   public:
@@ -1326,7 +1326,7 @@ class Projectivity
 /************************************************************************
 *  class Affinity<T, DO, DI>						*
 ************************************************************************/
-template <class T, size_t DO, size_t DI>
+template <class T, size_t DO, size_t DI=DO>
 class Affinity
 {
   public:

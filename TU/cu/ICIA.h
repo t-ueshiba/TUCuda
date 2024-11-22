@@ -311,14 +311,15 @@ namespace detail
 }	// namespace detail
 
 /************************************************************************
-*  class ICIA<MAP, CLOCK>						*
+*  class ICIA<MAP, C, CLOCK>						*
 ************************************************************************/
-template <class MAP, class CLOCK=void>
+template <class MAP, class C, class CLOCK=void>
 class ICIA : public Profiler<CLOCK>
 {
   public:
     constexpr static size_t	DOF = MAP::DOF;
 
+    using image_type		= Array2<C>;
     using value_type		= typename MAP::element_type;
     using moment_type		= array<value_type, DOF*(DOF+1)/2>;
     using deviation_type	= array<value_type, DOF+2>;
@@ -329,8 +330,6 @@ class ICIA : public Profiler<CLOCK>
 	value_type	sqcolor_thresh	= 50*50;
 	value_type	tol		= 1.0e-2;
 	size_t		niter_max	= 100;
-	size_t		win_size	= 5;
-	size_t		min_distance	= 30;
     };
 
   private:
@@ -338,53 +337,73 @@ class ICIA : public Profiler<CLOCK>
 
   public:
 		ICIA(const Parameters& params=Parameters())
-		    :profiler_t(3), _params(params), _tmp(),
-		     _moment(1), _deviation(1),
-		     _min_eigenvalues(), _extrema_positions()	{}
+		    :profiler_t(2), _params(params),
+		     _src(), _edgeH(), _edgeV(),
+		     _tmp(), _moment(1), _deviation(1)			{}
 
     const Parameters&
 		getParameters()			const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
-
-    template <class C_>
-    value_type	operator ()(const Array2<C_>& src, const Array2<C_>& dst,
-			    MAP& f, bool compute_klt=false)	const	;
+    const image_type&
+		getSourceImage()		const	{ return _src; }
+    const image_type&
+		getEdgeH()			const	{ return _edgeH; }
+    const image_type&
+		getEdgeV()			const	{ return _edgeV; }
+    bool	empty()						const	;
+    void	clearSourceImage()					;
+    void	setSourceImage(const image_type& src)			;
+    value_type	operator ()(const image_type& dst, MAP& f)	const	;
+    value_type	operator ()(const image_type& src,
+			    const image_type& dst, MAP& f)		;
 
   private:
     Parameters				_params;
+    image_type				_src;
+    image_type				_edgeH;
+    image_type				_edgeV;
 
   // Temporary buffers
     mutable Array<uint8_t>		_tmp;	// for CUB
     mutable Array<moment_type>		_moment;
     mutable Array<deviation_type>	_deviation;
-    mutable Array2<value_type>		_min_eigenvalues;
-    mutable Array2<vec<int, 2> >	_extrema_positions;
 };
 
-template <class MAP, class CLOCK> template <class C_>
-typename ICIA<MAP, CLOCK>::value_type
-ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
-			      MAP& map, bool compute_klt) const
+template <class MAP, class C, class CLOCK> bool
+ICIA<MAP, C, CLOCK>::empty() const
 {
-#if defined(DEBUG)
-    Image<float>	diff(src.ncol(), src.nrow());
-    std::cout << 'M' << 1 << std::endl;
-    diff.saveHeader(std::cout, ImageFormat::FLOAT);
-#endif
-    using error_moment_type	= detail::ICIAErrorMoment<MAP, C_>;
-    using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C_>;
+    return _src.nrow() == 0;
+}
 
-  // Compute horizontal and vertical derivatives.
-    profiler_t::start(0);
-    Array2<C_>			edgeH(src.nrow(), src.ncol());
-    Array2<C_>			edgeV(src.nrow(), src.ncol());
-    FIRGaussianConvolver2<C_>	convolver(_params.sigma);
-    convolver.diffH(src.cbegin(), src.cend(), edgeH.begin(), true);
-    convolver.diffV(src.cbegin(), src.cend(), edgeV.begin(), true);
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::clearSourceImage()
+{
+    _src.resize(0, 0);
+    _edgeH.resize(0, 0);
+    _edgeV.resize(0, 0);
+}
+
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
+{
+    _src = src;
+    _edgeH.resize(src.nrow(), src.ncol());
+    _edgeV.resize(src.nrow(), src.ncol());
+    
+    FIRGaussianConvolver2<C>	convolver(_params.sigma);
+    convolver.diffH(src.cbegin(), src.cend(), _edgeH.begin(), true);
+    convolver.diffV(src.cbegin(), src.cend(), _edgeV.begin(), true);
+}
+
+template <class MAP, class C, class CLOCK>
+typename ICIA<MAP, C, CLOCK>::value_type
+ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
+{
+    using error_moment_type	= detail::ICIAErrorMoment<MAP, C>;
+    using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C>;
 
   // Compute error moment matrix by parallel reduction.
-    profiler_t::start(1);
-    const error_moment_type	error_moment(edgeH, edgeV);
+    const error_moment_type	error_moment(_edgeH, _edgeV);
     size_t			tmp_size = 0;
     cub::DeviceReduce::Sum(nullptr, tmp_size,
 			   thrust::make_transform_iterator(
@@ -402,8 +421,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
     const moment_type	moment = _moment[0];
 
   // Convert the error moment to a matrix and save its diagonals.
-    profiler_t::start(2);
-    const Texture<C_>	dst_tex(dst);
+    const Texture<C>	dst_tex(dst);
     auto		map_old = map;
     auto		mse_old = std::numeric_limits<value_type>::max();
     auto		mse_prev = mse_old;
@@ -411,8 +429,8 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const error_deviation_type	error_deviation(map, edgeH, edgeV,
-							src, dst_tex,
+	const error_deviation_type	error_deviation(map, _edgeH, _edgeV,
+							_src, dst_tex,
 							_params.sqcolor_thresh);
 	size_t				tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
@@ -420,6 +438,7 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
 				   thrust::make_counting_iterator(0),
 				   error_deviation),
 			       _deviation.begin(), error_deviation.size());
+	gpuCheckLastError();
 	if (tmp_size > _tmp.size())
 	    _tmp.resize(tmp_size);
 	cub::DeviceReduce::Sum(_tmp.data().get(), tmp_size,
@@ -443,7 +462,6 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol)
 	    {
-		profiler_t::nextFrame();
 		return mse;
 	    }
 
@@ -455,7 +473,6 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
 	{
 	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-20)
 	    {
-		profiler_t::nextFrame();
 		map = map_old;
 		return mse_old;
 	    }
@@ -477,58 +494,37 @@ ICIA<MAP, CLOCK>::operator ()(const Array2<C_>& src, const Array2<C_>& dst,
 		  << ", lambda=" << lambda << std::endl;
 #endif
 #if defined(DEBUG)
-	Array2<C_>	warped(dst.nrow(), dst.ncol());
+	image_type	warped(dst.nrow(), dst.ncol());
 	warped = 0;
 	warp(dst, warped.begin(), map);
-	diff = TU::Array2<C_>(src) - TU::Array2<C_>(warped);
+	TU::Image<C>	diff = TU::Array2<C>(_src) - TU::Array2<C>(warped);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
     }
 
-  // Compute KLT
-    if (compute_klt)
-    {
-	BoxFilter2<device::box_convolver<vec<value_type, 3> > >
-		evalueFilter(_params.win_size, _params.win_size);
-	_min_eigenvalues.resize(edgeH.nrow(), edgeH.ncol());
-	evalueFilter.convolve(make_range_iterator(
-				  make_map_iterator(
-				      detail::GradMoment<value_type>(),
-				      edgeH.cbegin()->cbegin(),
-				      edgeV.cbegin()->cbegin()),
-				  cu::stride(edgeH.cbegin(), edgeV.cbegin()),
-				  edgeH.ncol()),
-			      make_range_iterator(
-				  make_map_iterator(
-				      detail::GradMoment<value_type>(),
-				      edgeH.cend()->cbegin(),
-				      edgeV.cend()->cbegin()),
-				  cu::stride(edgeH.cend(), edgeV.cend()),
-				  edgeH.ncol()),
-			      make_range_iterator(
-				  make_assignment_iterator(
-				      detail::MinEigenvalue<value_type>(),
-				      _min_eigenvalues.begin()->begin()),
-				  stride(_min_eigenvalues.begin()),
-				  _min_eigenvalues.ncol()),
-			      true);
-
-	using finder_t = device::extrema_finder<
-			    device::extrema_position<
-				thrust::greater<value_type> > >;
-	BoxFilter2<finder_t>	finderFilter(2*_params.min_distance + 1,
-					     2*_params.min_distance + 1);
-	_extrema_positions.resize(_min_eigenvalues.nrow(),
-				  _min_eigenvalues.ncol());
-	finderFilter.convolve(_min_eigenvalues.cbegin(),
-			      _min_eigenvalues.cend(),
-			      _extrema_positions.begin(), true);
-    }
-
     throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");
 
     return -1.0;
+}
+
+template <class MAP, class C, class CLOCK>
+typename ICIA<MAP, C, CLOCK>::value_type
+ICIA<MAP, C, CLOCK>::operator ()(const image_type& src,
+				 const image_type& dst, MAP& map)
+{
+#if defined(DEBUG)
+    Image<float>	diff(src.ncol(), src.nrow());
+    std::cout << 'M' << 1 << std::endl;
+    diff.saveHeader(std::cout, ImageFormat::FLOAT);
+#endif
+    profiler_t::start(0);
+    setSourceImage(src);
+    profiler_t::start(1);
+    const auto	mse = (*this)(dst, map);
+    profiler_t::nextFrame();
+
+    return mse;
 }
 
 }	// namespace cu

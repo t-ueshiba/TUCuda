@@ -23,7 +23,7 @@ createRigidity(T u0, T du, T v0, T dv, T theta)
 template <class MAP, class C, class T> void
 registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 {
-    using Parameters	= typename cu::ICIA<MAP>::Parameters;
+    using Parameters	= typename cu::ICIA<MAP, C>::Parameters;
 
     const cu::Array2<C>	src_d(src);
     cu::Array2<C>	dst_d(src.nrow(), src.ncol());
@@ -39,7 +39,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     Parameters	params;
     params.sqcolor_thresh = thresh*thresh;
 
-    cu::ICIA<MAP>	registration(params);
+    cu::ICIA<MAP, C>	registration(params);
     MAP			map;
     map.initialize();
     const auto		err = registration(src_d, dst_d, map);

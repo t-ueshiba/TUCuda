@@ -40,6 +40,7 @@
 #pragma once
 
 #include <thrust/functional.h>
+#include "TU/cu/vec.h"
 
 namespace TU
 {
@@ -410,6 +411,13 @@ class overlay
     {
 	if (draw)
 	    out = _val;
+    }
+    template <class T_, class S_> __host__ __device__ void
+    operator ()(T_&& out, S_ val) const
+    {
+	const auto	k = from_vec<float>()(val) / 255.0f;
+	if (k > 0.0f)
+	    out = k * _val;
     }
 
   private:

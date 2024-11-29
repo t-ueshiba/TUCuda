@@ -412,8 +412,8 @@ class overlay
 	if (draw)
 	    out = _val;
     }
-    template <class T_, class S_> __host__ __device__ void
-    operator ()(T_&& out, const S_& val) const
+    template <class T_> __host__ __device__ void
+    operator ()(T_&& out, const T& val) const
     {
 	const float	k = from_vec<float>()(val);
 	printf(" %f", k);

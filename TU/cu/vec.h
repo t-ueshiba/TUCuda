@@ -2487,22 +2487,22 @@ struct to_vec
 {
     using result_type	= T;
 
-    template <class S_>
+    template <class S_> __host__ __device__
     result_type	operator ()(const S_& val) const
 		{
 		    return T(val);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat2x<T_, 1>& val) const
 		{
 		    return T(val.x);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat3x<T_, 1>& val) const
 		{
 		    return T(val.x);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat4x<T_, 1>& val) const
 		{
 		    return T(val.x);
@@ -2514,7 +2514,7 @@ struct to_vec<mat3x<T, 1> >
 {
     using result_type	= mat3x<T, 1>;
 
-    template <class S_>
+    template <class S_> __host__ __device__
     result_type	operator ()(const S_& val) const
 		{
 		    return {T(val), T(val), T(val)};
@@ -2524,12 +2524,12 @@ struct to_vec<mat3x<T, 1> >
 		{
 		    return {T(rgb.r), T(rgb.g), T(rgb.b)};
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat3x<T_, 1>& val) const
 		{
 		    return {T(val.x), T(val.y), T(val.z)};
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat4x<T_, 1>& val) const
 		{
 		    return {T(val.x), T(val.y), T(val.z)};
@@ -2541,7 +2541,7 @@ struct to_vec<mat4x<T, 1> >
 {
     using result_type	= mat4x<T, 1>;
 
-    template <class S_>
+    template <class S_> __host__ __device__
     result_type	operator ()(const S_& val) const
 		{
 		    return {T(val), T(val), T(val), T(255)};
@@ -2551,12 +2551,12 @@ struct to_vec<mat4x<T, 1> >
 		{
 		    return {T(rgb.r), T(rgb.g), T(rgb.b), T(rgb.a)};
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat3x<T_, 1>& val) const
 		{
 		    return {T(val.x), T(val.y), T(val.z), T(255)};
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat4x<T_, 1>& val) const
 		{
 		    return {T(val.x), T(val.y), T(val.z), T(val.w)};
@@ -2571,22 +2571,22 @@ struct from_vec
 {
     using result_type	= T;
 
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const T_& val) const
 		{
 		    return T(val);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat2x<T_, 1>& yuv422) const
 	    	{
 		    return T(yuv422.y);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat3x<T_, 1>& rgb) const
 		{
 		    return T(0.229f*rgb.x + 0.587f*rgb.y +0.114f*rgb.z);
 		}
-    template <class T_>
+    template <class T_> __host__ __device__
     result_type	operator ()(const mat4x<T_, 1>& rgba) const
 		{
 		    return T(0.229f*rgba.x + 0.587f*rgba.y +0.114f*rgba.z);

@@ -327,7 +327,7 @@ class ICIA : public Profiler<CLOCK>
     struct Parameters
     {
 	float		sigma		= 2.0;
-	value_type	sqcolor_thresh	= 50*50;
+	value_type	sqcolor_thresh	= 20*20;
 	value_type	tol		= 1.0e-2;
 	size_t		niter_max	= 100;
     };

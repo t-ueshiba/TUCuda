@@ -415,10 +415,8 @@ class overlay
     template <class T_> __host__ __device__ void
     operator ()(T_&& out, const T& val) const
     {
-	const float	k = from_vec<float>()(val);
-	printf(" %f", k);
-	if (k > 0.0f)
-	    out = _val;
+	if (const auto k = from_vec<float>()(val) / 255.0f; k > 0.0f)
+	    out = k * _val;
     }
 
   private:

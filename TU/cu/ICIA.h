@@ -176,9 +176,11 @@ namespace detail
 
 	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
-	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
+	      const auto	c   = _colors[v][u];
+	      const auto	c_p = _colors_p(uv_p.x, uv_p.y);
+	      const auto	b   = c - c_p;
 
-	      if (b*b < _sqcolor_thresh)
+	      if (c != C(0) && c_p != C(0) && b*b < _sqcolor_thresh)
 	      {
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	ab = MAP::image_derivative0(s*u, s*v,
@@ -206,9 +208,11 @@ namespace detail
 
 	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
 	  {
-	      const auto	b = _colors[v][u] - _colors_p(uv_p.x, uv_p.y);
+	      const auto	c   = _colors[v][u];
+	      const auto	c_p = _colors_p(uv_p.x, uv_p.y);
+	      const auto	b   = c - c_p;
 
-	      if (square(b) < _sqcolor_thresh)
+	      if (valid(c) && valid(c_p) && square(b) < _sqcolor_thresh)
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
@@ -265,6 +269,18 @@ namespace detail
       mse(const deviation_type& deviation)
       {
 	  return deviation[DOF] / deviation[DOF+1];
+      }
+
+      template <class C_> __host__ __device__ static bool
+      square(const C_& c)
+      {
+	  return c.x*c.x + c.y*c.y + c.z*c.z;
+      }
+
+      template <class C_> __host__ __device__ static bool
+      valid(const C_& c)
+      {
+	  return c.x != 0 || c.y != 0 || c.z != 0;
       }
 
     private:

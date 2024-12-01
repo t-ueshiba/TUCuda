@@ -404,7 +404,7 @@ class overlay
 {
   public:
     __host__ __device__
-    overlay(T val)	:_val(val)				{}
+    overlay(T val)	:_val(val), _from_vec()			{}
 
     template <class T_> __host__ __device__ void
     operator ()(T_&& out, bool draw) const
@@ -415,12 +415,13 @@ class overlay
     template <class T_> __host__ __device__ void
     operator ()(T_&& out, const T& val) const
     {
-	if (const auto k = from_vec<float>()(val) / 255.0f; k > 0.0f)
+	if (const auto k = _from_vec(val)/255.0f; k > 0.0f)
 	    out = k * _val;
     }
 
   private:
-    const T	_val;
+    const T			_val;
+    const from_vec<float>	_from_vec;
 };
 
 }	// namespace cu

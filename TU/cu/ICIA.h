@@ -156,13 +156,13 @@ namespace detail
       ICIAErrorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
 			 const Array2<C>& colors, const Texture<C>& colors_p,
-			 value_type sqcolor_thresh)
+			 value_type color_thresh)
 	  :_map(map),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
 	   _colors(colors.cbegin(), colors.nrow()),
 	   _colors_p(colors_p),
-	   _sqcolor_thresh(sqcolor_thresh)
+	   _sqcolor_thresh(color_thresh*color_thresh)
       {
       }
 
@@ -343,7 +343,7 @@ class ICIA : public Profiler<CLOCK>
     struct Parameters
     {
 	float		sigma		= 2.0;
-	value_type	sqcolor_thresh	= 20*20;
+	value_type	color_thresh	= 20;
 	value_type	tol		= 1.0e-2;
 	size_t		niter_max	= 100;
     };
@@ -405,7 +405,7 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
     _src = src;
     _edgeH.resize(src.nrow(), src.ncol());
     _edgeV.resize(src.nrow(), src.ncol());
-    
+
     FIRGaussianConvolver2<C>	convolver(_params.sigma);
     convolver.diffH(src.cbegin(), src.cend(), _edgeH.begin(), true);
     convolver.diffV(src.cbegin(), src.cend(), _edgeV.begin(), true);
@@ -447,7 +447,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
       // Compute error derivation vector by parallel reduction.
 	const error_deviation_type	error_deviation(map, _edgeH, _edgeV,
 							_src, dst_tex,
-							_params.sqcolor_thresh);
+							_params.color_thresh);
 	size_t				tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(

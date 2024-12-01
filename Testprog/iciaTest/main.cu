@@ -37,7 +37,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 #endif
   // 位置合わせを実行．
     Parameters	params;
-    params.sqcolor_thresh = thresh*thresh;
+    params.color_thresh = thresh;
 
     cu::ICIA<MAP, C>	registration(params);
     MAP			map;

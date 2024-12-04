@@ -266,6 +266,12 @@ namespace detail
       }
 
       static value_type
+      sqerr(const deviation_type& deviation)
+      {
+	  return deviation[DOF];
+      }
+
+      static value_type
       mse(const deviation_type& deviation)
       {
 	  return deviation[DOF] / deviation[DOF+1];
@@ -344,7 +350,7 @@ class ICIA : public Profiler<CLOCK>
     {
 	float		sigma		= 2.0;
 	value_type	color_thresh	= 20;
-	value_type	tol		= 1.0e-2;
+	value_type	tol		= 1.0e-4;
 	size_t		niter_max	= 100;
     };
 
@@ -469,7 +475,10 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 	const auto		mse = error_deviation_type::mse(deviation);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
-		  << ", mse_absdiff=" << std::abs(mse - mse_old) << std::endl;
+		  << ", mse_absdiff=" << std::abs(mse - mse_old)
+		  << ", sqerr="   << error_deviation_type::sqerr(deviation)
+		  << ", npoints=" << error_deviation_type::npoints(deviation)
+		  << std::endl;
 #endif
 	if (isnan(mse))
 	    return mse;

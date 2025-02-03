@@ -303,33 +303,6 @@ namespace detail
       const Texture<C>	_colors_p;
       const value_type	_sqcolor_thresh;
   };
-
-  template <class T>
-  struct GradMoment
-  {
-      __host__ __device__
-      vec<T, 3>	operator ()(T eH, T eV) const
-		{
-		    return {eH*eH, eH*eV, eV*eH, eV*eV};
-		}
-      __host__ __device__
-      vec<T, 3>	operator ()(vec<T, 4> eH, vec<T, 4> eV) const
-		{
-		    return {dot(eH, eH), dot(eH, eV), dot(eV, eV)};
-		}
-  };
-
-  template <class T>
-  struct MinEigenvalue
-  {
-      __host__ __device__
-      T		operator ()(vec<T, 3> gm) const
-		{
-		    return T(0.5)*(gm.x + gm.z -
-				   sqrt((gm.x - gm.z)*(gm.x - gm.z) +
-					T(2)*gm.y*gm.y));
-		}
-  };
 }	// namespace detail
 
 /************************************************************************

@@ -60,7 +60,7 @@ namespace cu
 namespace detail
 {
   template <class MAP, class C>
-  class ICIAErrorMoment
+  class ICIAColorMoment
   {
     private:
       using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
@@ -72,7 +72,7 @@ namespace detail
       using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
     public:
-      ICIAErrorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
+      ICIAColorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
 	  :_edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow())
       {
@@ -141,7 +141,7 @@ namespace detail
   };
 
   template <class MAP, class C>
-  class ICIAErrorDeviation
+  class ICIAColorDeviation
   {
     private:
       using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
@@ -153,7 +153,7 @@ namespace detail
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      ICIAErrorDeviation(const MAP& map,
+      ICIAColorDeviation(const MAP& map,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
 			 const Array2<C>& colors, const Texture<C>& colors_p,
 			 value_type color_thresh)
@@ -375,8 +375,8 @@ ICIA<MAP, C, CLOCK>::clearSourceImage()
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
 {
-    using error_moment_type	= detail::ICIAErrorMoment<MAP, C>;
-    using moment_type		= typename error_moment_type::moment_type;
+    using color_moment_type	= detail::ICIAColorMoment<MAP, C>;
+    using moment_type		= typename color_moment_type::moment_type;
     
     _src = src;
     _edgeH.resize(src.nrow(), src.ncol());
@@ -388,31 +388,31 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
     convolver.diffV(src.cbegin(), src.cend(), _edgeV.begin(), true);
 
   // Compute error moment matrix by parallel reduction.
-    const error_moment_type	error_moment(_edgeH, _edgeV);
+    const color_moment_type	color_moment(_edgeH, _edgeV);
     Array<moment_type>		tmp_moment(1);
     size_t			tmp_size = 0;
     cub::DeviceReduce::Sum(nullptr, tmp_size,
 			   thrust::make_transform_iterator(
 			       thrust::make_counting_iterator(0),
-			       error_moment),
-			   tmp_moment.begin(), error_moment.size());
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
     Array<uint8_t>	tmp(tmp_size);
     cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
 			   thrust::make_transform_iterator(
 			       thrust::make_counting_iterator(0),
-			       error_moment),
-			   tmp_moment.begin(), error_moment.size());
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
     gpuCheckLastError();
 
-    _A = error_moment_type::A(tmp_moment[0]);
+    _A = color_moment_type::A(tmp_moment[0]);
 }
 
 template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 {
-    using error_deviation_type	= detail::ICIAErrorDeviation<MAP, C>;
-    using deviation_type	= typename error_deviation_type::deviation_type;
+    using color_deviation_type	= detail::ICIAColorDeviation<MAP, C>;
+    using deviation_type	= typename color_deviation_type::deviation_type;
     
   // Convert the error moment to a matrix and save its diagonals.
     const Texture<C>	dst_tex(dst);
@@ -423,7 +423,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const error_deviation_type	error_deviation(map, _edgeH, _edgeV,
+	const color_deviation_type	color_deviation(map, _edgeH, _edgeV,
 							_src, dst_tex,
 							_params.color_thresh);
 	Array<deviation_type>		tmp_deviation(1);
@@ -431,24 +431,24 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   error_deviation),
-			       tmp_deviation.begin(), error_deviation.size());
+				   color_deviation),
+			       tmp_deviation.begin(), color_deviation.size());
 	Array<uint8_t>	tmp(tmp_size);
 	cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   error_deviation),
-			       tmp_deviation.begin(), error_deviation.size());
+				   color_deviation),
+			       tmp_deviation.begin(), color_deviation.size());
 	gpuCheckLastError();
 	const deviation_type	deviation = tmp_deviation[0];
 
       // Evaluate residual mean square_error.
-	const auto		mse = error_deviation_type::mse(deviation);
+	const auto		mse = color_deviation_type::mse(deviation);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old)
-		  << ", sqerr="   << error_deviation_type::sqerr(deviation)
-		  << ", npoints=" << error_deviation_type::npoints(deviation)
+		  << ", sqerr="   << color_deviation_type::sqerr(deviation)
+		  << ", npoints=" << color_deviation_type::npoints(deviation)
 		  << std::endl;
 #endif
 	if (isnan(mse))
@@ -481,9 +481,9 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 	auto		A = _A;
 	for (size_t i = 0; i < A.rows(); ++i)
 	    A(i, i) *= (1.0 + lambda);
-	const auto	b     = error_deviation_type::b(deviation);
+	const auto	b     = color_deviation_type::b(deviation);
 	auto		delta = A.ldlt().solve(b).eval();
-	error_deviation.unnormalize_updates(delta);
+	color_deviation.unnormalize_updates(delta);
 	map = map_old * MAP::exp(delta.data());
 #if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)

@@ -27,9 +27,9 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 
     const cu::Array2<C>	src_d(src);
     cu::Array2<C>	dst_d(src.nrow(), src.ncol());
-    const auto		op = cu::createRigidity(T(src.ncol()/2), du,
-						T(src.nrow()/2), dv, theta);
-    cu::warp(src_d, dst_d.begin(), op);
+    const auto		tfm = cu::createRigidity(T(src.ncol()/2), du,
+						 T(src.nrow()/2), dv, theta);
+    cu::warp(src_d, dst_d.begin(), tfm);
 #if 0
     Image<C>		dst(dst_d);
     src.save(std::cout);
@@ -40,11 +40,11 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     params.color_thresh = thresh;
 
     cu::ICIA<MAP, C>	registration(params);
-    MAP			map;
-    map.initialize();
-    const auto		err = registration(src_d, dst_d, map);
+    MAP			Mds;
+    Mds.initialize();
+    const auto		err = registration(src_d, dst_d, Mds);
     std::cerr << "RMS-err = " << std::sqrt(err) << std::endl;
-    std::cerr << map;
+    std::cerr << Mds;
 
     registration.print(std::cerr);
 }

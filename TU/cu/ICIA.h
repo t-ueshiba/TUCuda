@@ -136,8 +136,8 @@ namespace detail
       int	ncol()		const	{ return _edgeH.cbegin().size(); }
 
     private:
-      const colors_type	_edgeH;
-      const colors_type	_edgeV;
+      const colors_type	_edgeH;		// source horizontal gradient image
+      const colors_type	_edgeV;		// source vertcial gradient image
   };
 
   template <class MAP, class C>
@@ -153,15 +153,15 @@ namespace detail
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      ICIAColorDeviation(const MAP& map,
+      ICIAColorDeviation(const MAP& Mds,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
-			 const Array2<C>& colors, const Texture<C>& colors_p,
+			 const Array2<C>& colors, const Texture<C>& colors_d,
 			 value_type color_thresh)
-	  :_map(map),
+	  :_Mds(Mds),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
 	   _colors(colors.cbegin(), colors.nrow()),
-	   _colors_p(colors_p),
+	   _colors_d(colors_d),
 	   _sqcolor_thresh(color_thresh*color_thresh)
       {
       }
@@ -172,15 +172,15 @@ namespace detail
       {
 	  const int	v    = i / ncol();
 	  const int	u    = i - (v * ncol());
-	  const auto	uv_p = _map(u, v);
+	  const auto	uv_d = _Mds(u, v);
 
-	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  if (0 <= uv_d.x && uv_d.x < ncol() && 0 <= uv_d.y && uv_d.y < nrow())
 	  {
 	      const auto	c   = _colors[v][u];
-	      const auto	c_p = _colors_p(uv_p.x, uv_p.y);
-	      const auto	b   = c - c_p;
+	      const auto	c_d = _colors_d(uv_d.x, uv_d.y);
+	      const auto	b   = c - c_d;
 
-	      if (c != C(0) && c_p != C(0) && b*b < _sqcolor_thresh)
+	      if (c != C(0) && c_d != C(0) && b*b < _sqcolor_thresh)
 	      {
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	ab = MAP::image_derivative0(s*u, s*v,
@@ -204,15 +204,15 @@ namespace detail
       {
 	  const int	v    = i / ncol();
 	  const int	u    = i - (v * ncol());
-	  const auto	uv_p = _map(u, v);
+	  const auto	uv_d = _Mds(u, v);
 
-	  if (0 <= uv_p.x && uv_p.x < ncol() && 0 <= uv_p.y && uv_p.y < nrow())
+	  if (0 <= uv_d.x && uv_d.x < ncol() && 0 <= uv_d.y && uv_d.y < nrow())
 	  {
 	      const auto	c   = _colors[v][u];
-	      const auto	c_p = _colors_p(uv_p.x, uv_p.y);
-	      const auto	b   = c - c_p;
+	      const auto	c_d = _colors_d(uv_d.x, uv_d.y);
+	      const auto	b   = c - c_d;
 
-	      if (valid(c) && valid(c_p) && square(b) < _sqcolor_thresh)
+	      if (valid(c) && valid(c_d) && square(b) < _sqcolor_thresh)
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
@@ -296,11 +296,11 @@ namespace detail
       int	ncol()		const	{ return _colors.cbegin().size(); }
 
     private:
-      const MAP		_map;
-      const colors_type	_edgeH;
-      const colors_type	_edgeV;
-      const colors_type	_colors;
-      const Texture<C>	_colors_p;
+      const MAP		_Mds;		// map from source to destination image
+      const colors_type	_edgeH;		// source horizontal gradient image
+      const colors_type	_edgeV;		// source vertcial gradient image
+      const colors_type	_colors;	// source color image
+      const Texture<C>	_colors_d;	// destination color image
       const value_type	_sqcolor_thresh;
   };
 }	// namespace detail
@@ -346,9 +346,9 @@ class ICIA : public Profiler<CLOCK>
     bool	empty()						const	;
     void	clearSourceImage()					;
     void	setSourceImage(const image_type& src)			;
-    value_type	operator ()(const image_type& dst, MAP& f)	const	;
+    value_type	operator ()(const image_type& dst, MAP& Mds)	const	;
     value_type	operator ()(const image_type& src,
-			    const image_type& dst, MAP& f)		;
+			    const image_type& dst, MAP& Mds)		;
 
   private:
     Parameters		_params;
@@ -409,21 +409,21 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
 
 template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
-ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
+ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
 {
     using color_deviation_type	= detail::ICIAColorDeviation<MAP, C>;
     using deviation_type	= typename color_deviation_type::deviation_type;
     
   // Convert the error moment to a matrix and save its diagonals.
     const Texture<C>	dst_tex(dst);
-    auto		map_old = map;
+    auto		Mds_old = Mds;
     auto		mse_old = std::numeric_limits<value_type>::max();
     auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const color_deviation_type	color_deviation(map, _edgeH, _edgeV,
+	const color_deviation_type	color_deviation(Mds, _edgeH, _edgeV,
 							_src, dst_tex,
 							_params.color_thresh);
 	Array<deviation_type>		tmp_deviation(1);
@@ -461,7 +461,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 		return mse;
 	    }
 
-	    map_old = map;
+	    Mds_old = Mds;
 	    mse_old = mse;
 	    lambda *= 0.1;
 	}
@@ -469,7 +469,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 	{
 	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-20)
 	    {
-		map = map_old;
+		Mds = Mds_old;
 		return mse_old;
 	    }
 
@@ -484,16 +484,16 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 	const auto	b     = color_deviation_type::b(deviation);
 	auto		delta = A.ldlt().solve(b).eval();
 	color_deviation.unnormalize_updates(delta);
-	map = map_old * MAP::exp(delta.data());
+	Mds = Mds_old * MAP::exp(delta.data());
 #if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
 #endif
 #if defined(DEBUG)
-	image_type	warped(dst.nrow(), dst.ncol());
-	warped = 0;
-	warp(dst, warped.begin(), map);
-	TU::Image<C>	diff = TU::Array2<C>(_src) - TU::Array2<C>(warped);
+	image_type	src(dst.nrow(), dst.ncol());
+	src = 0;
+	warp(dst, src.begin(), Mds);
+	TU::Image<C>	diff = TU::Array2<C>(_src) - TU::Array2<C>(src);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
@@ -507,7 +507,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& map) const
 template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& src,
-				 const image_type& dst, MAP& map)
+				 const image_type& dst, MAP& Mds)
 {
 #if defined(DEBUG)
     Image<float>	diff(src.ncol(), src.nrow());
@@ -517,7 +517,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& src,
     profiler_t::start(0);
     setSourceImage(src);
     profiler_t::start(1);
-    const auto	mse = (*this)(dst, map);
+    const auto	mse = (*this)(dst, Mds);
     profiler_t::nextFrame();
 
     return mse;

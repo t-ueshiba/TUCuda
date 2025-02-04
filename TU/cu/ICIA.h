@@ -346,9 +346,13 @@ class ICIA : public Profiler<CLOCK>
     bool	empty()						const	;
     void	clearSourceImage()					;
     void	setSourceImage(const image_type& src)			;
+    void	swapSourceImage(image_type& src)			;
     value_type	operator ()(const image_type& dst, MAP& Mds)	const	;
     value_type	operator ()(const image_type& src,
 			    const image_type& dst, MAP& Mds)		;
+
+  private:
+    void	computeEdgesAndMoment()					;
 
   private:
     Parameters		_params;
@@ -375,36 +379,17 @@ ICIA<MAP, C, CLOCK>::clearSourceImage()
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
 {
-    using color_moment_type	= detail::ICIAColorMoment<MAP, C>;
-    using moment_type		= typename color_moment_type::moment_type;
-    
     _src = src;
-    _edgeH.resize(src.nrow(), src.ncol());
-    _edgeV.resize(src.nrow(), src.ncol());
 
-  // Compute horizontal and vertical image derivatives.
-    FIRGaussianConvolver2<C>	convolver(_params.sigma);
-    convolver.diffH(src.cbegin(), src.cend(), _edgeH.begin(), true);
-    convolver.diffV(src.cbegin(), src.cend(), _edgeV.begin(), true);
+    computeEdgesAndMoment();
+}
 
-  // Compute error moment matrix by parallel reduction.
-    const color_moment_type	color_moment(_edgeH, _edgeV);
-    Array<moment_type>		tmp_moment(1);
-    size_t			tmp_size = 0;
-    cub::DeviceReduce::Sum(nullptr, tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_moment.begin(), color_moment.size());
-    Array<uint8_t>	tmp(tmp_size);
-    cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_moment.begin(), color_moment.size());
-    gpuCheckLastError();
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& src)
+{
+    _src.swap(src);
 
-    _A = color_moment_type::A(tmp_moment[0]);
+    computeEdgesAndMoment();
 }
 
 template <class MAP, class C, class CLOCK>
@@ -521,6 +506,39 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& src,
     profiler_t::nextFrame();
 
     return mse;
+}
+
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
+{
+    using color_moment_type	= detail::ICIAColorMoment<MAP, C>;
+    using moment_type		= typename color_moment_type::moment_type;
+    
+  // Compute horizontal and vertical image derivatives.
+    _edgeH.resize(_src.nrow(), _src.ncol());
+    _edgeV.resize(_src.nrow(), _src.ncol());
+    FIRGaussianConvolver2<C>	convolver(_params.sigma);
+    convolver.diffH(_src.cbegin(), _src.cend(), _edgeH.begin(), true);
+    convolver.diffV(_src.cbegin(), _src.cend(), _edgeV.begin(), true);
+
+  // Compute error moment matrix by parallel reduction.
+    const color_moment_type	color_moment(_edgeH, _edgeV);
+    Array<moment_type>		tmp_moment(1);
+    size_t			tmp_size = 0;
+    cub::DeviceReduce::Sum(nullptr, tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
+    Array<uint8_t>	tmp(tmp_size);
+    cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
+    gpuCheckLastError();
+
+    _A = color_moment_type::A(tmp_moment[0]);
 }
 
 }	// namespace cu

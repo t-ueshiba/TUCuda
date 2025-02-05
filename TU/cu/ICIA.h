@@ -153,15 +153,15 @@ namespace detail
       using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      ICIAColorDeviation(const MAP& Mds,
+      ICIAColorDeviation(const MAP& Mts,
 			 const Array2<C>& edgeH, const Array2<C>& edgeV,
-			 const Array2<C>& colors, const Texture<C>& colors_d,
+			 const Array2<C>& source, const Texture<C>& target,
 			 value_type color_thresh)
-	  :_Mds(Mds),
+	  :_Mts(Mts),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
-	   _colors(colors.cbegin(), colors.nrow()),
-	   _colors_d(colors_d),
+	   _source(source.cbegin(), source.nrow()),
+	   _target(target),
 	   _sqcolor_thresh(color_thresh*color_thresh)
       {
       }
@@ -172,15 +172,15 @@ namespace detail
       {
 	  const int	v    = i / ncol();
 	  const int	u    = i - (v * ncol());
-	  const auto	uv_d = _Mds(u, v);
+	  const auto	uv_t = _Mts(u, v);
 
-	  if (0 <= uv_d.x && uv_d.x < ncol() && 0 <= uv_d.y && uv_d.y < nrow())
+	  if (0 <= uv_t.x && uv_t.x < ncol() && 0 <= uv_t.y && uv_t.y < nrow())
 	  {
-	      const auto	c   = _colors[v][u];
-	      const auto	c_d = _colors_d(uv_d.x, uv_d.y);
-	      const auto	b   = c - c_d;
+	      const auto	c   = _source[v][u];
+	      const auto	c_t = _target(uv_t.x, uv_t.y);
+	      const auto	b   = c - c_t;
 
-	      if (c != C(0) && c_d != C(0) && b*b < _sqcolor_thresh)
+	      if (c != C(0) && c_t != C(0) && b*b < _sqcolor_thresh)
 	      {
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	ab = MAP::image_derivative0(s*u, s*v,
@@ -204,15 +204,15 @@ namespace detail
       {
 	  const int	v    = i / ncol();
 	  const int	u    = i - (v * ncol());
-	  const auto	uv_d = _Mds(u, v);
+	  const auto	uv_t = _Mts(u, v);
 
-	  if (0 <= uv_d.x && uv_d.x < ncol() && 0 <= uv_d.y && uv_d.y < nrow())
+	  if (0 <= uv_t.x && uv_t.x < ncol() && 0 <= uv_t.y && uv_t.y < nrow())
 	  {
-	      const auto	c   = _colors[v][u];
-	      const auto	c_d = _colors_d(uv_d.x, uv_d.y);
-	      const auto	b   = c - c_d;
+	      const auto	c   = _source[v][u];
+	      const auto	c_t = _target(uv_t.x, uv_t.y);
+	      const auto	b   = c - c_t;
 
-	      if (valid(c) && valid(c_d) && square(b) < _sqcolor_thresh)
+	      if (valid(c) && valid(c_t) && square(b) < _sqcolor_thresh)
 	      {
 		  const C	eH = _edgeH[v][u];
 		  const C	eV = _edgeV[v][u];
@@ -291,16 +291,16 @@ namespace detail
 
     private:
       __host__ __device__ __forceinline__
-      int	nrow()		const	{ return _colors.size(); }
+      int	nrow()		const	{ return _source.size(); }
       __host__ __device__ __forceinline__
-      int	ncol()		const	{ return _colors.cbegin().size(); }
+      int	ncol()		const	{ return _source.cbegin().size(); }
 
     private:
-      const MAP		_Mds;		// map from source to destination image
+      const MAP		_Mts;		// map from source to destination image
       const colors_type	_edgeH;		// source horizontal gradient image
       const colors_type	_edgeV;		// source vertcial gradient image
-      const colors_type	_colors;	// source color image
-      const Texture<C>	_colors_d;	// destination color image
+      const colors_type	_source;	// source color image
+      const Texture<C>	_target;	// target color image
       const value_type	_sqcolor_thresh;
   };
 }	// namespace detail
@@ -332,32 +332,32 @@ class ICIA : public Profiler<CLOCK>
   public:
 		ICIA(const Parameters& params=Parameters())
 		    :profiler_t(2), _params(params),
-		     _src(), _edgeH(), _edgeV(), _A()			{}
+		     _source(), _edgeH(), _edgeV(), _A()		{}
 
     const Parameters&
 		getParameters()			const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
     const image_type&
-		getSourceImage()		const	{ return _src; }
+		getSourceImage()		const	{ return _source; }
     const image_type&
 		getEdgeH()			const	{ return _edgeH; }
     const image_type&
 		getEdgeV()			const	{ return _edgeV; }
     bool	empty()						const	;
     void	clearSourceImage()					;
-    void	setSourceImage(const image_type& src)			;
-    void	setSourceImage(image_type&& src)			;
-    void	swapSourceImage(image_type& src)			;
-    value_type	operator ()(const image_type& dst, MAP& Mds)	const	;
-    value_type	operator ()(const image_type& src,
-			    const image_type& dst, MAP& Mds)		;
+    void	setSourceImage(const image_type& source)		;
+    void	setSourceImage(image_type&& source)			;
+    void	swapSourceImage(image_type& source)			;
+    value_type	operator ()(const image_type& target, MAP& Mts)	const	;
+    value_type	operator ()(const image_type& source,
+			    const image_type& target, MAP& Mts)		;
 
   private:
     void	computeEdgesAndMoment()					;
 
   private:
     Parameters		_params;
-    image_type		_src;
+    image_type		_source;
     image_type		_edgeH;
     image_type		_edgeV;
     moment_matrix_type	_A;
@@ -366,59 +366,59 @@ class ICIA : public Profiler<CLOCK>
 template <class MAP, class C, class CLOCK> bool
 ICIA<MAP, C, CLOCK>::empty() const
 {
-    return _src.nrow() == 0;
+    return _source.nrow() == 0;
 }
 
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::clearSourceImage()
 {
-    _src.resize(0, 0);
+    _source.resize(0, 0);
     _edgeH.resize(0, 0);
     _edgeV.resize(0, 0);
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
+ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& source)
 {
-    _src = src;
+    _source = source;
 
     computeEdgesAndMoment();
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& src)
+ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& source)
 {
-    _src = std::move(src);
+    _source = std::move(source);
 
     computeEdgesAndMoment();
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& src)
+ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& source)
 {
-    _src.swap(src);
+    _source.swap(source);
 
     computeEdgesAndMoment();
 }
 
 template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
-ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
+ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
     using color_deviation_type	= detail::ICIAColorDeviation<MAP, C>;
     using deviation_type	= typename color_deviation_type::deviation_type;
     
   // Convert the error moment to a matrix and save its diagonals.
-    const Texture<C>	dst_tex(dst);
-    auto		Mds_old = Mds;
+    const Texture<C>	target_tex(target);
+    auto		Mts_old = Mts;
     auto		mse_old = std::numeric_limits<value_type>::max();
     auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const color_deviation_type	color_deviation(Mds, _edgeH, _edgeV,
-							_src, dst_tex,
+	const color_deviation_type	color_deviation(Mts, _edgeH, _edgeV,
+							_source, target_tex,
 							_params.color_thresh);
 	Array<deviation_type>		tmp_deviation(1);
 	size_t				tmp_size = 0;
@@ -455,7 +455,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
 		return mse;
 	    }
 
-	    Mds_old = Mds;
+	    Mts_old = Mts;
 	    mse_old = mse;
 	    lambda *= 0.1;
 	}
@@ -463,7 +463,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
 	{
 	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-20)
 	    {
-		Mds = Mds_old;
+		Mts = Mts_old;
 		return mse_old;
 	    }
 
@@ -478,16 +478,16 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
 	const auto	b     = color_deviation_type::b(deviation);
 	auto		delta = A.ldlt().solve(b).eval();
 	color_deviation.unnormalize_updates(delta);
-	Mds = Mds_old * MAP::exp(delta.data());
+	Mts = Mts_old * MAP::exp(delta.data());
 #if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda << std::endl;
 #endif
 #if defined(DEBUG)
-	image_type	src(dst.nrow(), dst.ncol());
-	src = 0;
-	warp(dst, src.begin(), Mds);
-	TU::Image<C>	diff = TU::Array2<C>(_src) - TU::Array2<C>(src);
+	image_type	source(target.nrow(), target.ncol());
+	source = 0;
+	warp(target, source.begin(), Mts);
+	TU::Image<C>	diff = TU::Array2<C>(_source) - TU::Array2<C>(source);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
@@ -500,18 +500,18 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& dst, MAP& Mds) const
 
 template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
-ICIA<MAP, C, CLOCK>::operator ()(const image_type& src,
-				 const image_type& dst, MAP& Mds)
+ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
+				 const image_type& target, MAP& Mts)
 {
 #if defined(DEBUG)
-    Image<float>	diff(src.ncol(), src.nrow());
+    Image<float>	diff(source.ncol(), source.nrow());
     std::cout << 'M' << 1 << std::endl;
     diff.saveHeader(std::cout, ImageFormat::FLOAT);
 #endif
     profiler_t::start(0);
-    setSourceImage(src);
+    setSourceImage(source);
     profiler_t::start(1);
-    const auto	mse = (*this)(dst, Mds);
+    const auto	mse = (*this)(target, Mts);
     profiler_t::nextFrame();
 
     return mse;
@@ -524,11 +524,11 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
     using moment_type		= typename color_moment_type::moment_type;
     
   // Compute horizontal and vertical image derivatives.
-    _edgeH.resize(_src.nrow(), _src.ncol());
-    _edgeV.resize(_src.nrow(), _src.ncol());
+    _edgeH.resize(_source.nrow(), _source.ncol());
+    _edgeV.resize(_source.nrow(), _source.ncol());
     FIRGaussianConvolver2<C>	convolver(_params.sigma);
-    convolver.diffH(_src.cbegin(), _src.cend(), _edgeH.begin(), true);
-    convolver.diffV(_src.cbegin(), _src.cend(), _edgeV.begin(), true);
+    convolver.diffH(_source.cbegin(), _source.cend(), _edgeH.begin(), true);
+    convolver.diffV(_source.cbegin(), _source.cend(), _edgeV.begin(), true);
 
   // Compute error moment matrix by parallel reduction.
     const color_moment_type	color_moment(_edgeH, _edgeV);

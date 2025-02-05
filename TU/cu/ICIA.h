@@ -346,6 +346,7 @@ class ICIA : public Profiler<CLOCK>
     bool	empty()						const	;
     void	clearSourceImage()					;
     void	setSourceImage(const image_type& src)			;
+    void	setSourceImage(image_type&& src)			;
     void	swapSourceImage(image_type& src)			;
     value_type	operator ()(const image_type& dst, MAP& Mds)	const	;
     value_type	operator ()(const image_type& src,
@@ -380,6 +381,14 @@ template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& src)
 {
     _src = src;
+
+    computeEdgesAndMoment();
+}
+
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& src)
+{
+    _src = std::move(src);
 
     computeEdgesAndMoment();
 }

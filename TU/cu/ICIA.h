@@ -67,9 +67,9 @@ namespace detail
       constexpr static size_t	DOF = MAP::DOF;
 
     public:
-      using value_type		= typename MAP::element_type;
-      using moment_type		= array<value_type, DOF*(DOF+1)/2>;
-      using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
+      using value_type	= typename MAP::element_type;
+      using array_type	= array<value_type, DOF*(DOF+1)/2>;
+      using matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
     public:
       ICIAColorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
@@ -79,7 +79,7 @@ namespace detail
       }
 
       template <class C_=C> __host__ __device__
-      std::enable_if_t<std::is_arithmetic<C_>::value, moment_type>
+      std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v = i / ncol();
@@ -91,7 +91,7 @@ namespace detail
       }
 
       template <class C_=C> __host__ __device__
-      std::enable_if_t<!std::is_arithmetic<C_>::value, moment_type>
+      std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v  = i / ncol();
@@ -118,10 +118,10 @@ namespace detail
 	  return nrow() * ncol();
       }
 
-      static moment_matrix_type
-      A(const moment_type& moment)
+      static matrix_type
+      M(const array_type& moment)
       {
-	  moment_matrix_type	m;
+	  matrix_type	m;
 	  auto		p = moment.data();
 	  for (int i = 0; i < m.rows(); ++i)
 	      for (int j = i; j < m.cols(); ++j)
@@ -148,9 +148,9 @@ namespace detail
       constexpr static size_t	DOF = MAP::DOF;
 
     public:
-      using value_type			= typename MAP::element_type;
-      using deviation_type		= array<value_type, DOF+2>;
-      using deviation_vector_type	= Eigen::Matrix<value_type, DOF, 1>;
+      using value_type	= typename MAP::element_type;
+      using array_type	= array<value_type, DOF+2>;
+      using vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
       ICIAColorDeviation(const MAP& Mts,
@@ -167,7 +167,7 @@ namespace detail
       }
 
       template <class C_=C> __host__ __device__
-      std::enable_if_t<std::is_arithmetic<C_>::value, deviation_type>
+      std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v    = i / ncol();
@@ -199,7 +199,7 @@ namespace detail
       }
 
       template <class C_=C> __host__ __device__
-      std::enable_if_t<!std::is_arithmetic<C_>::value, deviation_type>
+      std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v    = i / ncol();
@@ -242,37 +242,37 @@ namespace detail
 	  return nrow() * ncol();
       }
 
-      deviation_vector_type&
-      unnormalize_updates(deviation_vector_type& updates) const
+      vector_type&
+      unnormalize_updates(vector_type& updates) const
       {
 	  MAP::unnormalize_updates(updates.data(),
 				   1 / value_type(max(nrow(), ncol())));
 	  return updates;
       }
 
-      static deviation_vector_type
-      b(const deviation_type& deviation)
+      static vector_type
+      d(const array_type& deviation)
       {
-	  deviation_vector_type	v;
+	  vector_type	v;
 	  for (int i = 0; i < v.rows(); ++i)
 	      v(i) = deviation[i];
 	  return v;
       }
 
       static value_type
-      npoints(const deviation_type& deviation)
+      npoints(const array_type& deviation)
       {
 	  return deviation[DOF+1];
       }
 
       static value_type
-      sqerr(const deviation_type& deviation)
+      sqerr(const array_type& deviation)
       {
 	  return deviation[DOF];
       }
 
       static value_type
-      mse(const deviation_type& deviation)
+      mse(const array_type& deviation)
       {
 	  return deviation[DOF] / deviation[DOF+1];
       }
@@ -326,13 +326,13 @@ class ICIA : public Profiler<CLOCK>
     };
 
   private:
-    using moment_matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
-    using profiler_t		= Profiler<CLOCK>;
+    using matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
+    using profiler_type	= Profiler<CLOCK>;
 
   public:
 		ICIA(const Parameters& params=Parameters())
-		    :profiler_t(2), _params(params),
-		     _source(), _edgeH(), _edgeV(), _A()		{}
+		    :profiler_type(2), _params(params),
+		     _source(), _edgeH(), _edgeV(), _M()		{}
 
     const Parameters&
 		getParameters()			const	{ return _params; }
@@ -356,11 +356,11 @@ class ICIA : public Profiler<CLOCK>
     void	computeEdgesAndMoment()					;
 
   private:
-    Parameters		_params;
-    image_type		_source;
-    image_type		_edgeH;
-    image_type		_edgeV;
-    moment_matrix_type	_A;
+    Parameters	_params;
+    image_type	_source;	// current reference source image
+    image_type	_edgeH;		// horizontal derivative of source image
+    image_type	_edgeV;		// vertical derivative of source image
+    matrix_type	_M;		// color moment matrix
 };
 
 template <class MAP, class C, class CLOCK> bool
@@ -405,8 +405,8 @@ template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
-    using color_deviation_type	= detail::ICIAColorDeviation<MAP, C>;
-    using deviation_type	= typename color_deviation_type::deviation_type;
+    using deviation_type	= detail::ICIAColorDeviation<MAP, C>;
+    using deviation_array_type	= typename deviation_type::array_type;
     
   // Convert the error moment to a matrix and save its diagonals.
     const Texture<C>	target_tex(target);
@@ -417,32 +417,32 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const color_deviation_type	color_deviation(Mts, _edgeH, _edgeV,
-							_source, target_tex,
-							_params.color_thresh);
-	Array<deviation_type>		tmp_deviation(1);
+	const deviation_type		deviation(Mts, _edgeH, _edgeV,
+						  _source, target_tex,
+						  _params.color_thresh);
+	Array<deviation_array_type>	tmp_deviation(1);
 	size_t				tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   color_deviation),
-			       tmp_deviation.begin(), color_deviation.size());
+				   deviation),
+			       tmp_deviation.begin(), deviation.size());
 	Array<uint8_t>	tmp(tmp_size);
 	cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   color_deviation),
-			       tmp_deviation.begin(), color_deviation.size());
+				   deviation),
+			       tmp_deviation.begin(), deviation.size());
 	gpuCheckLastError();
-	const deviation_type	deviation = tmp_deviation[0];
+	const deviation_array_type	deviation_array = tmp_deviation[0];
 
       // Evaluate residual mean square_error.
-	const auto		mse = color_deviation_type::mse(deviation);
+	const auto	mse = deviation_type::mse(deviation_array);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old)
-		  << ", sqerr="   << color_deviation_type::sqerr(deviation)
-		  << ", npoints=" << color_deviation_type::npoints(deviation)
+		  << ", sqerr="   << deviation_type::sqerr(deviation_array)
+		  << ", npoints=" << deviation_type::npoints(deviation_array)
 		  << std::endl;
 #endif
 	if (isnan(mse))
@@ -472,12 +472,12 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	mse_prev = mse;
 
       // Solve the linear system for updates of transform.
-	auto		A = _A;
+	auto		A = _M;
 	for (size_t i = 0; i < A.rows(); ++i)
 	    A(i, i) *= (1.0 + lambda);
-	const auto	b     = color_deviation_type::b(deviation);
+	const auto	b     = deviation_type::d(deviation_array);
 	auto		delta = A.ldlt().solve(b).eval();
-	color_deviation.unnormalize_updates(delta);
+	deviation.unnormalize_updates(delta);
 	Mts = Mts_old * MAP::exp(delta.data());
 #if !defined(NDEBUG)
 	std::cerr << "  [" << n << "] err=" << std::sqrt(mse)
@@ -508,11 +508,11 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
     std::cout << 'M' << 1 << std::endl;
     diff.saveHeader(std::cout, ImageFormat::FLOAT);
 #endif
-    profiler_t::start(0);
+    profiler_type::start(0);
     setSourceImage(source);
-    profiler_t::start(1);
+    profiler_type::start(1);
     const auto	mse = (*this)(target, Mts);
-    profiler_t::nextFrame();
+    profiler_type::nextFrame();
 
     return mse;
 }
@@ -520,8 +520,8 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
 {
-    using color_moment_type	= detail::ICIAColorMoment<MAP, C>;
-    using moment_type		= typename color_moment_type::moment_type;
+    using moment_type		= detail::ICIAColorMoment<MAP, C>;
+    using moment_array_type	= typename moment_type::array_type;
     
   // Compute horizontal and vertical image derivatives.
     _edgeH.resize(_source.nrow(), _source.ncol());
@@ -531,8 +531,8 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
     convolver.diffV(_source.cbegin(), _source.cend(), _edgeV.begin(), true);
 
   // Compute error moment matrix by parallel reduction.
-    const color_moment_type	color_moment(_edgeH, _edgeV);
-    Array<moment_type>		tmp_moment(1);
+    const moment_type		color_moment(_edgeH, _edgeV);
+    Array<moment_array_type>	tmp_moment(1);
     size_t			tmp_size = 0;
     cub::DeviceReduce::Sum(nullptr, tmp_size,
 			   thrust::make_transform_iterator(
@@ -547,7 +547,7 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
 			   tmp_moment.begin(), color_moment.size());
     gpuCheckLastError();
 
-    _A = color_moment_type::A(tmp_moment[0]);
+    _M = moment_type::M(tmp_moment[0]);
 }
 
 }	// namespace cu

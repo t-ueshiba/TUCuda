@@ -82,6 +82,24 @@ class Texture
 	    enum cudaTextureAddressMode addressMode=cudaAddressModeBorder);
     ~Texture()							;
 
+    size_t	size() const
+		{
+		    cudaResourceDesc	resdesc;
+		    cudaGetTextureObjectResourceDesc(&resdesc, _tex);
+		    return resdesc.res.linear.sizeInBytes/sizeof(base_type);
+		}
+    size_t	nrow() const
+		{
+		    cudaResourceDesc	resdesc;
+		    cudaGetTextureObjectResourceDesc(&resdesc, _tex);
+		    return resdesc.res.pitch2D.height;
+		}
+    size_t	ncol() const
+		{
+		    cudaResourceDesc	resdesc;
+		    cudaGetTextureObjectResourceDesc(&resdesc, _tex);
+		    return resdesc.res.pitch2D.width;
+		}
     __device__
     value_type	operator()(float x) const
 		{

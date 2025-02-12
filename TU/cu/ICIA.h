@@ -312,10 +312,9 @@ template <class MAP, class C, class CLOCK=void>
 class ICIA : public Profiler<CLOCK>
 {
   public:
-    constexpr static size_t	DOF = MAP::DOF;
-
-    using image_type		= Array2<C>;
-    using value_type		= typename MAP::element_type;
+    using map_type	= MAP;
+    using image_type	= Array2<C>;
+    using value_type	= typename map_type::element_type;
 
     struct Parameters
     {
@@ -326,6 +325,8 @@ class ICIA : public Profiler<CLOCK>
     };
 
   private:
+    constexpr static size_t	DOF = map_type::DOF;
+
     using matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
     using profiler_type	= Profiler<CLOCK>;
 
@@ -407,7 +408,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
     using deviation_type	= detail::ICIAColorDeviation<MAP, C>;
     using deviation_array_type	= typename deviation_type::array_type;
-    
+
   // Convert the error moment to a matrix and save its diagonals.
     const Texture<C>	target_tex(target);
     auto		Mts_old = Mts;
@@ -522,7 +523,7 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
 {
     using moment_type		= detail::ICIAColorMoment<MAP, C>;
     using moment_array_type	= typename moment_type::array_type;
-    
+
   // Compute horizontal and vertical image derivatives.
     _edgeH.resize(_source.nrow(), _source.ncol());
     _edgeV.resize(_source.nrow(), _source.ncol());

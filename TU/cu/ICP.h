@@ -67,7 +67,7 @@ class ICPPointPlaneError
     using intrinsics_type	= Intrinsics<value_type>;
 
     constexpr static size_t	DOF = transform_type::DOF;
-    
+
     using array_type		= array<value_type, (DOF+1)*(DOF+2)/2 + 1>;
     using matrix_type		= Eigen::Matrix<value_type, DOF, DOF>;
     using vector_type		= Eigen::Matrix<value_type, DOF, 1>;
@@ -216,7 +216,7 @@ class ICPColorMoment
     using intrinsics_type	= Intrinsics<value_type>;
 
     constexpr static size_t	DOF = transform_type::DOF;
-    
+
     using array_type		= array<value_type, DOF*(DOF+1)/2>;
     using matrix_type		= Eigen::Matrix<value_type, DOF, DOF>;
 
@@ -226,7 +226,7 @@ class ICPColorMoment
     using points_type		= range<range_iterator<
 					    thrust::device_ptr<
 						const point_type> > >;
-    using colors_type		= range<range_iterator<
+    using image_type		= range<range_iterator<
 					    thrust::device_ptr<
 						const color_type> > >;
 
@@ -344,8 +344,8 @@ class ICPColorMoment
   private:
     const intrinsics_type	_intrinsics;
     const points_type		_points;
-    const colors_type		_edgeH;
-    const colors_type		_edgeV;
+    const image_type		_edgeH;
+    const image_type		_edgeV;
 };
 
 /************************************************************************
@@ -362,7 +362,7 @@ class ICPColorDeviation
     using intrinsics_type	= Intrinsics<value_type>;
 
     constexpr static size_t	DOF = transform_type::DOF;
-    
+
     using array_type		= array<value_type, DOF+2>;
     using vector_type		= Eigen::Matrix<value_type, DOF, 1>;
 
@@ -372,20 +372,20 @@ class ICPColorDeviation
     using points_type		= range<range_iterator<
 					    thrust::device_ptr<
 						const point_type> > >;
-    using colors_type		= range<range_iterator<
+    using image_type		= range<range_iterator<
 					    thrust::device_ptr<
 						const color_type> > >;
 
   public:
     template <class FRAME>
     ICPColorDeviation(const transform_type& Tts,
-		      const Texture<C>& colors_s, const FRAME& target,
+		      const Texture<C>& image_s, const FRAME& target,
 		      value_type color_thresh)
 	:_Tst(Tts.inv()),
 	 _intrinsics(target.intrinsics),
-	 _colors_s(colors_s),
+	 _image_s(image_s),
 	 _points_t(target.points.cbegin(), target.points.nrow()),
-	 _colors_t(target.colors.cbegin(), target.colors.nrow()),
+	 _image_t(target.image.cbegin(), target.image.nrow()),
 	 _edgeH(target.edgeH.cbegin(), target.edgeH.nrow()),
 	 _edgeV(target.edgeV.cbegin(), target.edgeV.nrow()),
 	 _sqcolor_thresh(color_thresh*color_thresh)
@@ -408,7 +408,7 @@ class ICPColorDeviation
 	    if (0 <= uv_s.x && uv_s.x < ncol() &&
 		0 <= uv_s.y && uv_s.y < nrow())
 	    {
-		const auto	b = _colors_s(uv_s.x, uv_s.y) - _colors_t[v][u];
+		const auto	b = _image_s(uv_s.x, uv_s.y) - _image_t[v][u];
 
 		if (b*b < _sqcolor_thresh)
 		{
@@ -450,7 +450,7 @@ class ICPColorDeviation
 	    if (0 <= uv_s.x && uv_s.x < ncol() &&
 		0 <= uv_s.y && uv_s.y < nrow())
 	    {
-		const auto	b = _colors_s(uv_s.x, uv_s.y) - _colors_t[v][u];
+		const auto	b = _image_s(uv_s.x, uv_s.y) - _image_t[v][u];
 
 		if (square(b) < _sqcolor_thresh)
 		{
@@ -515,22 +515,22 @@ class ICPColorDeviation
 
   private:
     __host__ __device__ __forceinline__
-    int		nrow()		const	{ return _colors_t.size(); }
+    int		nrow()		const	{ return _image_t.size(); }
     __host__ __device__ __forceinline__
-    int		ncol()		const	{ return _colors_t.cbegin().size(); }
+    int		ncol()		const	{ return _image_t.cbegin().size(); }
 
   private:
     const transform_type	_Tst;
     const intrinsics_type	_intrinsics;
-    const Texture<C>		_colors_s;
+    const Texture<C>		_image_s;
     const points_type		_points_t;
-    const colors_type		_colors_t;
-    const colors_type		_edgeH;
-    const colors_type		_edgeV;
+    const image_type		_image_t;
+    const image_type		_edgeH;
+    const image_type		_edgeV;
     const value_type		_sqcolor_thresh;
 };
 }	// namespace detail
-    
+
 /************************************************************************
 *  class ICP<T, C, CLOCK>						*
 ************************************************************************/
@@ -561,7 +561,7 @@ class ICP : public Profiler<CLOCK>
 	intrinsics_type		intrinsics;
 	Array2<point_type>	points;
 	Array2<direction_type>	normals;
-	Array2<color_type>	colors;
+	Array2<color_type>	image;
 	Array2<color_type>	edgeH;
 	Array2<color_type>	edgeV;
 
@@ -572,7 +572,7 @@ class ICP : public Profiler<CLOCK>
 		    std::swap(intrinsics, frame.intrinsics);
 		    points.swap(frame.points);
 		    normals.swap(frame.normals);
-		    colors.swap(frame.colors);
+		    image.swap(frame.image);
 		    edgeH.swap(frame.edgeH);
 		    edgeV.swap(frame.edgeV);
 		}
@@ -580,7 +580,7 @@ class ICP : public Profiler<CLOCK>
 		{
 		    points.resize(0, 0);
 		    normals.resize(0, 0);
-		    colors.resize(0, 0);
+		    image.resize(0, 0);
 		    edgeH.resize(0, 0);
 		    edgeV.resize(0, 0);
 		}
@@ -656,7 +656,7 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
     using point_error_array_type     = typename point_error_type::array_type;
     using color_moment_array_type    = typename color_moment_type::array_type;
     using color_deviation_array_type = typename color_deviation_type::array_type;
-    
+
   // Compute color moment of the target frame by parallel reduction.
     const color_moment_type		color_moment(target);
     Array<color_moment_array_type>	tmp_color_moment(1);
@@ -676,7 +676,7 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
     const auto	color_moment_array = tmp_color_moment[0];
 
   // Update transform by Lebensberg-Marquarde iteration.
-    const Texture<color_type>	colors_s(_source.colors);
+    const Texture<color_type>	image_s(_source.image);
     auto			Tts_old = Tts;
     auto			mse_old = std::numeric_limits<value_type>
 						::max();
@@ -705,7 +705,7 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
 	const auto	point_error_array = tmp_point_error[0];
 
       // Compute color deviation by parallel reduction.
-	const color_deviation_type	color_deviation(Tts, colors_s, target,
+	const color_deviation_type	color_deviation(Tts, image_s, target,
 							_params.color_thresh);
 	Array<color_deviation_array_type>	tmp_color_deviation(1);
 	tmp_size = 0;

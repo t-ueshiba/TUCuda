@@ -63,7 +63,7 @@ namespace detail
   class ICIAColorMoment
   {
     private:
-      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
+      using image_type	= range<range_iterator<thrust::device_ptr<const C> > >;
       constexpr static size_t	DOF = MAP::DOF;
 
     public:
@@ -136,15 +136,15 @@ namespace detail
       int	ncol()		const	{ return _edgeH.cbegin().size(); }
 
     private:
-      const colors_type	_edgeH;		// source horizontal gradient image
-      const colors_type	_edgeV;		// source vertcial gradient image
+      const image_type	_edgeH;		// source horizontal gradient image
+      const image_type	_edgeV;		// source vertcial gradient image
   };
 
   template <class MAP, class C>
   class ICIAColorDeviation
   {
     private:
-      using colors_type	= range<range_iterator<thrust::device_ptr<const C> > >;
+      using image_type	= range<range_iterator<thrust::device_ptr<const C> > >;
       constexpr static size_t	DOF = MAP::DOF;
 
     public:
@@ -297,9 +297,9 @@ namespace detail
 
     private:
       const MAP		_Mts;		// map from source to destination image
-      const colors_type	_edgeH;		// source horizontal gradient image
-      const colors_type	_edgeV;		// source vertcial gradient image
-      const colors_type	_source;	// source color image
+      const image_type	_edgeH;		// source horizontal gradient image
+      const image_type	_edgeV;		// source vertcial gradient image
+      const image_type	_source;	// source color image
       const Texture<C>	_target;	// target color image
       const value_type	_sqcolor_thresh;
   };
@@ -313,7 +313,8 @@ class ICIA : public Profiler<CLOCK>
 {
   public:
     using map_type	= MAP;
-    using image_type	= Array2<C>;
+    using color_type	= C;
+    using image_type	= Array2<color_type>;
     using value_type	= typename map_type::element_type;
 
     struct Parameters

@@ -2,6 +2,7 @@
  *  $Id$
  */
 #include <cstdlib>
+#include <fstream>
 #include "TU/Warp.h"
 #include "TU/cu/ICIA.h"
 
@@ -25,7 +26,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
 {
     using Parameters	= typename cu::ICIA<MAP, C>::Parameters;
 
-    const cu::Array2<C>	src_d(src);
+    cu::Array2<C>	src_d(src);
     cu::Array2<C>	dst_d(src.nrow(), src.ncol());
     const auto		tfm = cu::createRigidity(T(src.ncol()/2), du,
 						 T(src.nrow()/2), dv, theta);
@@ -42,7 +43,8 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     cu::ICIA<MAP, C>	registration(params);
     MAP			Mds;
     Mds.initialize();
-    const auto		err = registration(src_d, dst_d, Mds);
+    registration.swapSourceImage(src_d);
+    const auto		err = registration(dst_d, Mds);
     std::cerr << "RMS-err = " << std::sqrt(err) << std::endl;
     std::cerr << Mds;
 
@@ -97,7 +99,12 @@ main(int argc, char* argv[])
     {
 	std::cerr << "Restoring image...";
 	Image<C>	src;
+#if 0
 	src.restore(std::cin);
+#else
+	std::ifstream	fin("../ueshiba.epbm");
+	src.restore(fin);
+#endif
 	std::cerr << "done." << std::endl;
 
 	switch (algorithm)

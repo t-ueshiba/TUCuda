@@ -610,6 +610,8 @@ class ICP : public Profiler<CLOCK>
   private:
     Parameters	_params;
     Frame	_source;
+
+    constexpr static value_type	COLOR_WEIGHT_SCALE = 1.0e-6;
 };
 
 template <class T, class C, class CLOCK> void
@@ -730,7 +732,9 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
 	const auto	point_mse = point_error_type::mse(point_error_array);
 	const auto	color_mse = color_deviation_type
 					::mse(color_deviation_array);
-	const auto	mse = point_mse + 1.0e-7*_params.color_weight*color_mse;
+	const auto	mse = point_mse
+			    + COLOR_WEIGHT_SCALE*_params.color_weight
+			    * color_mse;
 	if (mse < mse_old)
 	{
 	    constexpr static value_type	tol = 1.0e-5;
@@ -754,12 +758,12 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
 
       // Solve the linear system for updates of transform.
 	matrix_type	A = point_error_type::M(point_error_array)
-			  + 1.0e-7*_params.color_weight
+			  + COLOR_WEIGHT_SCALE*_params.color_weight
 			  * color_moment_type::M(color_moment_array);
 	for (size_t i = 0; i < A.rows(); ++i)
 	    A(i, i) *= (1.0 + lambda);
 	const vector_type b = point_error_type::d(point_error_array)
-		      	    + 1.0e-7*_params.color_weight
+		      	    + COLOR_WEIGHT_SCALE*_params.color_weight
 			    * color_deviation_type::d(color_deviation_array);
 	const auto	  update = A.ldlt().solve(b).eval();
 	Tts = transform_type::exp(update.data()) * Tts_old;

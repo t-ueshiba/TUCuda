@@ -278,12 +278,6 @@ namespace detail
       }
 
       template <class C_> __host__ __device__ static bool
-      square(const C_& c)
-      {
-	  return c.x*c.x + c.y*c.y + c.z*c.z;
-      }
-
-      template <class C_> __host__ __device__ static bool
       valid(const C_& c)
       {
 	  return c.x != 0 || c.y != 0 || c.z != 0;

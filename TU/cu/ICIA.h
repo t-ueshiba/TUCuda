@@ -446,7 +446,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 
 	if (mse < mse_old)
 	{
-	    if (std::abs(mse - mse_old) <= _params.tol)
+	    if (std::abs(mse - mse_old) <= _params.tol || lambda < 1.0e-15)
 	    {
 		return mse;
 	    }
@@ -457,7 +457,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	}
 	else
 	{
-	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-20)
+	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-15)
 	    {
 		Mts = Mts_old;
 		return mse_old;

@@ -53,18 +53,19 @@
 
 namespace TU::cu
 {
-namespace detail
+namespace icp
 {
 /************************************************************************
-*  class ICPPointPlaneError<T>						*
+*  class ICPPointPlaneError<ICP>					*
 ************************************************************************/
-template <class T>
-class ICPPointPlaneError
+template <class ICP>
+class PointPlaneError
 {
   public:
-    using value_type		= T;
-    using transform_type	= Rigidity<value_type, 3>;
-    using intrinsics_type	= Intrinsics<value_type>;
+    using value_type		= typename ICP::value_type;
+    using transform_type	= typename ICP::transform_type;
+    using intrinsics_type	= typename ICP::intrinsics_type;
+    using frame_type		= typename ICP::Frame;
 
     constexpr static size_t	DOF = transform_type::DOF;
 
@@ -83,10 +84,9 @@ class ICPPointPlaneError
 						const direction_type> > >;
 
   public:
-    template <class FRAME>
-    ICPPointPlaneError(const transform_type& Tts,
-		       const FRAME& source, const FRAME& target,
-		       value_type dist_thresh, value_type angle_thresh)
+    PointPlaneError(const transform_type& Tts,
+		    const frame_type& source, const frame_type& target,
+		    value_type dist_thresh, value_type angle_thresh)
 	:_Tts(Tts), _intrinsics(target.intrinsics),
 	 _xs(source.points.cbegin(),  source.points.nrow()),
 	 _ns(source.normals.cbegin(), source.normals.nrow()),
@@ -204,16 +204,17 @@ class ICPPointPlaneError
 };
 
 /************************************************************************
-*  class ICPColorMoment<T, C>						*
+*  class ColorMoment<ICP>						*
 ************************************************************************/
-template <class T, class C>
-class ICPColorMoment
+template <class ICP>
+class ColorMoment
 {
   public:
-    using value_type		= T;
-    using color_type		= C;
-    using transform_type	= Rigidity<value_type, 3>;
-    using intrinsics_type	= Intrinsics<value_type>;
+    using value_type		= typename ICP::value_type;
+    using color_type		= typename ICP::color_type;
+    using transform_type	= typename ICP::transform_type;
+    using intrinsics_type	= typename ICP::intrinsics_type;
+    using frame_type		= typename ICP::Frame;
 
     constexpr static size_t	DOF = transform_type::DOF;
 
@@ -231,8 +232,7 @@ class ICPColorMoment
 						const color_type> > >;
 
   public:
-    template <class FRAME>
-    ICPColorMoment(const FRAME& target)
+    ColorMoment(const frame_type& target)
 	:_intrinsics(target.intrinsics),
 	 _points(target.points.cbegin(), target.points.nrow()),
 	 _edgeH( target.edgeH.cbegin(),  target.edgeH.nrow()),
@@ -240,8 +240,8 @@ class ICPColorMoment
     {
     }
 
-    template <class C_=C> __device__ __forceinline__
-    std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
+    template <class C=color_type> __device__ __forceinline__
+    std::enable_if_t<std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
 	const int		v = i / ncol();
@@ -269,8 +269,8 @@ class ICPColorMoment
 	return {0};
     }
 
-    template <class C_=C> __device__ __forceinline__
-    std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
+    template <class C=color_type> __device__ __forceinline__
+    std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
 	const int		v = i / ncol();
@@ -349,17 +349,17 @@ class ICPColorMoment
 };
 
 /************************************************************************
-*  class ICPColorDeviation<T, C>					*
+*  class ColorDeviation<ICP>						*
 ************************************************************************/
-template <class T, class C>
-class ICPColorDeviation
+template <class ICP>
+class ColorDeviation
 {
-  private:
   public:
-    using value_type		= T;
-    using color_type		= C;
-    using transform_type	= Rigidity<value_type, 3>;
-    using intrinsics_type	= Intrinsics<value_type>;
+    using value_type		= typename ICP::value_type;
+    using color_type		= typename ICP::color_type;
+    using transform_type	= typename ICP::transform_type;
+    using intrinsics_type	= typename ICP::intrinsics_type;
+    using frame_type		= typename ICP::Frame;
 
     constexpr static size_t	DOF = transform_type::DOF;
 
@@ -377,10 +377,9 @@ class ICPColorDeviation
 						const color_type> > >;
 
   public:
-    template <class FRAME>
-    ICPColorDeviation(const transform_type& Tts,
-		      const Texture<C>& image_s, const FRAME& target,
-		      value_type color_thresh)
+    ColorDeviation(const transform_type& Tts,
+		   const Texture<color_type>& image_s,
+		   const frame_type& target, value_type color_thresh)
 	:_Tst(Tts.inv()),
 	 _intrinsics(target.intrinsics),
 	 _image_s(image_s),
@@ -392,8 +391,8 @@ class ICPColorDeviation
     {
     }
 
-    template <class C_=C> __device__ __forceinline__
-    std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
+    template <class C=color_type> __device__ __forceinline__
+    std::enable_if_t<std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
 	const int		v  = i / ncol();
@@ -435,8 +434,8 @@ class ICPColorDeviation
 	return {0};
     }
 
-    template <class C_=C> __device__ __forceinline__
-    std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
+    template <class C=color_type> __device__ __forceinline__
+    std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
 	const int		v  = i / ncol();
@@ -522,30 +521,31 @@ class ICPColorDeviation
   private:
     const transform_type	_Tst;
     const intrinsics_type	_intrinsics;
-    const Texture<C>		_image_s;
+    const Texture<color_type>	_image_s;
     const points_type		_points_t;
     const image_type		_image_t;
     const image_type		_edgeH;
     const image_type		_edgeV;
     const value_type		_sqcolor_thresh;
 };
-}	// namespace detail
+}	// namespace icp
 
 /************************************************************************
-*  class ICP<T, C, CLOCK>						*
+*  class ICP<T, C, WD, CLOCK>						*
 ************************************************************************/
-template <class T, class C, class CLOCK=void>
+template <class T, class C, bool WD=false, class CLOCK=void>
 class ICP : public Profiler<CLOCK>
 {
   public:
+    constexpr static size_t	NLEVELS_MAX = 5;
+    constexpr static bool	with_distortion = WD;
+
     using value_type		= T;
     using color_type		= C;
     using transform_type	= Rigidity<value_type, 3>;
-    using intrinsics_type	= Intrinsics<value_type>;
+    using intrinsics_type	= Intrinsics<value_type, with_distortion>;
     using point_type		= typename transform_type::point_type;
     using direction_type	= typename transform_type::direction_type;
-
-    constexpr static size_t	NLEVELS_MAX = 5;
 
     struct Parameters
     {
@@ -614,45 +614,44 @@ class ICP : public Profiler<CLOCK>
     constexpr static value_type	COLOR_WEIGHT_SCALE = 1.0e-6;
 };
 
-template <class T, class C, class CLOCK> void
-ICP<T, C, CLOCK>::setSourceFrame(const Frame& source)
+template <class T, class C, bool WD, class CLOCK> void
+ICP<T, C, WD, CLOCK>::setSourceFrame(const Frame& source)
 {
     _source = source;
 }
 
-template <class T, class C, class CLOCK> void
-ICP<T, C, CLOCK>::setSourceFrame(Frame&& source)
+template <class T, class C, bool WD, class CLOCK> void
+ICP<T, C, WD, CLOCK>::setSourceFrame(Frame&& source)
 {
     _source = std::move(source);
 }
 
-template <class T, class C, class CLOCK> void
-ICP<T, C, CLOCK>::swapSourceFrame(Frame& source)
+template <class T, class C, bool WD, class CLOCK> void
+ICP<T, C, WD, CLOCK>::swapSourceFrame(Frame& source)
 {
     _source.swap(source);
 }
 
-template <class T, class C, class CLOCK> void
-ICP<T, C, CLOCK>::clearSourceFrame()
+template <class T, class C, bool WD, class CLOCK> void
+ICP<T, C, WD, CLOCK>::clearSourceFrame()
 {
     _source.clear();
 }
 
-template <class T, class C, class CLOCK> bool
-ICP<T, C, CLOCK>::empty() const
+template <class T, class C, bool WD, class CLOCK> bool
+ICP<T, C, WD, CLOCK>::empty() const
 {
     return _source.nrow() == 0;
 }
 
-template <class T, class C, class CLOCK>
-typename ICP<T, C, CLOCK>::value_type
-ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
+template <class T, class C, bool WD, class CLOCK>
+typename ICP<T, C, WD, CLOCK>::value_type
+ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
+				  transform_type& Tts) const
 {
-    using point_error_type	     = detail::ICPPointPlaneError<value_type>;
-    using color_moment_type	     = detail::ICPColorMoment<value_type,
-							      color_type>;
-    using color_deviation_type	     = detail::ICPColorDeviation<value_type,
-								 color_type>;
+    using point_error_type	     = icp::PointPlaneError<ICP>;
+    using color_moment_type	     = icp::ColorMoment<ICP>;
+    using color_deviation_type	     = icp::ColorDeviation<ICP>;
     using matrix_type		     = typename point_error_type::matrix_type;
     using vector_type		     = typename point_error_type::vector_type;
     using point_error_array_type     = typename point_error_type::array_type;
@@ -793,10 +792,10 @@ ICP<T, C, CLOCK>::operator ()(const Frame& target, transform_type& Tts) const
     return mse_old;
 }
 
-template <class T, class C, class CLOCK>
-typename ICP<T, C, CLOCK>::value_type
-ICP<T, C, CLOCK>::operator ()(const Frame& source,
-			      const Frame& target, transform_type& Tts)
+template <class T, class C, bool WD, class CLOCK>
+typename ICP<T, C, WD, CLOCK>::value_type
+ICP<T, C, WD, CLOCK>::operator ()(const Frame& source,
+				  const Frame& target, transform_type& Tts)
 {
     setSourceFrame(source);
     return (*this)(target, Tts);

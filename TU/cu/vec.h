@@ -1195,9 +1195,10 @@ class Projectivity
     explicit	Projectivity(const matrix_type& m)	:_m(m)	{}
 
     __host__ __device__
-    void	initialize(const matrix_type& m=matrix_type::identity())
+    auto&	initialize(const matrix_type& m=matrix_type::identity())
 		{
 		    _m = m;
+		    return *this;
 		}
 
     __host__ __device__
@@ -1351,11 +1352,12 @@ class Affinity
 		}
 
     __host__ __device__
-    void	initialize(const matrix_type& A=matrix_type::identity(),
+    auto&	initialize(const matrix_type& A=matrix_type::identity(),
 			   const point_type&  b=point_type::zero())
 		{
 		    _A = A;
 		    _b = b;
+		    return *this;
 		}
 
     __host__ __device__
@@ -1567,27 +1569,54 @@ class Rigidity : public Affinity<T, D, D>
 };
 
 /************************************************************************
-*  class Intrinsics<T>							*
+*  class Intrinsics<T, WD>						*
 ************************************************************************/
-template <class T>
+template <class T, bool WD=true>
 class Intrinsics
 {
   public:
+    constexpr static bool	with_distortion=WD;
+    
     using element_type		= T;
+    using flengths_type		= vec<element_type, 2>;
     using point2_type		= vec<element_type, 2>;
     using point3_type		= vec<element_type, 3>;
     using derivative_type	= vec<element_type, 3>;
 
+  private:
+    using dcoeffs_type	= vec<T, 3>;
+
   public:
     Intrinsics()						= default;
-    template <class ITER_K, class ITER_D> __host__ __device__
-    Intrinsics(ITER_K K, ITER_D d, ITER_D de, element_type scale=1)
+
+    Intrinsics(const flengths_type& flen, const point2_type& uv0,
+	       const std::array<element_type, 4>& d={0, 0, 0, 0},
+	       element_type scale=1)
+    {
+	initialize(flen, uv0, d, scale);
+    }
+
+    template <class ITER_K, class ITER_D=nullptr_t>
+    Intrinsics(ITER_K K, ITER_D d=nullptr, ITER_D de=nullptr,
+	       element_type scale=1)
     {
 	initialize(K, d, de, scale);
     }
 
-    template <class ITER_K, class ITER_D> __host__ __device__ void
-    initialize(ITER_K K, ITER_D d, ITER_D de, element_type scale=1)
+    Intrinsics&
+    initialize(const flengths_type& flen, const point2_type& uv0,
+	       const std::array<element_type, 4>& d={0, 0, 0, 0},
+	       element_type scale=1)
+    {
+	_flen = scale * flen;
+	_uv0  = scale * uv0;
+	std::copy(d.begin(), d.end(), std::begin(_d));
+	return *this;
+    }
+    
+    template <class ITER_K, class ITER_D=nullptr_t> Intrinsics&
+    initialize(ITER_K K, ITER_D d=nullptr, ITER_D de=nullptr,
+	       element_type scale=1)
     {
 	_flen.x = scale * *K;
 	std::advance(K, 2);
@@ -1598,50 +1627,62 @@ class Intrinsics
 	_uv0.y = scale * *K;
 	for (auto&& distortion : _d)
 	    distortion = (d != de ? *d++ : 0);
+	return *this;
+    }
+
+    const flengths_type&
+    flen()		const	{ return _flen; }
+    
+    const point2_type&
+    uv0()		const	{ return _uv0; }
+
+    std::array<element_type, 4>
+    d()			const	{ return {_d[0], _d[1], _d[2], _d[3]}; }
+
+  //! 画素座標における2D点を正規化画像座標における2D点に変換
+    __host__ __device__ __forceinline__ point2_type
+    operator ()(element_type u, element_type v) const
+    {
+	return (*this)(point2_type{u, v});
     }
 
   //! 画素座標における2D点を正規化画像座標における2D点に変換
-    __host__ __device__ point2_type
-    operator ()(element_type u, element_type v) const
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<!WD_, point2_type>
+    operator ()(const point2_type& uv) const
+    {
+	return (uv - _uv0)/_flen;	// canonical & without distortion
+    }
+
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<WD_, point2_type>
+    operator ()(const point2_type& uv) const
     {
 	constexpr static element_type	MAX_ERR  = 0.001*0.001;
 	constexpr static int		MAX_ITER = 5;
 
-	const point2_type	uv{u, v};
-	auto			xy  = (uv - _uv0)/_flen;
-	const auto		xy0 = xy;
-
+	const auto	xy0 = (uv - _uv0)/_flen;
+	auto		xy  = xy0;
+	
       // compensate distortion iteratively
 	for (int n = 0; n < MAX_ITER; ++n)
 	{
-	    const auto	r2 = cu::square(xy);
-	    const auto	k  = element_type(1) + (_d[0] + _d[1]*r2)*r2;
-	    if (k < element_type(0))
+	    const auto	dc = dcoeffs(xy);
+	    if (dc.z < element_type(0))
 		break;
-
-	    const auto		 a = element_type(2)*xy.x*xy.y;
-	    vec<element_type, 2> delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
-				       _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
-	    const auto	uv_proj = _flen*(k*xy + delta) + _uv0;
+	    const auto	uv_proj = _flen*add_distortion(xy, dc) + _uv0;
 
 	    if (cu::square(uv_proj - uv) < MAX_ERR)
 		break;
 
-	    xy = (xy0 - delta)/k;	// compensate lens distortion
+	    xy = remove_distortion(xy0, dc);
 	}
 
-	return xy;
-    }
-
-  //! 画素座標における2D点を正規化画像座標における2D点に変換
-    __host__ __device__ point2_type
-    operator ()(const point2_type& uv) const
-    {
-	return (*this)(uv.x, uv.y);
+	return xy;			// canonical & undistorted
     }
 
   //! depth画像における画素座標とdepthからカメラ座標における3D点を計算
-    __host__ __device__ point3_type
+    __host__ __device__ __forceinline__ point3_type
     operator ()(element_type u, element_type v, element_type d) const
     {
 	if (d <= 0)
@@ -1649,35 +1690,47 @@ class Intrinsics
 		    device::nan<element_type>,
 		    device::nan<element_type>};
 
-	const auto	xy = (*this)(u, v);
+	const auto	xy = (*this)(u, v);	// canonical & undistorted
 	return {d*xy.x, d*xy.y, d};
     }
 
   //! カメラ座標における3D点からそれが投影される画像点の画素座標を計算
-    __host__ __device__ point2_type
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<!WD_, point2_type>
     operator ()(const point3_type& p) const
     {
-	const point2_type	xy(p.x/p.z, p.y/p.z);
-	const auto		r2 = cu::square(xy);
-	const auto		k  = 1 + (_d[0] + _d[1]*r2)*r2;
-	const auto		a  = element_type(2)*xy.x*xy.y;
-	vec<element_type, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
-				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
-
-	return _flen*(k*xy + delta) + _uv0;
+	return _flen*point2_type{p.x/p.z, p.y/p.z} + _uv0;
     }
 
-    __host__ __device__ derivative_type
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<WD_, point2_type>
+    operator ()(const point3_type& p) const
+    {
+	point2_type	xy{p.x/p.z, p.y/p.z};
+	xy = add_distortion(xy, dcoeffs(xy));
+	return _flen*xy + _uv0;
+    }
+
+  //! 3D点座標についての輝度微係数を計算
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<!WD_, derivative_type>
     image_derivative0(const point3_type& p,
 		      element_type eH, element_type eV) const
     {
-	point2_type		xy(p.x/p.z, p.y/p.z);
-	const auto		r2 = cu::square(xy);
-	const auto		k  = 1 + (_d[0] + _d[1]*r2)*r2;
-	const auto		a  = element_type(2)*xy.x*xy.y;
-	vec<element_type, 2>	delta{_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
-				      _d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a};
-	xy  = k*xy + delta;
+	point2_type	xy{p.x/p.z, p.y/p.z};
+	eH *= _flen.x/p.z;
+	eV *= _flen.y/p.z;
+
+	return {eH, eV, -eH*xy.x - eV*xy.y};
+    }
+
+    template <bool WD_=WD> __host__ __device__ __forceinline__
+    std::enable_if_t<WD_, derivative_type>
+    image_derivative0(const point3_type& p,
+		      element_type eH, element_type eV) const
+    {
+	point2_type	xy{p.x/p.z, p.y/p.z};
+	xy = add_distortion(xy, dcoeffs(xy));
 	eH *= _flen.x;
 	eV *= _flen.y;
 
@@ -1685,9 +1738,33 @@ class Intrinsics
     }
 
   private:
-    vec<element_type, 2>	_flen;
-    point2_type			_uv0;
-    element_type		_d[4];
+    __host__ __device__ __forceinline__ point2_type
+    add_distortion(const point2_type& xy, const dcoeffs_type& dc) const
+    {
+	return {dc.z*xy.x + dc.x, dc.z*xy.y + dc.y};
+    }
+    
+    __host__ __device__ __forceinline__ point2_type
+    remove_distortion(const point2_type& xy, const dcoeffs_type& dc) const
+    {
+	return {(xy.x - dc.x)/dc.z, (xy.y - dc.y)/dc.z};
+    }
+    
+    __host__ __device__ __forceinline__ dcoeffs_type
+    dcoeffs(const point2_type& xy) const
+    {
+	const auto	r2 = cu::square(xy);
+	const auto	a  = element_type(2)*xy.x*xy.y;
+
+	return {_d[2]*a + _d[3]*(r2 + 2*xy.x*xy.x),
+		_d[2]*(r2 + 2*xy.y*xy.y) + _d[3]*a,
+		1 + (_d[0] + _d[1]*r2)*r2};
+    }
+
+  private:
+    flengths_type	_flen;	// focal lengths
+    point2_type		_uv0;	// principal point
+    element_type	_d[4];	// distortion parameters
 };
 
 /************************************************************************

@@ -57,41 +57,47 @@ namespace TU
 {
 namespace cu
 {
-namespace detail
+namespace icia
 {
-  template <class MAP, class C>
-  class ICIAColorMoment
+  template <class ICIA>
+  class ColorMoment
   {
     private:
-      using image_type	= range<range_iterator<thrust::device_ptr<const C> > >;
-      constexpr static size_t	DOF = MAP::DOF;
+      using map_type	= typename ICIA::map_type;
+      using color_type	= typename ICIA::color_type;
+      using image_type	= range<range_iterator<
+				    thrust::device_ptr<const color_type> > >;
+
+      constexpr static size_t	DOF = map_type::DOF;
 
     public:
-      using value_type	= typename MAP::element_type;
+      using value_type	= typename map_type::element_type;
       using array_type	= array<value_type, DOF*(DOF+1)/2>;
       using matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
     public:
-      ICIAColorMoment(const Array2<C>& edgeH, const Array2<C>& edgeV)
+      ColorMoment(const Array2<color_type>& edgeH,
+		  const Array2<color_type>& edgeV)
 	  :_edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow())
       {
       }
 
-      template <class C_=C> __host__ __device__
-      std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
+      template <class C=color_type> __host__ __device__
+      std::enable_if_t<std::is_arithmetic<C>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v = i / ncol();
 	  const int	u = i - (v * ncol());
 	  const auto	s = 1 / value_type(max(nrow(), ncol()));
 
-	  return MAP::image_derivative0(s*u, s*v, _edgeH[v][u], _edgeV[v][u])
+	  return map_type::image_derivative0(s*u, s*v,
+					     _edgeH[v][u], _edgeV[v][u])
 		.template ext();
       }
 
-      template <class C_=C> __host__ __device__
-      std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
+      template <class C=color_type> __host__ __device__
+      std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v  = i / ncol();
@@ -101,12 +107,12 @@ namespace detail
 	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 	  const auto	uf = s * u;
 	  const auto	vf = s * v;
-	  auto		a  = MAP::image_derivative0(uf, vf, eH.x, eV.x);
+	  auto		a  = map_type::image_derivative0(uf, vf, eH.x, eV.x);
 	  auto		m  = a.template ext();
 
-	  a  = MAP::image_derivative0(uf, vf, eH.y, eV.y);
+	  a  = map_type::image_derivative0(uf, vf, eH.y, eV.y);
 	  m += a.template ext();
-	  a  = MAP::image_derivative0(uf, vf, eH.z, eV.z);
+	  a  = map_type::image_derivative0(uf, vf, eH.z, eV.z);
 	  m += a.template ext();
 
 	  return m;
@@ -140,23 +146,29 @@ namespace detail
       const image_type	_edgeV;		// source vertcial gradient image
   };
 
-  template <class MAP, class C>
-  class ICIAColorDeviation
+  template <class ICIA>
+  class ColorDeviation
   {
     private:
-      using image_type	= range<range_iterator<thrust::device_ptr<const C> > >;
-      constexpr static size_t	DOF = MAP::DOF;
+      using map_type	= typename ICIA::map_type;
+      using color_type	= typename ICIA::color_type;
+      using image_type	= range<range_iterator<
+				    thrust::device_ptr<const color_type> > >;
+
+      constexpr static size_t	DOF = map_type::DOF;
 
     public:
-      using value_type	= typename MAP::element_type;
+      using value_type	= typename map_type::element_type;
       using array_type	= array<value_type, DOF+2>;
       using vector_type	= Eigen::Matrix<value_type, DOF, 1>;
 
     public:
-      ICIAColorDeviation(const MAP& Mts,
-			 const Array2<C>& edgeH, const Array2<C>& edgeV,
-			 const Array2<C>& source, const Texture<C>& target,
-			 value_type color_thresh)
+      ColorDeviation(const map_type& Mts,
+		     const Array2<color_type>& edgeH,
+		     const Array2<color_type>& edgeV,
+		     const Array2<color_type>& source,
+		     const Texture<color_type>& target,
+		     value_type color_thresh)
 	  :_Mts(Mts),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
 	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
@@ -166,8 +178,8 @@ namespace detail
       {
       }
 
-      template <class C_=C> __host__ __device__
-      std::enable_if_t<std::is_arithmetic<C_>::value, array_type>
+      template <class C=color_type> __host__ __device__
+      std::enable_if_t<std::is_arithmetic<C>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v    = i / ncol();
@@ -183,9 +195,9 @@ namespace detail
 	      if (c != C(0) && c_t != C(0) && b*b < _sqcolor_thresh)
 	      {
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
-		  const auto	ab = MAP::image_derivative0(s*u, s*v,
-							    _edgeH[v][u],
-							    _edgeV[v][u])
+		  const auto	ab = map_type::image_derivative0(s*u, s*v,
+								 _edgeH[v][u],
+								 _edgeV[v][u])
 				   * b;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = b*b;
@@ -198,8 +210,8 @@ namespace detail
 	  return {0};
       }
 
-      template <class C_=C> __host__ __device__
-      std::enable_if_t<!std::is_arithmetic<C_>::value, array_type>
+      template <class C=color_type> __host__ __device__
+      std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
       operator ()(int i) const
       {
 	  const int	v    = i / ncol();
@@ -219,11 +231,14 @@ namespace detail
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	uf = s * u;
 		  const auto	vf = s * v;
-		  const auto	ab = MAP::image_derivative0(uf, vf, eH.x, eV.x)
+		  const auto	ab = map_type::image_derivative0(uf, vf,
+								 eH.x, eV.x)
 				   * b.x
-				   + MAP::image_derivative0(uf, vf, eH.y, eV.y)
+				   + map_type::image_derivative0(uf, vf,
+								 eH.y, eV.y)
 				   * b.y
-				   + MAP::image_derivative0(uf, vf, eH.z, eV.z)
+				   + map_type::image_derivative0(uf, vf,
+								 eH.z, eV.z)
 				   * b.z;
 		  auto		d  = ab.template extend<DOF+2>();
 		  d[DOF]   = square(b);
@@ -245,8 +260,8 @@ namespace detail
       vector_type&
       unnormalize_updates(vector_type& updates) const
       {
-	  MAP::unnormalize_updates(updates.data(),
-				   1 / value_type(max(nrow(), ncol())));
+	  map_type::unnormalize_updates(updates.data(),
+					1 / value_type(max(nrow(), ncol())));
 	  return updates;
       }
 
@@ -277,8 +292,8 @@ namespace detail
 	  return deviation[DOF] / deviation[DOF+1];
       }
 
-      template <class C_> __host__ __device__ static bool
-      valid(const C_& c)
+      template <class C> __host__ __device__ static bool
+      valid(const C& c)
       {
 	  return c.x != 0 || c.y != 0 || c.z != 0;
       }
@@ -290,14 +305,14 @@ namespace detail
       int	ncol()		const	{ return _source.cbegin().size(); }
 
     private:
-      const MAP		_Mts;		// map from source to destination image
-      const image_type	_edgeH;		// source horizontal gradient image
-      const image_type	_edgeV;		// source vertcial gradient image
-      const image_type	_source;	// source color image
-      const Texture<C>	_target;	// target color image
-      const value_type	_sqcolor_thresh;
+      const map_type		_Mts;	// map from source to destination image
+      const image_type		_edgeH;	// source horizontal gradient image
+      const image_type		_edgeV;	// source vertcial gradient image
+      const image_type		_source;	// source color image
+      const Texture<color_type>	_target;	// target color image
+      const value_type		_sqcolor_thresh;
   };
-}	// namespace detail
+}	// namespace icia
 
 /************************************************************************
 *  class ICIA<MAP, C, CLOCK>						*
@@ -401,7 +416,7 @@ template <class MAP, class C, class CLOCK>
 typename ICIA<MAP, C, CLOCK>::value_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
-    using deviation_type	= detail::ICIAColorDeviation<MAP, C>;
+    using deviation_type	= icia::ColorDeviation<ICIA>;
     using deviation_array_type	= typename deviation_type::array_type;
 
   // Convert the error moment to a matrix and save its diagonals.
@@ -516,7 +531,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
 {
-    using moment_type		= detail::ICIAColorMoment<MAP, C>;
+    using moment_type		= icia::ColorMoment<ICIA>;
     using moment_array_type	= typename moment_type::array_type;
 
   // Compute horizontal and vertical image derivatives.

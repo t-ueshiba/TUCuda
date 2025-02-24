@@ -122,12 +122,8 @@ EXTHDRS		= ../../TU/cu/Array++.h \
 		/usr/local/include/TU/tuple.h \
 		/usr/local/include/TU/type_traits.h
 HDRS		=
-SRCS		= FIRFilter.cu \
-		FIRGaussianConvolver.cu \
-		main.cu
-OBJS		= FIRFilter.o \
-		FIRGaussianConvolver.o \
-		main.o
+SRCS		= main.cu
+OBJS		= main.o
 
 #include $(PROJECT)/lib/rtc.mk		# IDLHDRS, IDLSRCS, CPPFLAGS, OBJS, LIBS
 #include $(PROJECT)/lib/qt.mk		# MOCSRCS, OBJS
@@ -135,19 +131,6 @@ OBJS		= FIRFilter.o \
 #include $(PROJECT)/lib/lib.mk		# PUBHDRS TARGHDRS
 include $(PROJECT)/lib/common.mk
 ###
-FIRFilter.o: ../../TU/cu/FIRFilter.h ../../TU/cu/Array++.h \
-	../../TU/cu/allocator.h ../../TU/cu/iterator.h \
-	/usr/local/include/TU/range.h /usr/local/include/TU/iterator.h \
-	/usr/local/include/TU/tuple.h /usr/local/include/TU/type_traits.h \
-	/usr/local/include/TU/algorithm.h ../../TU/cu/tuple.h \
-	/usr/local/include/TU/Array++.h ../../TU/cu/algorithm.h
-FIRGaussianConvolver.o: ../../TU/cu/FIRGaussianConvolver.h \
-	../../TU/cu/FIRFilter.h ../../TU/cu/Array++.h ../../TU/cu/allocator.h \
-	../../TU/cu/iterator.h /usr/local/include/TU/range.h \
-	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \
-	/usr/local/include/TU/type_traits.h /usr/local/include/TU/algorithm.h \
-	../../TU/cu/tuple.h /usr/local/include/TU/Array++.h \
-	../../TU/cu/algorithm.h
 main.o: /usr/local/include/TU/Warp.h /usr/local/include/TU/simd/Array++.h \
 	/usr/local/include/TU/Array++.h /usr/local/include/TU/range.h \
 	/usr/local/include/TU/iterator.h /usr/local/include/TU/tuple.h \

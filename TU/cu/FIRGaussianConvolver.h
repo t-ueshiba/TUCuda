@@ -41,23 +41,68 @@
 
 #include "TU/cu/FIRFilter.h"
 
-namespace TU
-{
-namespace cu
+namespace TU::cu
 {
 namespace detail
 {
-  size_t	lobeSize(const float lobe[], bool even)			;
-}
+  static inline size_t
+  lobeSize(const float lobe[], bool even)
+  {
+      using namespace	std;
+    
+      const size_t	sizMax  = FIRFilter2<>::LobeSizeMax;
+      const float	epsilon = 0.01;		// 打ち切りのしきい値の比率
+
+    // 打ち切りのしきい値を求める．
+      float	th = 0;
+      for (size_t i = sizMax; i-- > 0; )
+	  if (abs(lobe[i]) >= th)
+	      th = abs(lobe[i]);
+      th *= epsilon;
+
+    // しきい値を越える最大のローブ長を求める．
+      size_t	siz;
+      for (siz = sizMax; siz-- > 0; )		// ローブ長を縮める
+	  if (abs(lobe[siz]) > th)		// しきい値を越えるまで
+	  {
+	      ++siz;
+	      break;
+	  }
+
+      if (even)
+      {
+	  if (siz <= 2)
+	      return 3;		// 2^1 + 1
+	  else if (siz <= 5)
+	      return 5;		// 2^2 + 1
+	  else if (siz <= 9)
+	      return 9;		// 2^3 + 1
+	  else
+	      return 17;		// 2^4 + 1
+      }
+      else
+      {
+	  if (siz <= 1)
+	      return 2;		// 2^1
+	  else if (siz <= 4)
+	      return 4;		// 2^2
+	  else if (siz <= 8)
+	      return 8;		// 2^3
+	  else
+	      return 16;	// 2^4
+      }
+  }
+}	// namespace detail
+
 /************************************************************************
-*  class FIRGaussianConvolver2<T>					*
+*  class FIRGaussianConvolver2						*
 ************************************************************************/
 //! CUDAを用いてGauss核により2次元配列畳み込みを行うクラス
-template <class T=float>
-class FIRGaussianConvolver2 : public FIRFilter2<T>
+template <class BLOCK_TRAITS=BlockTraits<> >
+class FIRGaussianConvolver2 : public FIRFilter2<BLOCK_TRAITS>
 {
   private:
-    using super	= FIRFilter2<T>;
+    using super	= FIRFilter2<BLOCK_TRAITS>;
 
   public:
     FIRGaussianConvolver2(float sigma=1.0)				;
@@ -93,15 +138,15 @@ class FIRGaussianConvolver2 : public FIRFilter2<T>
 /*!
   \param sigma	Gauss核のスケール
 */
-template <class T> inline
-FIRGaussianConvolver2<T>::FIRGaussianConvolver2(float sigma)
+template <class BLOCK_TRAITS> inline
+FIRGaussianConvolver2<BLOCK_TRAITS>::FIRGaussianConvolver2(float sigma)
     :_sigma(sigma)
 {
     initialize(_sigma);
 }
 
-template <class T> inline float
-FIRGaussianConvolver2<T>::sigma() const
+template <class BLOCK_TRAITS> inline float
+FIRGaussianConvolver2<BLOCK_TRAITS>::sigma() const
 {
     return _sigma;
 }
@@ -111,8 +156,8 @@ FIRGaussianConvolver2<T>::sigma() const
   \param sigma	Gauss核のスケール
   \return	このGauss核
 */
-template <class T> FIRGaussianConvolver2<T>&
-FIRGaussianConvolver2<T>::initialize(float sigma)
+template <class BLOCK_TRAITS> FIRGaussianConvolver2<BLOCK_TRAITS>&
+FIRGaussianConvolver2<BLOCK_TRAITS>::initialize(float sigma)
 {
     _sigma = sigma;
     initialize(_sigma, _lobe0, _lobe1, _lobe2);
@@ -120,11 +165,11 @@ FIRGaussianConvolver2<T>::initialize(float sigma)
     return *this;
 }
 
-template <class T> void
-FIRGaussianConvolver2<T>::initialize(float sigma,
-				     TU::Array<float>& lobe0,
-				     TU::Array<float>& lobe1,
-				     TU::Array<float>& lobe2)
+template <class BLOCK_TRAITS> void
+FIRGaussianConvolver2<BLOCK_TRAITS>::initialize(float sigma,
+						TU::Array<float>& lobe0,
+						TU::Array<float>& lobe1,
+						TU::Array<float>& lobe2)
 {
   // 0/1/2階微分のためのローブを計算する．
     constexpr size_t	sizMax = super::LobeSizeMax;
@@ -175,8 +220,8 @@ FIRGaussianConvolver2<T>::initialize(float sigma,
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::smooth(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe0, _lobe0).convolve(in, ie, out, shift);
 }
@@ -187,8 +232,8 @@ FIRGaussianConvolver2<T>::smooth(IN in, IN ie, OUT out, bool shift)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::diffH(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe1, _lobe0).convolve(in, ie, out, shift);
 }
@@ -199,8 +244,8 @@ FIRGaussianConvolver2<T>::diffH(IN in, IN ie, OUT out, bool shift)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::diffV(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe0, _lobe1).convolve(in, ie, out, shift);
 }
@@ -211,8 +256,8 @@ FIRGaussianConvolver2<T>::diffV(IN in, IN ie, OUT out, bool shift)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::diffHH(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe2, _lobe0).convolve(in, ie, out, shift);
 }
@@ -223,8 +268,8 @@ FIRGaussianConvolver2<T>::diffHH(IN in, IN ie, OUT out, bool shift)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::diffHV(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe1, _lobe1).convolve(in, ie, out, shift);
 }
@@ -235,11 +280,10 @@ FIRGaussianConvolver2<T>::diffHV(IN in, IN ie, OUT out, bool shift)
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T> template <class IN, class OUT> inline void
-FIRGaussianConvolver2<T>::diffVV(IN in, IN ie, OUT out, bool shift)
+template <class BLOCK_TRAITS> template <class IN, class OUT> inline void
+FIRGaussianConvolver2<BLOCK_TRAITS>::diffVV(IN in, IN ie, OUT out, bool shift)
 {
     super::initialize(_lobe0, _lobe2).convolve(in, ie, out, shift);
 }
 
-}
-}
+}	// namespace TU::cu

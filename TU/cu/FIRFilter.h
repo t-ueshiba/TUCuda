@@ -7,24 +7,23 @@
 #include "TU/cu/Array++.h"
 #include "TU/cu/algorithm.h"
 
-namespace TU
-{
-namespace cu
+namespace TU::cu
 {
 /************************************************************************
-*  class FIRFilter2<T>							*
+*  class FIRFilter2							*
 ************************************************************************/
 //! CUDAによるseparableな2次元フィルタを表すクラス
-template <class T=float, class BLOCK_TRAITS=BlockTraits<> >
+template <class BLOCK_TRAITS=BlockTraits<> >
 class FIRFilter2 : public BLOCK_TRAITS
 {
   public:
-    using value_type	= T;
-
     using			BLOCK_TRAITS::BlockDimX;
     using			BLOCK_TRAITS::BlockDimY;
     constexpr static size_t	LobeSizeMax = 17;
 
+    template <class T>
+    using buf_element_type	= std::conditional_t<std::is_arithmetic_v<T>,
+						     float, T>;
   public:
   //! CUDAによる2次元フィルタを生成する．
     FIRFilter2()	:_lobeSizeH(0), _lobeSizeV(0)			{}
@@ -46,9 +45,8 @@ class FIRFilter2 : public BLOCK_TRAITS
     void	convolveV(IN in, IN ie, OUT out, bool shift)	const	;
 
   private:
-    size_t		_lobeSizeH;	//!< 水平方向フィルタのローブ長
-    size_t		_lobeSizeV;	//!< 垂直方向フィルタのローブ長
-    mutable Array2<T>	_buf;		//!< 中間結果用のバッファ
+    size_t	_lobeSizeH;	//!< 水平方向フィルタのローブ長
+    size_t	_lobeSizeV;	//!< 垂直方向フィルタのローブ長
 };
 
 #if defined(__NVCC__)
@@ -181,7 +179,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 template <class FILTER, size_t L, class IN, class OUT> __global__ void
 fir_filterH(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 {
-    using value_type  =	typename FILTER::value_type;
+    using value_type  =	typename FILTER::buf_element_type<iterator_value<IN> >;
 
     constexpr int	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -207,7 +205,7 @@ fir_filterH(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 template <class FILTER, size_t L, class IN, class OUT> __global__ void
 fir_filterV(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 {
-    using value_type  =	typename FILTER::value_type;
+    using value_type  =	typename FILTER::buf_element_type<iterator_value<IN> >;
 
     constexpr int	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -242,10 +240,10 @@ fir_filterV(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
   \param lobeV	縦方向ローブ
   \return	この2次元フィルタ
 */
-template <class T, class BLOCK_TRAITS>
-FIRFilter2<T, BLOCK_TRAITS>&
-FIRFilter2<T, BLOCK_TRAITS>::initialize(const TU::Array<float>& lobeH,
-					const TU::Array<float>& lobeV)
+template <class BLOCK_TRAITS>
+FIRFilter2<BLOCK_TRAITS>&
+FIRFilter2<BLOCK_TRAITS>::initialize(const TU::Array<float>& lobeH,
+				     const TU::Array<float>& lobeV)
 {
     if (lobeH.size() > LobeSizeMax || lobeV.size() > LobeSizeMax)
 	throw std::runtime_error("FIRFilter2<T, BLOCK_TRAITS>::initialize: too large lobe size!");
@@ -260,9 +258,9 @@ FIRFilter2<T, BLOCK_TRAITS>::initialize(const TU::Array<float>& lobeH,
     return *this;
 }
 
-template <class T, class BLOCK_TRAITS>
+template <class BLOCK_TRAITS>
 template <size_t L, class IN, class OUT> void
-FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
+FIRFilter2<BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
 {
     const int	nrow = std::distance(in, ie);
     const int	ncol = std::size(*in);
@@ -273,9 +271,9 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveH(IN in, IN ie, OUT out)
     gpuCheckLastError();
 }
 
-template <class T, class BLOCK_TRAITS>
+template <class BLOCK_TRAITS>
 template <size_t L, class IN, class OUT> void
-FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
+FIRFilter2<BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
 {
     const int	nrow = std::distance(in, ie);
     const int	ncol = std::size(*in);
@@ -295,8 +293,8 @@ FIRFilter2<T, BLOCK_TRAITS>::convolveV(IN in, IN ie, OUT out, bool shift) const
   \param ie	入力2次元配列の最後の次の行を指す反復子
   \param out	出力2次元配列の最初の行を指す反復子
 */
-template <class T, class BLOCK_TRAITS> template <class IN, class OUT> void
-FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
+template <class BLOCK_TRAITS> template <class IN, class OUT> void
+FIRFilter2<BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
 {
     using	std::cbegin;
     using	std::cend;
@@ -311,34 +309,36 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
     if (ncol <= 2*lsH)
 	return;
 
-    _buf.resize(nrow, ncol - 2*lsH);
+    using buf_element_t = buf_element_type<typename iterator_value<IN>
+							::value_type>;
+    Array2<buf_element_t>	buf(nrow, ncol - 2*lsH);
 
   // 横方向に畳み込む．
     switch (_lobeSizeH)
     {
       case 17:
-	convolveH<17>(in, ie, _buf.begin());
+	convolveH<17>(in, ie, buf.begin());
 	break;
       case 16:
-	convolveH<16>(in, ie, _buf.begin());
+	convolveH<16>(in, ie, buf.begin());
 	break;
       case  9:
-	convolveH< 9>(in, ie, _buf.begin());
+	convolveH< 9>(in, ie, buf.begin());
 	break;
       case  8:
-	convolveH< 8>(in, ie, _buf.begin());
+	convolveH< 8>(in, ie, buf.begin());
 	break;
       case  5:
-	convolveH< 5>(in, ie, _buf.begin());
+	convolveH< 5>(in, ie, buf.begin());
 	break;
       case  4:
-	convolveH< 4>(in, ie, _buf.begin());
+	convolveH< 4>(in, ie, buf.begin());
 	break;
       case  3:
-	convolveH< 3>(in, ie, _buf.begin());
+	convolveH< 3>(in, ie, buf.begin());
 	break;
       case  2:
-	convolveH< 2>(in, ie, _buf.begin());
+	convolveH< 2>(in, ie, buf.begin());
 	break;
       default:
 	throw std::runtime_error("FIRFilter2::convolve: unsupported horizontal lobe size[" + std::to_string(_lobeSizeH) + "]!");
@@ -348,33 +348,34 @@ FIRFilter2<T, BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
     switch (_lobeSizeV)
     {
       case 17:
-	convolveV<17>(_buf.begin(), _buf.end(), out, shift);
+	convolveV<17>(buf.begin(), buf.end(), out, shift);
 	break;
       case 16:
-	convolveV<16>(_buf.begin(), _buf.end(), out, shift);
+	convolveV<16>(buf.begin(), buf.end(), out, shift);
 	break;
       case  9:
-	convolveV< 9>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 9>(buf.begin(), buf.end(), out, shift);
 	break;
       case  8:
-	convolveV< 8>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 8>(buf.begin(), buf.end(), out, shift);
 	break;
       case  5:
-	convolveV< 5>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 5>(buf.begin(), buf.end(), out, shift);
 	break;
       case  4:
-	convolveV< 4>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 4>(buf.begin(), buf.end(), out, shift);
 	break;
       case  3:
-	convolveV< 3>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 3>(buf.begin(), buf.end(), out, shift);
 	break;
       case  2:
-	convolveV< 2>(_buf.begin(), _buf.end(), out, shift);
+	convolveV< 2>(buf.begin(), buf.end(), out, shift);
 	break;
       default:
 	throw std::runtime_error("FIRFilter2::convolve: unsupported vertical lobe size[" + std::to_string(_lobeSizeV) + "!");
     }
 }
 
-}
-}
+}	// namespace TU::cu
+
+

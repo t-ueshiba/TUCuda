@@ -58,11 +58,9 @@ main(int argc, char *argv[])
     using namespace	TU;
 #if 1
     using in_t	= u_char;
-    using mid_t	= float;
     using out_t	= float;
 #else
     using in_t	= RGBA;
-    using mid_t = float4;
     using out_t	= RGBA;
 #endif
     float		sigma	 = 2.0;
@@ -87,11 +85,11 @@ main(int argc, char *argv[])
 	in.save(cout);					// 原画像をセーブ
 
       // GPUによって計算する．
-	cu::FIRFilter2<mid_t>	cudaFilter;
+	cu::FIRFilter2<>	cudaFilter;
 	cudaFilter.initialize(coeff, coeff);
 
-	cu::Array2<mid_t>	in_d(in);
-	cu::Array2<mid_t>	out_d(in.nrow(), in.ncol());
+	cu::Array2<out_t>	in_d(in);
+	cu::Array2<out_t>	out_d(in.nrow(), in.ncol());
 	cudaFilter.convolve(in_d.cbegin(), in_d.cend(), out_d.begin());
 	cudaDeviceSynchronize();
 

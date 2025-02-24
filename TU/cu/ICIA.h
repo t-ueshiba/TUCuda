@@ -537,7 +537,7 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
   // Compute horizontal and vertical image derivatives.
     _edgeH.resize(_source.nrow(), _source.ncol());
     _edgeV.resize(_source.nrow(), _source.ncol());
-    FIRGaussianConvolver2<C>	convolver(_params.sigma);
+    FIRGaussianConvolver2<>	convolver(_params.sigma);
     convolver.diffH(_source.cbegin(), _source.cend(), _edgeH.begin(), true);
     convolver.diffV(_source.cbegin(), _source.cend(), _edgeV.begin(), true);
 

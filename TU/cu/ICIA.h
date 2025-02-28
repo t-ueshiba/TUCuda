@@ -167,7 +167,7 @@ namespace icia
 		     const Array2<color_type>& edgeH,
 		     const Array2<color_type>& edgeV,
 		     const Array2<color_type>& source,
-		     const Texture<color_type>& target,
+		     const Array2<color_type>& target,
 		     value_type color_thresh)
 	  :_Mts(Mts),
 	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
@@ -420,7 +420,6 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
     using deviation_array_type	= typename deviation_type::array_type;
 
   // Convert the error moment to a matrix and save its diagonals.
-    const Texture<C>	target_tex(target);
     auto		Mts_old = Mts;
     auto		mse_old = std::numeric_limits<value_type>::max();
     auto		mse_prev = mse_old;
@@ -429,7 +428,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
     {
       // Compute error derivation vector by parallel reduction.
 	const deviation_type		deviation(Mts, _edgeH, _edgeV,
-						  _source, target_tex,
+						  _source, target,
 						  _params.color_thresh);
 	Array<deviation_array_type>	tmp_deviation(1);
 	size_t				tmp_size = 0;

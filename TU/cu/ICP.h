@@ -56,7 +56,7 @@ namespace TU::cu
 namespace icp
 {
 /************************************************************************
-*  class ICPPointPlaneError<ICP>					*
+*  class PointPlaneError<ICP>						*
 ************************************************************************/
 template <class ICP>
 class PointPlaneError
@@ -378,7 +378,7 @@ class ColorDeviation
 
   public:
     ColorDeviation(const transform_type& Tts,
-		   const Texture<color_type>& image_s,
+		   const Array2<color_type>& image_s,
 		   const frame_type& target, value_type color_thresh)
 	:_Tst(Tts.inv()),
 	 _intrinsics(target.intrinsics),
@@ -677,11 +677,9 @@ ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
     const auto	color_moment_array = tmp_color_moment[0];
 
   // Update transform by Lebensberg-Marquarde iteration.
-    const Texture<color_type>	image_s(_source.image);
-    auto			Tts_old = Tts;
-    auto			mse_old = std::numeric_limits<value_type>
-						::max();
-    value_type			lambda	= 1.0e-3;
+    auto	Tts_old = Tts;
+    auto	mse_old = std::numeric_limits<value_type>::max();
+    value_type	lambda	= 1.0e-3;
 
     for (size_t n = 0; n < _params.niterations; ++n)
     {
@@ -706,7 +704,8 @@ ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
 	const auto	point_error_array = tmp_point_error[0];
 
       // Compute color deviation by parallel reduction.
-	const color_deviation_type	color_deviation(Tts, image_s, target,
+	const color_deviation_type	color_deviation(Tts,
+							_source.image, target,
 							_params.color_thresh);
 	Array<color_deviation_array_type>	tmp_color_deviation(1);
 	tmp_size = 0;

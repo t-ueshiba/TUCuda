@@ -124,10 +124,10 @@ class PointPlaneError
 		row[0] = nt.x;
 		row[1] = nt.y;
 		row[2] = nt.z;
-		const auto	x_tross_n = cross(xs_t, nt);
-		row[3] = x_tross_n.x;
-		row[4] = x_tross_n.y;
-		row[5] = x_tross_n.z;
+		const auto	x_cross_n = cross(xs_t, nt);
+		row[3] = x_cross_n.x;
+		row[4] = x_cross_n.y;
+		row[5] = x_cross_n.z;
 		row[6] = dot(nt, xt - xs_t);	// deviation term
 
 		auto	m = row.template ext<array_type::size()>();
@@ -204,10 +204,10 @@ class PointPlaneError
 };
 
 /************************************************************************
-*  class ColorMoment<ICP>						*
+*  class ColorError<ICP>						*
 ************************************************************************/
 template <class ICP>
-class ColorMoment
+class ColorError
 {
   public:
     using value_type		= typename ICP::value_type;
@@ -218,7 +218,7 @@ class ColorMoment
 
     constexpr static size_t	DOF = transform_type::DOF;
 
-    using array_type		= array<value_type, DOF*(DOF+1)/2>;
+    using array_type		= array<value_type, DOF*(DOF+1)/2 + 1>;
     using matrix_type		= Eigen::Matrix<value_type, DOF, DOF>;
 
   private:
@@ -232,11 +232,15 @@ class ColorMoment
 						const color_type> > >;
 
   public:
-    ColorMoment(const frame_type& target)
-	:_intrinsics(target.intrinsics),
-	 _points(target.points.cbegin(), target.points.nrow()),
-	 _edgeH( target.edgeH.cbegin(),  target.edgeH.nrow()),
-	 _edgeV( target.edgeV.cbegin(),  target.edgeV.nrow())
+    ColorError(const transform_type& Tts,
+	       const frame_type& source, const frame_type& target)
+	:_Tts(Tts), _intrinsics(target.intrinsics),
+	 _xs(source.points.cbegin(), source.points.nrow()),
+	 _xt(target.points.cbegin(), target.points.nrow()),
+	 _image_s(source.image.cbegin(), source.image.nrow()),
+	 _image_t(target.image),
+	 _edgeH(target.edgeH),
+	 _edgeV(target.edgeV)
     {
     }
 
@@ -244,26 +248,35 @@ class ColorMoment
     std::enable_if_t<std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
-	const int		v = i / ncol();
-	const int		u = i - (v * ncol());
-	const point_type	x = _points[v][u];
+	const int		v    = i / ncol();
+	const int		u    = i - (v * ncol());
+	const point_type	xs   = _xs[v][u];
+	const point_type	xs_t = _Tts(xs);
+	const auto		uv_t = _intrinsics(xs_t);
+	const int		ut   = device::to_int(uv_t.x);
+	const int		vt   = device::to_int(uv_t.y);
 
-	if (x.z > 0)
+	if (xs.z > 0 && xs_t.z > 0 &&
+	    0 <= ut && ut < ncol() && 0 <= vt && vt < nrow())
 	{
-	    const C	eH = _edgeH[v][u];
-	    const C	eV = _edgeV[v][u];
-	    const auto	a  = _intrinsics.image_derivative0(x, eH, eV);
+	    const C	eH = _edgeH(uv_t.x, uv_t.y);
+	    const C	eV = _edgeV(uv_t.x, uv_t.y);
+	    const auto	a  = _intrinsics.image_derivative0(xs_t, eH, eV);
 
-	    param_type	row;
+	    array<value_type, DOF+1>	row;
 	    row[0] = a.x;
 	    row[1] = a.y;
 	    row[2] = a.z;
-	    const auto	x_cross_a = cross(x, a);
+	    const auto	x_cross_a = cross(xs_t, a);
 	    row[3] = x_cross_a.x;
 	    row[4] = x_cross_a.y;
 	    row[5] = x_cross_a.z;
+	    row[6] = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
 
-	    return row.template ext();
+	    auto	m = row.template ext<array_type::size()>();
+	    m[array_type::size()-1] = 1;
+	    
+	    return m;
 	}
 
 	return {0};
@@ -273,40 +286,45 @@ class ColorMoment
     std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
-	const int		v = i / ncol();
-	const int		u = i - (v * ncol());
-	const point_type	x = _points[v][u];
+	const int		v    = i / ncol();
+	const int		u    = i - (v * ncol());
+	const point_type	xs   = _xs[v][u];
+	const point_type	xs_t = _Tts(xs);
+	const auto		uv_t = _intrinsics(xs_t);
+	const int		ut   = device::to_int(uv_t.x);
+	const int		vt   = device::to_int(uv_t.y);
 
-	if (x.z > 0)
+	if (xs.z > 0 && xs_t.z > 0 &&
+	    0 <= ut && ut < ncol() && 0 <= vt && vt < nrow())
 	{
-	    const C	eH = _edgeH[v][u];
-	    const C	eV = _edgeV[v][u];
-	    auto	a  = _intrinsics.image_derivative0(x, eH.x, eV.x);
+	    const C	eH = _edgeH[vt][ut];
+	    const C	eV = _edgeV[vt][ut];
+	    auto	a  = _intrinsics.image_derivative0(xs_t, eH.x, eV.x);
 	    param_type	row;
 	    row[0] = a.x;
 	    row[1] = a.y;
 	    row[2] = a.z;
-	    auto	x_cross_a = cross(x, a);
+	    auto	x_cross_a = cross(xs_t, a);
 	    row[3] = x_cross_a.x;
 	    row[4] = x_cross_a.y;
 	    row[5] = x_cross_a.z;
 	    auto	m = row.template ext();
 
-	    a = _intrinsics.image_derivative0(x, eH.y, eV.y);
+	    a = _intrinsics.image_derivative0(xs_t, eH.y, eV.y);
 	    row[0] = a.x;
 	    row[1] = a.y;
 	    row[2] = a.z;
-	    x_cross_a = cross(x, a);
+	    x_cross_a = cross(xs_t, a);
 	    row[3] = x_cross_a.x;
 	    row[4] = x_cross_a.y;
 	    row[5] = x_cross_a.z;
 	    m += row.template ext();
 
-	    a = _intrinsics.image_derivative0(x, eH.z, eV.z);
+	    a = _intrinsics.image_derivative0(xs_t, eH.z, eV.z);
 	    row[0] = a.x;
 	    row[1] = a.y;
 	    row[2] = a.z;
-	    x_cross_a = cross(x, a);
+	    x_cross_a = cross(xs_t, a);
 	    row[3] = x_cross_a.x;
 	    row[4] = x_cross_a.y;
 	    row[5] = x_cross_a.z;
@@ -342,10 +360,14 @@ class ColorMoment
     int		ncol()		const	{ return _edgeH.cbegin().size(); }
 
   private:
+    const transform_type	_Tts;
     const intrinsics_type	_intrinsics;
-    const points_type		_points;
-    const image_type		_edgeH;
-    const image_type		_edgeV;
+    const points_type		_xs;
+    const points_type		_xt;
+    const image_type		_image_s;
+    const Texture<color_type>	_image_t;
+    const Texture<color_type>	_edgeH;
+    const Texture<color_type>	_edgeV;
 };
 
 /************************************************************************

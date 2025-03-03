@@ -102,8 +102,8 @@ namespace icia
       {
 	  const int	v  = i / ncol();
 	  const int	u  = i - (v * ncol());
-	  const C	eH = _edgeH[v][u];
-	  const C	eV = _edgeV[v][u];
+	  const auto	eH = _edgeH[v][u];
+	  const auto	eV = _edgeV[v][u];
 	  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 	  const auto	uf = s * u;
 	  const auto	vf = s * v;
@@ -226,8 +226,8 @@ namespace icia
 
 	      if (valid(c) && valid(c_t) && square(b) < _sqcolor_thresh)
 	      {
-		  const C	eH = _edgeH[v][u];
-		  const C	eV = _edgeV[v][u];
+		  const auto	eH = _edgeH[v][u];
+		  const auto	eV = _edgeV[v][u];
 		  const auto	s  = 1 / value_type(max(nrow(), ncol()));
 		  const auto	uf = s * u;
 		  const auto	vf = s * v;

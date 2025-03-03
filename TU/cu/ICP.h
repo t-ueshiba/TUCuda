@@ -100,21 +100,21 @@ class PointPlaneError
     __device__ __forceinline__ array_type
     operator()(int i) const
     {
-	const int		v    = i / ncol();
-	const int		u    = i - (v * ncol());
-	const point_type	xs   = _xs[v][u];
-	const auto		xs_t = _Tts(xs);
-	const auto		uv_t = _intrinsics(xs_t);
-	const int		ut   = device::to_int(uv_t.x);
-	const int		vt   = device::to_int(uv_t.y);
+	const int	v    = i / ncol();
+	const int	u    = i - (v * ncol());
+	const auto	xs   = _xs[v][u];
+	const auto	xs_t = _Tts(xs);
+	const auto	uv_t = _intrinsics(xs_t);
+	const int	ut   = device::to_int(uv_t.x);
+	const int	vt   = device::to_int(uv_t.y);
 
 	if (xs.z > 0 && xs_t.z > 0 &&
 	    0 <= ut && ut < ncol() && 0 <= vt && vt < nrow())
 	{
-	    const point_type		xt   = _xt[vt][ut];
-	    const direction_type	nt   = _nt[vt][ut];
-	    const direction_type	ns   = _ns[v][u];
-	    const direction_type	ns_t = _Tts.direction(ns);
+	    const auto	xt   = _xt[vt][ut];
+	    const auto	nt   = _nt[vt][ut];
+	    const auto	ns   = _ns[v][u];
+	    const auto	ns_t = _Tts.direction(ns);
 
 	    if (nt.z > 0 && ns.z > 0 &&
 		square(cross(ns_t, nt)) < _sqangle_thresh &&
@@ -220,6 +220,7 @@ class ColorError
 
     using array_type		= array<value_type, DOF*(DOF+1)/2 + 1>;
     using matrix_type		= Eigen::Matrix<value_type, DOF, DOF>;
+    using vector_type		= Eigen::Matrix<value_type, DOF, 1>;
 
   private:
     using param_type		= typename transform_type::param_type;
@@ -233,14 +234,15 @@ class ColorError
 
   public:
     ColorError(const transform_type& Tts,
-	       const frame_type& source, const frame_type& target)
+	       const frame_type& source, const frame_type& target,
+	       value_type color_thresh)
 	:_Tts(Tts), _intrinsics(target.intrinsics),
 	 _xs(source.points.cbegin(), source.points.nrow()),
-	 _xt(target.points.cbegin(), target.points.nrow()),
 	 _image_s(source.image.cbegin(), source.image.nrow()),
 	 _image_t(target.image),
 	 _edgeH(target.edgeH),
-	 _edgeV(target.edgeV)
+	 _edgeV(target.edgeV),
+	 _sqcolor_thresh(color_thresh*color_thresh)
     {
     }
 
@@ -248,35 +250,43 @@ class ColorError
     std::enable_if_t<std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
-	const int		v    = i / ncol();
-	const int		u    = i - (v * ncol());
-	const point_type	xs   = _xs[v][u];
-	const point_type	xs_t = _Tts(xs);
-	const auto		uv_t = _intrinsics(xs_t);
-	const int		ut   = device::to_int(uv_t.x);
-	const int		vt   = device::to_int(uv_t.y);
+	const int	v    = i / ncol();
+	const int	u    = i - (v * ncol());
+	const auto	xs   = _xs[v][u];
+	const auto	xs_t = _Tts(xs);
 
-	if (xs.z > 0 && xs_t.z > 0 &&
-	    0 <= ut && ut < ncol() && 0 <= vt && vt < nrow())
+	if (xs.z > 0 && xs_t.z > 0)
 	{
-	    const C	eH = _edgeH(uv_t.x, uv_t.y);
-	    const C	eV = _edgeV(uv_t.x, uv_t.y);
-	    const auto	a  = _intrinsics.image_derivative0(xs_t, eH, eV);
+	    const auto	uv_t = _intrinsics(xs_t);
 
-	    array<value_type, DOF+1>	row;
-	    row[0] = a.x;
-	    row[1] = a.y;
-	    row[2] = a.z;
-	    const auto	x_cross_a = cross(xs_t, a);
-	    row[3] = x_cross_a.x;
-	    row[4] = x_cross_a.y;
-	    row[5] = x_cross_a.z;
-	    row[6] = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
+	    if (0 <= uv_t.x && uv_t.x < ncol() &&
+		0 <= uv_t.y && uv_t.y < nrow())
+	    {
+		const auto	b = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
 
-	    auto	m = row.template ext<array_type::size()>();
-	    m[array_type::size()-1] = 1;
-	    
-	    return m;
+		if (b*b < _sqcolor_thresh)
+		{
+		    const auto	a = _intrinsics.image_derivative0(
+					xs_t,
+					_edgeH(uv_t.x, uv_t.y),
+					_edgeV(uv_t.x, uv_t.y));
+
+		    array<value_type, DOF+1>	row;
+		    row[0] = a.x;
+		    row[1] = a.y;
+		    row[2] = a.z;
+		    const auto	x_cross_a = cross(xs_t, a);
+		    row[3] = x_cross_a.x;
+		    row[4] = x_cross_a.y;
+		    row[5] = x_cross_a.z;
+		    row[6] = b;
+
+		    auto	m = row.template ext<array_type::size()>();
+		    m[array_type::size()-1] = 1;
+
+		    return m;
+		}
+	    }
 	}
 
 	return {0};
@@ -286,51 +296,61 @@ class ColorError
     std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
     operator ()(int i) const
     {
-	const int		v    = i / ncol();
-	const int		u    = i - (v * ncol());
-	const point_type	xs   = _xs[v][u];
-	const point_type	xs_t = _Tts(xs);
-	const auto		uv_t = _intrinsics(xs_t);
-	const int		ut   = device::to_int(uv_t.x);
-	const int		vt   = device::to_int(uv_t.y);
+	const int	v    = i / ncol();
+	const int	u    = i - (v * ncol());
+	const auto	xs   = _xs[v][u];
+	const auto	xs_t = _Tts(xs);
 
-	if (xs.z > 0 && xs_t.z > 0 &&
-	    0 <= ut && ut < ncol() && 0 <= vt && vt < nrow())
+	if (xs.z > 0 && xs_t.z > 0)
 	{
-	    const C	eH = _edgeH[vt][ut];
-	    const C	eV = _edgeV[vt][ut];
-	    auto	a  = _intrinsics.image_derivative0(xs_t, eH.x, eV.x);
-	    param_type	row;
-	    row[0] = a.x;
-	    row[1] = a.y;
-	    row[2] = a.z;
-	    auto	x_cross_a = cross(xs_t, a);
-	    row[3] = x_cross_a.x;
-	    row[4] = x_cross_a.y;
-	    row[5] = x_cross_a.z;
-	    auto	m = row.template ext();
+	    const auto	uv_t = _intrinsics(xs_t);
 
-	    a = _intrinsics.image_derivative0(xs_t, eH.y, eV.y);
-	    row[0] = a.x;
-	    row[1] = a.y;
-	    row[2] = a.z;
-	    x_cross_a = cross(xs_t, a);
-	    row[3] = x_cross_a.x;
-	    row[4] = x_cross_a.y;
-	    row[5] = x_cross_a.z;
-	    m += row.template ext();
+	    if (0 <= uv_t.x && uv_t.x < ncol() &&
+		0 <= uv_t.y && uv_t.y < nrow())
+	    {
+		const auto	b = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
 
-	    a = _intrinsics.image_derivative0(xs_t, eH.z, eV.z);
-	    row[0] = a.x;
-	    row[1] = a.y;
-	    row[2] = a.z;
-	    x_cross_a = cross(xs_t, a);
-	    row[3] = x_cross_a.x;
-	    row[4] = x_cross_a.y;
-	    row[5] = x_cross_a.z;
-	    m += row.template ext();
+		if (square(b) < _sqcolor_thresh)
+		{
+		    const auto	eH = _edgeH(uv_t.x, uv_t.y);
+		    const auto	eV = _edgeV(uv_t.x, uv_t.y);
+		    auto	a  = _intrinsics.image_derivative0(xs_t,
+								   eH.x, eV.x);
 
-	    return m;
+		    array<value_type, DOF+1>	row;
+		    row[0] = a.x;
+		    row[1] = a.y;
+		    row[2] = a.z;
+		    auto	x_cross_a = cross(xs_t, a);
+		    row[3] = x_cross_a.x;
+		    row[4] = x_cross_a.y;
+		    row[5] = x_cross_a.z;
+		    auto	m = row.template ext<array_type::size()>();
+
+
+		    a = _intrinsics.image_derivative0(xs_t, eH.y, eV.y);
+		    row[0] = a.x;
+		    row[1] = a.y;
+		    row[2] = a.z;
+		    x_cross_a = cross(xs_t, a);
+		    row[3] = x_cross_a.x;
+		    row[4] = x_cross_a.y;
+		    row[5] = x_cross_a.z;
+		    m += row.template ext<array_type::size()>();
+
+		    a = _intrinsics.image_derivative0(xs_t, eH.z, eV.z);
+		    row[0] = a.x;
+		    row[1] = a.y;
+		    row[2] = a.z;
+		    x_cross_a = cross(xs_t, a);
+		    row[3] = x_cross_a.x;
+		    row[4] = x_cross_a.y;
+		    row[5] = x_cross_a.z;
+		    m += row.template ext<array_type::size()>();
+
+		    return m;
+		}
+	    }
 	}
 
 	return {0};
@@ -346,208 +366,41 @@ class ColorError
     M(const array_type& moment)
     {
 	matrix_type	m;
-	auto			p = moment.data();
+	auto		p = moment.data();
 	for (int i = 0; i < m.rows(); ++i)
+	{
 	    for (int j = i; j < m.cols(); ++j)
 		m(j, i) = m(i, j) = *p++;
+	    ++p;
+	}
+
 	return m;
+    }
+
+    static vector_type
+    d(const array_type& moment)
+    {
+	vector_type	v;
+	v << moment[6],  moment[12], moment[17],
+	     moment[21], moment[24], moment[26];
+
+	return v;
     }
 
   private:
     __host__ __device__ __forceinline__
-    int		nrow()		const	{ return _edgeH.size(); }
+    int		nrow()		const	{ return _xs.size(); }
     __host__ __device__ __forceinline__
-    int		ncol()		const	{ return _edgeH.cbegin().size(); }
+    int		ncol()		const	{ return _xs.cbegin().size(); }
 
   private:
     const transform_type	_Tts;
     const intrinsics_type	_intrinsics;
     const points_type		_xs;
-    const points_type		_xt;
     const image_type		_image_s;
     const Texture<color_type>	_image_t;
     const Texture<color_type>	_edgeH;
     const Texture<color_type>	_edgeV;
-};
-
-/************************************************************************
-*  class ColorDeviation<ICP>						*
-************************************************************************/
-template <class ICP>
-class ColorDeviation
-{
-  public:
-    using value_type		= typename ICP::value_type;
-    using color_type		= typename ICP::color_type;
-    using transform_type	= typename ICP::transform_type;
-    using intrinsics_type	= typename ICP::intrinsics_type;
-    using frame_type		= typename ICP::Frame;
-
-    constexpr static size_t	DOF = transform_type::DOF;
-
-    using array_type		= array<value_type, DOF+2>;
-    using vector_type		= Eigen::Matrix<value_type, DOF, 1>;
-
-  private:
-    using param_type		= typename transform_type::param_type;
-    using point_type		= typename transform_type::point_type;
-    using points_type		= range<range_iterator<
-					    thrust::device_ptr<
-						const point_type> > >;
-    using image_type		= range<range_iterator<
-					    thrust::device_ptr<
-						const color_type> > >;
-
-  public:
-    ColorDeviation(const transform_type& Tts,
-		   const Array2<color_type>& image_s,
-		   const frame_type& target, value_type color_thresh)
-	:_Tst(Tts.inv()),
-	 _intrinsics(target.intrinsics),
-	 _image_s(image_s),
-	 _points_t(target.points.cbegin(), target.points.nrow()),
-	 _image_t(target.image.cbegin(), target.image.nrow()),
-	 _edgeH(target.edgeH.cbegin(), target.edgeH.nrow()),
-	 _edgeV(target.edgeV.cbegin(), target.edgeV.nrow()),
-	 _sqcolor_thresh(color_thresh*color_thresh)
-    {
-    }
-
-    template <class C=color_type> __device__ __forceinline__
-    std::enable_if_t<std::is_arithmetic<C>::value, array_type>
-    operator ()(int i) const
-    {
-	const int		v  = i / ncol();
-	const int		u  = i - (v * ncol());
-	const point_type	xt = _points_t[v][u];
-
-	if (xt.z > 0)
-	{
-	  // Project a source point transfered to the destination pose.
-	    const auto	uv_s = _intrinsics(_Tst(xt));
-
-	    if (0 <= uv_s.x && uv_s.x < ncol() &&
-		0 <= uv_s.y && uv_s.y < nrow())
-	    {
-		const auto	b = _image_s(uv_s.x, uv_s.y) - _image_t[v][u];
-
-		if (b*b < _sqcolor_thresh)
-		{
-		    const auto	ab = _intrinsics.image_derivative0(
-					xt, _edgeH[v][u], _edgeV[v][u])
-				   * b;
-		    param_type	row;
-		    row[0] = ab.x;
-		    row[1] = ab.y;
-		    row[2] = ab.z;
-		    const auto	x_cross_ab = cross(xt, ab);
-		    row[3] = x_cross_ab.x;
-		    row[4] = x_cross_ab.y;
-		    row[5] = x_cross_ab.z;
-		    auto	d = row.template extend<DOF+2>();
-		    d[DOF]   = b*b;
-		    d[DOF+1] = 1;
-
-		    return d;
-		}
-	    }
-	}
-
-	return {0};
-    }
-
-    template <class C=color_type> __device__ __forceinline__
-    std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
-    operator ()(int i) const
-    {
-	const int		v  = i / ncol();
-	const int		u  = i - (v * ncol());
-	const point_type	xt = _points_t[v][u];
-
-	if (xt.z > 0)
-	{
-	    const auto	uv_s = _intrinsics(_Tst(xt));
-
-	    if (0 <= uv_s.x && uv_s.x < ncol() &&
-		0 <= uv_s.y && uv_s.y < nrow())
-	    {
-		const auto	b = _image_s(uv_s.x, uv_s.y) - _image_t[v][u];
-
-		if (square(b) < _sqcolor_thresh)
-		{
-		    const C	eH = _edgeH[v][u];
-		    const C	eV = _edgeV[v][u];
-		    const auto	ab = _intrinsics.image_derivative0(xt,
-								   eH.x, eV.x)
-				   * b.x
-				   + _intrinsics.image_derivative0(xt,
-								   eH.y, eV.y)
-				   * b.y
-				   + _intrinsics.image_derivative0(xt,
-								   eH.z, eV.z)
-				   * b.z;
-		    param_type	row;
-		    row[0] = ab.x;
-		    row[1] = ab.y;
-		    row[2] = ab.z;
-		    const auto	x_cross_ab = cross(xt, ab);
-		    row[3] = x_cross_ab.x;
-		    row[4] = x_cross_ab.y;
-		    row[5] = x_cross_ab.z;
-		    auto	d = row.template extend<DOF+2>();
-		    d[DOF]   = square(b);
-		    d[DOF+1] = 1;
-
-		    return d;
-		}
-	    }
-	}
-
-	return {0};
-    }
-
-    int
-    size() const
-    {
-	return nrow() * ncol();
-    }
-
-    static vector_type
-    d(const array_type& deviation)
-    {
-	vector_type	v;
-	v << deviation[0], deviation[1], deviation[2],
-	     deviation[3], deviation[4], deviation[5];
-
-	return v;
-    }
-
-    static value_type
-    npoints(const array_type& deviation)
-    {
-	return deviation[DOF+1];
-    }
-
-    static value_type
-    mse(const array_type& deviation)
-    {
-	return deviation[DOF] / deviation[DOF+1];
-    }
-
-  private:
-    __host__ __device__ __forceinline__
-    int		nrow()		const	{ return _image_t.size(); }
-    __host__ __device__ __forceinline__
-    int		ncol()		const	{ return _image_t.cbegin().size(); }
-
-  private:
-    const transform_type	_Tst;
-    const intrinsics_type	_intrinsics;
-    const Texture<color_type>	_image_s;
-    const points_type		_points_t;
-    const image_type		_image_t;
-    const image_type		_edgeH;
-    const image_type		_edgeV;
     const value_type		_sqcolor_thresh;
 };
 }	// namespace icp

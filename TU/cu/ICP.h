@@ -56,13 +56,14 @@ namespace TU::cu
 namespace icp
 {
 /************************************************************************
-*  class PointPlaneError<ICP>						*
+*  class ErrorMetric<ICP>						*
 ************************************************************************/
 template <class ICP>
-class PointPlaneError
+class ErrorMetric
 {
   public:
     using value_type		= typename ICP::value_type;
+    using color_type		= typename ICP::color_type;
     using transform_type	= typename ICP::transform_type;
     using intrinsics_type	= typename ICP::intrinsics_type;
     using frame_type		= typename ICP::Frame;
@@ -76,24 +77,35 @@ class PointPlaneError
   private:
     using point_type		= typename transform_type::point_type;
     using direction_type	= typename transform_type::direction_type;
+    using point2_type		= typename intrinsics_type::point2_type;
     using points_type		= range<range_iterator<
 					    thrust::device_ptr<
 						const point_type> > >;
     using directions_type	= range<range_iterator<
 					    thrust::device_ptr<
 						const direction_type> > >;
+    using image_type		= range<range_iterator<
+					    thrust::device_ptr<
+						const color_type> > >;
 
   public:
-    PointPlaneError(const transform_type& Tts,
-		    const frame_type& source, const frame_type& target,
-		    value_type dist_thresh, value_type angle_thresh)
+    ErrorMetric(const transform_type& Tts,
+		const frame_type& source, const frame_type& target,
+		value_type dist_thresh, value_type angle_thresh,
+		value_type color_thresh, value_type color_weight)
 	:_Tts(Tts), _intrinsics(target.intrinsics),
 	 _xs(source.points.cbegin(),  source.points.nrow()),
 	 _ns(source.normals.cbegin(), source.normals.nrow()),
+	 _image_s(source.image.cbegin(), source.image.nrow()),
 	 _xt(target.points.cbegin(),  target.points.nrow()),
 	 _nt(target.normals.cbegin(), target.normals.nrow()),
+	 _image_t(target.image),
+	 _edgeH(target.edgeH),
+	 _edgeV(target.edgeV),
 	 _sqdist_thresh(dist_thresh*dist_thresh),
-	 _sqangle_thresh(angle_thresh*angle_thresh)
+	 _sqangle_thresh(angle_thresh*angle_thresh),
+	 _sqcolor_thresh(color_thresh*color_thresh),
+	 _color_weight(color_weight)
     {
     }
 
@@ -120,18 +132,12 @@ class PointPlaneError
 		square(cross(ns_t, nt)) < _sqangle_thresh &&
 		square(xt - xs_t)	< _sqdist_thresh)
 	    {
-		array<value_type, DOF+1>	row;
-		row[0] = nt.x;
-		row[1] = nt.y;
-		row[2] = nt.z;
-		const auto	x_cross_n = cross(xs_t, nt);
-		row[3] = x_cross_n.x;
-		row[4] = x_cross_n.y;
-		row[5] = x_cross_n.z;
-		row[6] = dot(nt, xt - xs_t);	// deviation term
-
-		auto	m = row.template ext<array_type::size()>();
-		m[array_type::size()-1] = 1;	// npoints term
+		auto	m = point_plane_moment(xs_t, xt, nt)
+			  + _color_weight * color_moment(
+						xs_t, uv_t,
+						_image_s[v][u] -
+						_image_t(uv_t.x, uv_t.y));
+		m[array_type::size()-1] = 1;
 
 		return m;
 	    }
@@ -188,6 +194,92 @@ class PointPlaneError
     int		nrow()		const	{ return _xs.size(); }
     __host__ __device__ __forceinline__
     int		ncol()		const	{ return _xs.cbegin().size(); }
+	
+    __device__ __forceinline__ static array_type
+    point_plane_moment(const point_type& x,
+		       const point_type& x_observed, const direction_type& n)
+    {
+	array<value_type, DOF+1>	row;
+	row[0] = n.x;
+	row[1] = n.y;
+	row[2] = n.z;
+	const auto	x_cross_n = cross(x, n);
+	row[3] = x_cross_n.x;
+	row[4] = x_cross_n.y;
+	row[5] = x_cross_n.z;
+	row[6] = dot(n, x_observed - x);	// deviation term
+
+	return row.template ext<array_type::size()>();
+    }
+    
+    template <class C_> __device__ __forceinline__ array_type
+    color_moment(const point_type& x,
+		 const point2_type& uv, const C_& color_diff) const
+    {
+	if (color_diff*color_diff > _sqcolor_thresh)
+	    return {0};
+	
+	const auto a = _intrinsics.image_derivative0(x, _edgeH(uv.x, uv.y),
+							_edgeV(uv.x, uv.y));
+	array<value_type, DOF+1>	row;
+	row[0] = a.x;
+	row[1] = a.y;
+	row[2] = a.z;
+	const auto	x_cross_a = cross(x, a);
+	row[3] = x_cross_a.x;
+	row[4] = x_cross_a.y;
+	row[5] = x_cross_a.z;
+	row[6] = color_diff;
+	
+	return row.template ext<array_type::size()>();
+    }
+
+    template <class C_> __device__ __forceinline__ array_type
+    color_moment(const point_type& x,
+		 const point2_type& uv, const mat4x<C_, 1>& color_diff) const
+    {
+	if (square(color_diff) > _sqcolor_thresh)
+	    return {0};
+	
+	const auto	eH = _edgeH(uv.x, uv.y);
+	const auto	eV = _edgeV(uv.x, uv.y);
+	auto		a  = _intrinsics.image_derivative0(x, eH.x, eV.x);
+
+	array<value_type, DOF+1>	row;
+	row[0] = a.x;
+	row[1] = a.y;
+	row[2] = a.z;
+	auto	x_cross_a = cross(x, a);
+	row[3] = x_cross_a.x;
+	row[4] = x_cross_a.y;
+	row[5] = x_cross_a.z;
+	row[6] = color_diff.x;
+	auto	m = row.template ext<array_type::size()>();
+
+	a = _intrinsics.image_derivative0(x, eH.y, eV.y);
+	row[0] = a.x;
+	row[1] = a.y;
+	row[2] = a.z;
+	x_cross_a = cross(x, a);
+	row[3] = x_cross_a.x;
+	row[4] = x_cross_a.y;
+	row[5] = x_cross_a.z;
+	row[6] = color_diff.y;
+	m += row.template ext<array_type::size()>();
+
+	a = _intrinsics.image_derivative0(x, eH.z, eV.z);
+	row[0] = a.x;
+	row[1] = a.y;
+	row[2] = a.z;
+	x_cross_a = cross(x, a);
+	row[3] = x_cross_a.x;
+	row[4] = x_cross_a.y;
+	row[5] = x_cross_a.z;
+	row[6] = color_diff.z;
+	m += row.template ext<array_type::size()>();
+	
+	return m;
+    }
 
   private:
     const transform_type	_Tts;
@@ -195,213 +287,18 @@ class PointPlaneError
 
     const points_type		_xs;
     const directions_type	_ns;
+    const image_type		_image_s;
 
     const points_type		_xt;
     const directions_type	_nt;
-
-    const value_type		_sqdist_thresh;
-    const value_type		_sqangle_thresh;
-};
-
-/************************************************************************
-*  class ColorError<ICP>						*
-************************************************************************/
-template <class ICP>
-class ColorError
-{
-  public:
-    using value_type		= typename ICP::value_type;
-    using color_type		= typename ICP::color_type;
-    using transform_type	= typename ICP::transform_type;
-    using intrinsics_type	= typename ICP::intrinsics_type;
-    using frame_type		= typename ICP::Frame;
-
-    constexpr static size_t	DOF = transform_type::DOF;
-
-    using array_type		= array<value_type, DOF*(DOF+1)/2 + 1>;
-    using matrix_type		= Eigen::Matrix<value_type, DOF, DOF>;
-    using vector_type		= Eigen::Matrix<value_type, DOF, 1>;
-
-  private:
-    using param_type		= typename transform_type::param_type;
-    using point_type		= typename transform_type::point_type;
-    using points_type		= range<range_iterator<
-					    thrust::device_ptr<
-						const point_type> > >;
-    using image_type		= range<range_iterator<
-					    thrust::device_ptr<
-						const color_type> > >;
-
-  public:
-    ColorError(const transform_type& Tts,
-	       const frame_type& source, const frame_type& target,
-	       value_type color_thresh)
-	:_Tts(Tts), _intrinsics(target.intrinsics),
-	 _xs(source.points.cbegin(), source.points.nrow()),
-	 _image_s(source.image.cbegin(), source.image.nrow()),
-	 _image_t(target.image),
-	 _edgeH(target.edgeH),
-	 _edgeV(target.edgeV),
-	 _sqcolor_thresh(color_thresh*color_thresh)
-    {
-    }
-
-    template <class C=color_type> __device__ __forceinline__
-    std::enable_if_t<std::is_arithmetic<C>::value, array_type>
-    operator ()(int i) const
-    {
-	const int	v    = i / ncol();
-	const int	u    = i - (v * ncol());
-	const auto	xs   = _xs[v][u];
-	const auto	xs_t = _Tts(xs);
-
-	if (xs.z > 0 && xs_t.z > 0)
-	{
-	    const auto	uv_t = _intrinsics(xs_t);
-
-	    if (0 <= uv_t.x && uv_t.x < ncol() &&
-		0 <= uv_t.y && uv_t.y < nrow())
-	    {
-		const auto	b = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
-
-		if (b*b < _sqcolor_thresh)
-		{
-		    const auto	a = _intrinsics.image_derivative0(
-					xs_t,
-					_edgeH(uv_t.x, uv_t.y),
-					_edgeV(uv_t.x, uv_t.y));
-
-		    array<value_type, DOF+1>	row;
-		    row[0] = a.x;
-		    row[1] = a.y;
-		    row[2] = a.z;
-		    const auto	x_cross_a = cross(xs_t, a);
-		    row[3] = x_cross_a.x;
-		    row[4] = x_cross_a.y;
-		    row[5] = x_cross_a.z;
-		    row[6] = b;
-
-		    auto	m = row.template ext<array_type::size()>();
-		    m[array_type::size()-1] = 1;
-
-		    return m;
-		}
-	    }
-	}
-
-	return {0};
-    }
-
-    template <class C=color_type> __device__ __forceinline__
-    std::enable_if_t<!std::is_arithmetic<C>::value, array_type>
-    operator ()(int i) const
-    {
-	const int	v    = i / ncol();
-	const int	u    = i - (v * ncol());
-	const auto	xs   = _xs[v][u];
-	const auto	xs_t = _Tts(xs);
-
-	if (xs.z > 0 && xs_t.z > 0)
-	{
-	    const auto	uv_t = _intrinsics(xs_t);
-
-	    if (0 <= uv_t.x && uv_t.x < ncol() &&
-		0 <= uv_t.y && uv_t.y < nrow())
-	    {
-		const auto	b = _image_s[v][u] - _image_t(uv_t.x, uv_t.y);
-
-		if (square(b) < _sqcolor_thresh)
-		{
-		    const auto	eH = _edgeH(uv_t.x, uv_t.y);
-		    const auto	eV = _edgeV(uv_t.x, uv_t.y);
-		    auto	a  = _intrinsics.image_derivative0(xs_t,
-								   eH.x, eV.x);
-
-		    array<value_type, DOF+1>	row;
-		    row[0] = a.x;
-		    row[1] = a.y;
-		    row[2] = a.z;
-		    auto	x_cross_a = cross(xs_t, a);
-		    row[3] = x_cross_a.x;
-		    row[4] = x_cross_a.y;
-		    row[5] = x_cross_a.z;
-		    auto	m = row.template ext<array_type::size()>();
-
-
-		    a = _intrinsics.image_derivative0(xs_t, eH.y, eV.y);
-		    row[0] = a.x;
-		    row[1] = a.y;
-		    row[2] = a.z;
-		    x_cross_a = cross(xs_t, a);
-		    row[3] = x_cross_a.x;
-		    row[4] = x_cross_a.y;
-		    row[5] = x_cross_a.z;
-		    m += row.template ext<array_type::size()>();
-
-		    a = _intrinsics.image_derivative0(xs_t, eH.z, eV.z);
-		    row[0] = a.x;
-		    row[1] = a.y;
-		    row[2] = a.z;
-		    x_cross_a = cross(xs_t, a);
-		    row[3] = x_cross_a.x;
-		    row[4] = x_cross_a.y;
-		    row[5] = x_cross_a.z;
-		    m += row.template ext<array_type::size()>();
-
-		    return m;
-		}
-	    }
-	}
-
-	return {0};
-    }
-
-    int
-    size() const
-    {
-	return nrow() * ncol();
-    }
-
-    static matrix_type
-    M(const array_type& moment)
-    {
-	matrix_type	m;
-	auto		p = moment.data();
-	for (int i = 0; i < m.rows(); ++i)
-	{
-	    for (int j = i; j < m.cols(); ++j)
-		m(j, i) = m(i, j) = *p++;
-	    ++p;
-	}
-
-	return m;
-    }
-
-    static vector_type
-    d(const array_type& moment)
-    {
-	vector_type	v;
-	v << moment[6],  moment[12], moment[17],
-	     moment[21], moment[24], moment[26];
-
-	return v;
-    }
-
-  private:
-    __host__ __device__ __forceinline__
-    int		nrow()		const	{ return _xs.size(); }
-    __host__ __device__ __forceinline__
-    int		ncol()		const	{ return _xs.cbegin().size(); }
-
-  private:
-    const transform_type	_Tts;
-    const intrinsics_type	_intrinsics;
-    const points_type		_xs;
-    const image_type		_image_s;
     const Texture<color_type>	_image_t;
     const Texture<color_type>	_edgeH;
     const Texture<color_type>	_edgeV;
+
+    const value_type		_sqdist_thresh;
+    const value_type		_sqangle_thresh;
     const value_type		_sqcolor_thresh;
+    const value_type		_color_weight;
 };
 }	// namespace icp
 
@@ -427,7 +324,7 @@ class ICP : public Profiler<CLOCK>
 	value_type	dist_thresh	= 0.1;
 	value_type	angle_thresh	= 20.0;
 	value_type	color_thresh	= 20.0;
-	value_type	color_weight	= 0.1;
+	value_type	color_weight	= 1.0;
 	size_t		niterations	= 5;
     };
 
@@ -485,8 +382,6 @@ class ICP : public Profiler<CLOCK>
   private:
     Parameters	_params;
     Frame	_source;
-
-    constexpr static value_type	COLOR_WEIGHT_SCALE = 1.0e-6;
 };
 
 template <class T, class C, bool WD, class CLOCK> void
@@ -524,33 +419,6 @@ typename ICP<T, C, WD, CLOCK>::value_type
 ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
 				  transform_type& Tts) const
 {
-    using point_error_type	     = icp::PointPlaneError<ICP>;
-    using color_moment_type	     = icp::ColorMoment<ICP>;
-    using color_deviation_type	     = icp::ColorDeviation<ICP>;
-    using matrix_type		     = typename point_error_type::matrix_type;
-    using vector_type		     = typename point_error_type::vector_type;
-    using point_error_array_type     = typename point_error_type::array_type;
-    using color_moment_array_type    = typename color_moment_type::array_type;
-    using color_deviation_array_type = typename color_deviation_type::array_type;
-
-  // Compute color moment of the target frame by parallel reduction.
-    const color_moment_type		color_moment(target);
-    Array<color_moment_array_type>	tmp_color_moment(1);
-    size_t				tmp_size = 0;
-    cub::DeviceReduce::Sum(nullptr, tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_color_moment.begin(), color_moment.size());
-    Array<uint8_t>	tmp(tmp_size);
-    cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_color_moment.begin(), color_moment.size());
-    gpuCheckLastError();
-    const auto	color_moment_array = tmp_color_moment[0];
-
   // Update transform by Lebensberg-Marquarde iteration.
     auto	Tts_old = Tts;
     auto	mse_old = std::numeric_limits<value_type>::max();
@@ -558,56 +426,38 @@ ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
 
     for (size_t n = 0; n < _params.niterations; ++n)
     {
+	using error_metric_type	= icp::ErrorMetric<ICP>;
+	using matrix_type	= typename error_metric_type::matrix_type;
+	using vector_type	= typename error_metric_type::vector_type;
+	using array_type	= typename error_metric_type::array_type;
+    
       // Compute point moment by parallel reduction.
-	const point_error_type		point_error(Tts, _source, target,
-						    _params.dist_thresh,
-						    _params.angle_thresh);
-	Array<point_error_array_type>	tmp_point_error(1);
-	size_t				tmp_size = 0;
+	constexpr static value_type	COLOR_WEIGHT_SCALE = 1.0e-6;
+	
+	error_metric_type	error_metric(Tts, _source, target,
+					     _params.dist_thresh,
+					     _params.angle_thresh,
+					     _params.color_thresh,
+					     COLOR_WEIGHT_SCALE *
+					     _params.color_weight);
+	Array<array_type>	tmp_error_metric(1);
+	size_t			tmp_size = 0;
 	cub::DeviceReduce::Sum(nullptr, tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   point_error),
-			       tmp_point_error.begin(), point_error.size());
-	Array<uint8_t>	tmp(tmp_size);
+				   error_metric),
+			       tmp_error_metric.begin(), error_metric.size());
+	Array<uint8_t>		tmp(tmp_size);
 	cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
 			       thrust::make_transform_iterator(
 				   thrust::make_counting_iterator(0),
-				   point_error),
-			       tmp_point_error.begin(), point_error.size());
+				   error_metric),
+			       tmp_error_metric.begin(), error_metric.size());
 	gpuCheckLastError();
-	const auto	point_error_array = tmp_point_error[0];
-
-      // Compute color deviation by parallel reduction.
-	const color_deviation_type	color_deviation(Tts,
-							_source.image, target,
-							_params.color_thresh);
-	Array<color_deviation_array_type>	tmp_color_deviation(1);
-	tmp_size = 0;
-	cub::DeviceReduce::Sum(nullptr, tmp_size,
-			       thrust::make_transform_iterator(
-				   thrust::make_counting_iterator(0),
-				   color_deviation),
-			       tmp_color_deviation.begin(),
-			       color_deviation.size());
-	if (tmp_size > tmp.size())
-	    tmp.resize(tmp_size);
-	cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
-			       thrust::make_transform_iterator(
-				   thrust::make_counting_iterator(0),
-				   color_deviation),
-			       tmp_color_deviation.begin(),
-			       color_deviation.size());
-	gpuCheckLastError();
-	const auto	color_deviation_array = tmp_color_deviation[0];
+	const auto		error_metric_array = tmp_error_metric[0];
 
       // Evaluate residula mean square errors in point and color.
-	const auto	point_mse = point_error_type::mse(point_error_array);
-	const auto	color_mse = color_deviation_type
-					::mse(color_deviation_array);
-	const auto	mse = point_mse
-			    + COLOR_WEIGHT_SCALE*_params.color_weight
-			    * color_mse;
+	const auto	mse = error_metric_type::mse(error_metric_array);
 	if (mse < mse_old)
 	{
 	    constexpr static value_type	tol = 1.0e-5;
@@ -630,33 +480,15 @@ ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
 	}
 
       // Solve the linear system for updates of transform.
-	matrix_type	A = point_error_type::M(point_error_array)
-			  + COLOR_WEIGHT_SCALE*_params.color_weight
-			  * color_moment_type::M(color_moment_array);
+	matrix_type		A = error_metric_type::M(error_metric_array);
 	for (size_t i = 0; i < A.rows(); ++i)
 	    A(i, i) *= (1.0 + lambda);
-	const vector_type b = point_error_type::d(point_error_array)
-		      	    + COLOR_WEIGHT_SCALE*_params.color_weight
-			    * color_deviation_type::d(color_deviation_array);
-	const auto	  update = A.ldlt().solve(b).eval();
+	const vector_type	b = error_metric_type::d(error_metric_array);
+	const auto		update = A.ldlt().solve(b).eval();
 	Tts = transform_type::exp(update.data()) * Tts_old;
 #if !defined(NDEBUG)
-	// std::cerr << "--- A ---\n" << point_error_type::M(point_moment)
-	// 	  << std::endl;
-	// std::cerr << "--- b ---\n" << point_error_type::d(point_moment)
-	// 	  << std::endl;
-	// std::cerr << "--- C ---\n" << color_moment_metric_type::M(color_moment)
-	// 	  << std::endl;
-	// std::cerr << "--- d ---\n"
-	// 	  << color_deviation_metric_type::d(color_deviation)
-	// 	  << std::endl;
-	// std::cerr << "--- A_C ---\n" << A << std::endl;
-	// std::cerr << "--- b_d ---\n" << b << std::endl;
-	// std::cerr << "--- update ---\n" << update << std::endl;
-
 	std::cerr << "  [" << n
-		  << "]: point_err=" << std::sqrt(point_mse)
-		  << ", color_err=" << std::sqrt(color_mse)
+		  << "]: err=" << std::sqrt(mse)
 		  << ", lambda=" << lambda
 		  << std::endl;
 #endif

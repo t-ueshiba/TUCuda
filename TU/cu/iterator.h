@@ -49,22 +49,20 @@
 namespace thrust
 {
 /************************************************************************
-*  thrust::stride(const ITER&)						*
+*  Defined in namespace thrust for invoking with ADL			*
 ************************************************************************/
 template <class T> __host__ __device__ ptrdiff_t
 stride(device_ptr<T>)							;
 
 template <class ITER_TUPLE> __host__ __device__ __forceinline__ auto
-stride(const thrust::zip_iterator<ITER_TUPLE>& iter)
+stride(const zip_iterator<ITER_TUPLE>& iter)
     -> decltype(stride(iter.get_iterator_tuple()))
 {
     return stride(iter.get_iterator_tuple());
 }
 }	// namespace thrust
 
-namespace TU
-{
-namespace cu
+namespace TU::cu
 {
 /************************************************************************
 *  TU::cu::map_iterator<FUNC, ITER>					*
@@ -120,11 +118,11 @@ make_map_iterator(FUNC&& func, const ITER& iter)
 }
 
 template <class FUNC, class... ITERS> __host__ __device__ __forceinline__
-map_iterator<FUNC, thrust::zip_iterator<cuda::std::tuple<ITERS...> > >
+map_iterator<FUNC, thrust::zip_iterator<thrust::tuple<ITERS...> > >
 make_map_iterator(FUNC&& func, const ITERS&... iters)
 {
     return {cuda::std::forward<FUNC>(func),
-	    thrust::make_zip_iterator(cuda::std::make_tuple(iters...))};
+	    thrust::make_zip_iterator(iters...)};
 }
 
 /************************************************************************
@@ -267,11 +265,11 @@ make_assignment_iterator(FUNC&& func, const ITER& iter)
 }
 
 template <class FUNC, class... ITERS> __host__ __device__ __forceinline__
-assignment_iterator<FUNC, thrust::zip_iterator<cuda::std::tuple<ITERS...> > >
+assignment_iterator<FUNC, thrust::zip_iterator<thrust::tuple<ITERS...> > >
 make_assignment_iterator(FUNC&& func, const ITERS&... iters)
 {
     return {cuda::std::forward<FUNC>(func),
-	    thrust::make_zip_iterator(cuda::std::make_tuple(iters...))};
+	    thrust::make_zip_iterator(thrust::make_tuple(iters...))};
 }
 
 /************************************************************************
@@ -337,7 +335,7 @@ class range
   public:
     using value_type	 = iterator_value<ITER>;
     using const_iterator = const_iterator_t<ITER>;
-    
+
   public:
     __host__ __device__
 		range(ITER begin, int size)
@@ -354,7 +352,7 @@ class range
 		}
 		range(range&&)					= default;
     range&	operator =(range&&)				= default;
-    
+
     __host__ __device__
     int		size()	  const	{ return _size; }
     __host__ __device__
@@ -388,7 +386,7 @@ class range<thrust::device_ptr<T> >
   public:
     using value_type	 = iterator_value<thrust::device_ptr<T> >;
     using const_iterator = const_iterator_t<thrust::device_ptr<T> >;
-    
+
   public:
     __host__ __device__
 		range(thrust::device_ptr<T> p, int size)
@@ -405,7 +403,7 @@ class range<thrust::device_ptr<T> >
 		}
 		range(range&&)					= default;
     range&	operator =(range&&)				= default;
-    
+
     __host__ __device__
     int		size()	  const	{ return _size; }
     __host__ __device__
@@ -452,13 +450,13 @@ class range_iterator
 					   thrust::use_default,
 					   thrust::use_default,
 					   range<ITER> >;
-    
+
   public:
     using	typename super::reference;
     using	typename super::difference_type;
     using	stride_t = iterator_stride<ITER>;
     friend	class thrust::iterator_core_access;
-	  
+
   public:
     __host__ __device__
 		range_iterator(ITER iter, stride_t stride, int size)
@@ -479,7 +477,7 @@ class range_iterator
 		{
 		    return _stride;
 		}
-	
+
   private:
     __host__ __device__
     reference	dereference() const
@@ -517,7 +515,7 @@ class range_iterator
     static auto	leftmost(const STRIDE_& stride)
 		{
 		    using	cuda::std::get;
-		    
+
 		    return leftmost(get<0>(stride));
 		}
 
@@ -525,7 +523,7 @@ class range_iterator
     stride_t	_stride;
     int		_size;
 };
-    
+
 template <class ITER> __host__ __device__ __forceinline__ auto
 stride(const range_iterator<ITER>& iter)
     -> decltype(stride(iter.base()))
@@ -541,7 +539,7 @@ make_range_iterator(const ITER& iter, iterator_stride<ITER> stride, int size)
 {
     return {iter, stride, size};
 }
-    
+
 template <class ITER, class... SS> __host__ __device__ __forceinline__ auto
 make_range_iterator(const ITER& iter,
 		    iterator_stride<ITER> stride, int size, SS... ss)
@@ -554,7 +552,7 @@ make_range_iterator(const ITER& iter)
 {
     return iter;
 }
-    
+
 template <class ITER> inline auto
 make_range_iterator(const TU::range_iterator<ITER, 0, 0>& iter)
 {
@@ -602,7 +600,7 @@ namespace detail
 				 iter.stride(), size);
   }
 }	// namespace detail
-    
+
 template <class ITER, class... IS> __host__ __device__ __forceinline__ auto
 slice(const ITER& iter, int idx, int size, IS... is)
 {
@@ -616,13 +614,13 @@ slice(const ITER& iter, int idx, int size, IS... is)
 //! 行への参照を与えられると予め指定された列indexに対応する要素への参照を返す関数オブジェクト
 /*!
   \param ROW	行を指す反復子
-*/ 
+*/
 template <class ROW>
 class row2col
 {
   public:
     using argument_type	= iterator_reference<ROW>;
-    
+
   public:
     __host__ __device__	row2col(size_t col)	:_col(col)		{}
 
@@ -631,7 +629,7 @@ class row2col
 			{
 			    return *(row.begin() + _col);
 			}
-    
+
   private:
     size_t	_col;	//!< 列を指定するindex
 };
@@ -647,6 +645,5 @@ make_vertical_iterator(const ROW& row, size_t col)
 {
     return {{col}, row};
 }
+}	// namespace TU::cu
 
-}	// namespace cu
-}	// namespace TU

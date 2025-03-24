@@ -121,7 +121,7 @@ template <class COMP>
 struct extrema_position_base : public COMP
 {
     using argument_type	= typename COMP::first_argument_type;
-    using value_type	= cuda::std::tuple<argument_type, int>;
+    using value_type	= thrust::tuple<argument_type, int>;
     using COMP::operator ();
 
     __device__
@@ -159,7 +159,7 @@ struct extrema_value_position : public detail::extrema_position_base<COMP>
     using super		= detail::extrema_position_base<COMP>;
     using typename super::argument_type;
     using typename super::value_type;
-    using result_type	= cuda::std::tuple<argument_type, vec<int, 2> >;
+    using result_type	= thrust::tuple<argument_type, vec<int, 2> >;
     using super::operator ();
 
     __device__

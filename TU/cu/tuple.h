@@ -498,9 +498,9 @@ template <class... T,
 inline auto
 begin(tuple<T...>& t)
 {
-    return thrust::make_zip_iterator(
-	TU::cu::tuple_transform([](auto& x)
-				{ using std::begin; return begin(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
@@ -508,9 +508,9 @@ template <class... T,
 inline auto
 end(tuple<T...>& t)
 {
-    return thrust::make_zip_iterator(
-		tuple_transform([](auto& x)
-				{ using std::end; return end(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> inline auto
@@ -530,9 +530,9 @@ template <class... T,
 inline auto
 begin(tuple<T...>&& t)
 {
-    return thrust::make_zip_iterator(
-		tuple_transform([](auto& x)
-				{ using std::begin; return begin(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
@@ -540,9 +540,9 @@ template <class... T,
 inline auto
 end(tuple<T...>&& t)
 {
-    return thrust::make_zip_iterator(
-		tuple_transform([](auto& x)
-				{ using std::end; return end(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> __host__ __device__ __forceinline__ auto
@@ -562,9 +562,9 @@ template <class... T,
 inline auto
 begin(const tuple<T...>& t)
 {
-    return thrust::make_zip_iterator(
-		tuple_transform([](auto& x)
-				{ using std::begin; return begin(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::begin; return begin(x); }, t));
 }
 
 template <class... T,
@@ -572,9 +572,9 @@ template <class... T,
 inline auto
 end(const tuple<T...>& t)
 {
-    return thrust::make_zip_iterator(
-		tuple_transform([](auto& x)
-				{ using std::end; return end(x); }, t));
+    return make_zip_iterator(
+		TU::cu::tuple_transform(
+		    [](auto& x){ using std::end; return end(x); }, t));
 }
 
 template <class... T> inline auto
@@ -616,6 +616,8 @@ crend(const tuple<T...>& t)
 template <class... T> inline std::size_t
 size(const tuple<T...>& t)
 {
+    using	std::size;
+    
     return size(thrust::get<0>(t));
 }
 }	// namespace thrust

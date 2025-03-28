@@ -74,15 +74,15 @@ class map_iterator
 	ITER,
 	std::decay_t<
 	    decltype(cu_apply(std::declval<FUNC>(),
-			      std::declval<iterator_reference<ITER> >()))>,
+			      std::declval<std::iter_reference_t<ITER> >()))>,
 	thrust::use_default,
 	thrust::use_default,
 	decltype(cu_apply(std::declval<FUNC>(),
-			  std::declval<iterator_reference<ITER> >()))>
+			  std::declval<std::iter_reference_t<ITER> >()))>
 {
   private:
     using ref	= decltype(cu_apply(std::declval<FUNC>(),
-				    std::declval<iterator_reference<ITER> >()));
+				    std::declval<std::iter_reference_t<ITER> >()));
     using super	= thrust::iterator_adaptor<map_iterator,
 					   ITER,
 					   std::decay_t<ref>,
@@ -333,7 +333,7 @@ template <class ITER>
 class range
 {
   public:
-    using value_type	 = iterator_value<ITER>;
+    using value_type	 = std::iter_value_t<ITER>;
     using const_iterator = const_iterator_t<ITER>;
 
   public:
@@ -384,7 +384,7 @@ template <class T>
 class range<thrust::device_ptr<T> >
 {
   public:
-    using value_type	 = iterator_value<thrust::device_ptr<T> >;
+    using value_type	 = std::iter_value_t<thrust::device_ptr<T> >;
     using const_iterator = const_iterator_t<thrust::device_ptr<T> >;
 
   public:
@@ -619,7 +619,7 @@ template <class ROW>
 class row2col
 {
   public:
-    using argument_type	= iterator_reference<ROW>;
+    using argument_type	= std::iter_reference_t<ROW>;
 
   public:
     __host__ __device__	row2col(size_t col)	:_col(col)		{}

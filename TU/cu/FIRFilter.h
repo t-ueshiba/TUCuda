@@ -179,7 +179,7 @@ convolve(IN in, const T* lobe, std::integral_constant<size_t, 2>)
 template <class FILTER, size_t L, class IN, class OUT> __global__ void
 fir_filterH(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 {
-    using value_type  =	typename FILTER::buf_element_type<iterator_value<IN> >;
+    using value_type  =	typename FILTER::buf_element_type<std::iter_value_t<IN> >;
 
     constexpr int	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -205,7 +205,7 @@ fir_filterH(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 template <class FILTER, size_t L, class IN, class OUT> __global__ void
 fir_filterV(range<range_iterator<IN> > in, range<range_iterator<OUT> > out)
 {
-    using value_type  =	typename FILTER::buf_element_type<iterator_value<IN> >;
+    using value_type  =	typename FILTER::buf_element_type<std::iter_value_t<IN> >;
 
     constexpr int	LobeSize  = L & ~0x1;	// 中心点を含まないローブ長
 
@@ -309,7 +309,7 @@ FIRFilter2<BLOCK_TRAITS>::convolve(IN in, IN ie, OUT out, bool shift) const
     if (ncol <= 2*lsH)
 	return;
 
-    using buf_element_t = buf_element_type<typename iterator_value<IN>
+    using buf_element_t = buf_element_type<typename std::iter_value_t<IN>
 							::value_type>;
     Array2<buf_element_t>	buf(nrow, ncol - 2*lsH);
 

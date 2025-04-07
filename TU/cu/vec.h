@@ -1569,13 +1569,13 @@ class Rigidity : public Affinity<T, D, D>
 };
 
 /************************************************************************
-*  class Intrinsics<T, WD>						*
+*  class Intrinsics<T, WITH_DISTORTION>					*
 ************************************************************************/
-template <class T, bool WD=true>
+template <class T, bool WITH_DISTORTION=true>
 class Intrinsics
 {
   public:
-    constexpr static bool	with_distortion=WD;
+    constexpr static bool	with_distortion=WITH_DISTORTION;
     
     using element_type		= T;
     using flengths_type		= vec<element_type, 2>;
@@ -1647,15 +1647,17 @@ class Intrinsics
     }
 
   //! 画素座標における2D点を正規化画像座標における2D点に変換
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<!WD_, point2_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<!WITH_DISTORTION_, point2_type>
     operator ()(const point2_type& uv) const
     {
 	return (uv - _uv0)/_flen;	// canonical & without distortion
     }
 
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<WD_, point2_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<WITH_DISTORTION_, point2_type>
     operator ()(const point2_type& uv) const
     {
 	constexpr static element_type	MAX_ERR  = 0.001*0.001;
@@ -1695,15 +1697,17 @@ class Intrinsics
     }
 
   //! カメラ座標における3D点からそれが投影される画像点の画素座標を計算
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<!WD_, point2_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<!WITH_DISTORTION_, point2_type>
     operator ()(const point3_type& p) const
     {
 	return _flen*point2_type{p.x/p.z, p.y/p.z} + _uv0;
     }
 
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<WD_, point2_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<WITH_DISTORTION_, point2_type>
     operator ()(const point3_type& p) const
     {
 	point2_type	xy{p.x/p.z, p.y/p.z};
@@ -1712,8 +1716,9 @@ class Intrinsics
     }
 
   //! 3D点座標についての輝度微係数を計算
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<!WD_, derivative_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<!WITH_DISTORTION_, derivative_type>
     image_derivative0(const point3_type& p,
 		      element_type eH, element_type eV) const
     {
@@ -1724,8 +1729,9 @@ class Intrinsics
 	return {eH, eV, -eH*xy.x - eV*xy.y};
     }
 
-    template <bool WD_=WD> __host__ __device__ __forceinline__
-    std::enable_if_t<WD_, derivative_type>
+    template <bool WITH_DISTORTION_=WITH_DISTORTION>
+    __host__ __device__ __forceinline__
+    std::enable_if_t<WITH_DISTORTION_, derivative_type>
     image_derivative0(const point3_type& p,
 		      element_type eH, element_type eV) const
     {
@@ -1768,14 +1774,14 @@ class Intrinsics
 };
 
 /************************************************************************
-*  class Camera<T>							*
+*  class Camera<T, WITH_DISTORTION>					*
 ************************************************************************/
-template <class T>
+template <class T, bool WITH_DISTORTION=true>
 class Camera
 {
   public:
     using rigidity_type		= Rigidity<T, 3>;
-    using intrinsics_type	= Intrinsics<T>;
+    using intrinsics_type	= Intrinsics<T, WITH_DISTORTION>;
     using element_type		= typename intrinsics_type::element_type;
     using point2_type		= typename intrinsics_type::point2_type;
     using point3_type		= typename intrinsics_type::point3_type;

@@ -53,9 +53,7 @@
 #include <iomanip>
 #include "TU/Image++.h"
 
-namespace TU
-{
-namespace cu
+namespace TU::cu
 {
 namespace icia
 {
@@ -332,6 +330,15 @@ class ICIA : public Profiler<CLOCK>
 	value_type	color_thresh	= 20;
 	value_type	tol		= 1.0e-4;
 	size_t		niter_max	= 100;
+
+	friend std::ostream&
+	operator <<(std::ostream& out, const Parameters& params)
+	{
+	    return out << "sigma="	    << params.sigma
+		       << ", color_thresh=" << params.color_thresh
+		       << ", tol="	    << params.tol
+		       << ", niter_max="    << params.niter_max;
+	}
     };
 
   private:
@@ -559,6 +566,4 @@ ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
 
     _M = moment_type::M(tmp_moment[0]);
 }
-
-}	// namespace cu
-}	// namespace TU
+}	// namespace TU::cu

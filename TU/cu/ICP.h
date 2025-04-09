@@ -303,19 +303,18 @@ class ErrorMetric
 }	// namespace icp
 
 /************************************************************************
-*  class ICP<T, C, WD, CLOCK>						*
+*  class ICP<T, C, WITH_DISTORTION, CLOCK>				*
 ************************************************************************/
-template <class T, class C, bool WD=false, class CLOCK=void>
+template <class T, class C, bool WITH_DISTORTION=false, class CLOCK=void>
 class ICP : public Profiler<CLOCK>
 {
   public:
     constexpr static size_t	NLEVELS_MAX = 5;
-    constexpr static bool	with_distortion = WD;
 
     using value_type		= T;
     using color_type		= C;
     using transform_type	= Rigidity<value_type, 3>;
-    using intrinsics_type	= Intrinsics<value_type, with_distortion>;
+    using intrinsics_type	= Intrinsics<value_type, WITH_DISTORTION>;
     using point_type		= typename transform_type::point_type;
     using direction_type	= typename transform_type::direction_type;
 
@@ -326,6 +325,16 @@ class ICP : public Profiler<CLOCK>
 	value_type	color_thresh	= 20.0;
 	value_type	color_weight	= 1.0;
 	size_t		niterations	= 5;
+
+	friend std::ostream&
+	operator <<(std::ostream& out, const Parameters& params)
+	{
+	    return out << "dist_thresh="  << params.dist_thresh
+		       << "angle_thresh=" << params.angle_thresh
+		       << "color_thresh=" << params.color_thresh
+		       << "color_weight=" << params.color_weight
+		       << "niterations="  << params.niterations;
+	}
     };
 
     struct Frame
@@ -384,40 +393,40 @@ class ICP : public Profiler<CLOCK>
     Frame	_source;
 };
 
-template <class T, class C, bool WD, class CLOCK> void
-ICP<T, C, WD, CLOCK>::setSourceFrame(const Frame& source)
+template <class T, class C, bool WITH_DISTORTION, class CLOCK> void
+ICP<T, C, WITH_DISTORTION, CLOCK>::setSourceFrame(const Frame& source)
 {
     _source = source;
 }
 
-template <class T, class C, bool WD, class CLOCK> void
-ICP<T, C, WD, CLOCK>::setSourceFrame(Frame&& source)
+template <class T, class C, bool WITH_DISTORTION, class CLOCK> void
+ICP<T, C, WITH_DISTORTION, CLOCK>::setSourceFrame(Frame&& source)
 {
     _source = std::move(source);
 }
 
-template <class T, class C, bool WD, class CLOCK> void
-ICP<T, C, WD, CLOCK>::swapSourceFrame(Frame& source)
+template <class T, class C, bool WITH_DISTORTION, class CLOCK> void
+ICP<T, C, WITH_DISTORTION, CLOCK>::swapSourceFrame(Frame& source)
 {
     _source.swap(source);
 }
 
-template <class T, class C, bool WD, class CLOCK> void
-ICP<T, C, WD, CLOCK>::clearSourceFrame()
+template <class T, class C, bool WITH_DISTORTION, class CLOCK> void
+ICP<T, C, WITH_DISTORTION, CLOCK>::clearSourceFrame()
 {
     _source.clear();
 }
 
-template <class T, class C, bool WD, class CLOCK> bool
-ICP<T, C, WD, CLOCK>::empty() const
+template <class T, class C, bool WITH_DISTORTION, class CLOCK> bool
+ICP<T, C, WITH_DISTORTION, CLOCK>::empty() const
 {
     return _source.nrow() == 0;
 }
 
-template <class T, class C, bool WD, class CLOCK>
-typename ICP<T, C, WD, CLOCK>::value_type
-ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
-				  transform_type& Tts) const
+template <class T, class C, bool WITH_DISTORTION, class CLOCK>
+typename ICP<T, C, WITH_DISTORTION, CLOCK>::value_type
+ICP<T, C, WITH_DISTORTION, CLOCK>::operator ()(const Frame& target,
+					       transform_type& Tts) const
 {
   // Update transform by Lebensberg-Marquarde iteration.
     auto	Tts_old = Tts;
@@ -498,10 +507,10 @@ ICP<T, C, WD, CLOCK>::operator ()(const Frame& target,
     return mse_old;
 }
 
-template <class T, class C, bool WD, class CLOCK>
-typename ICP<T, C, WD, CLOCK>::value_type
-ICP<T, C, WD, CLOCK>::operator ()(const Frame& source,
-				  const Frame& target, transform_type& Tts)
+template <class T, class C, bool WITH_DISTORTION, class CLOCK>
+typename ICP<T, C, WITH_DISTORTION, CLOCK>::value_type
+ICP<T, C, WITH_DISTORTION, CLOCK>::operator ()(
+    const Frame& source, const Frame& target, transform_type& Tts)
 {
     setSourceFrame(source);
     return (*this)(target, Tts);

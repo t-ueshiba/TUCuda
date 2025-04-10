@@ -1571,12 +1571,12 @@ class Rigidity : public Affinity<T, D, D>
 /************************************************************************
 *  class Intrinsics<T, WITH_DISTORTION>					*
 ************************************************************************/
-template <class T, bool WITH_DISTORTION=true>
+template <class T, bool WITH_DISTORTION=false>
 class Intrinsics
 {
   public:
     constexpr static bool	with_distortion=WITH_DISTORTION;
-    
+
     using element_type		= T;
     using flengths_type		= vec<element_type, 2>;
     using point2_type		= vec<element_type, 2>;
@@ -1613,7 +1613,7 @@ class Intrinsics
 	std::copy(d.begin(), d.end(), std::begin(_d));
 	return *this;
     }
-    
+
     template <class ITER_K, class ITER_D=nullptr_t> Intrinsics&
     initialize(ITER_K K, ITER_D d=nullptr, ITER_D de=nullptr,
 	       element_type scale=1)
@@ -1632,7 +1632,7 @@ class Intrinsics
 
     const flengths_type&
     flen()		const	{ return _flen; }
-    
+
     const point2_type&
     uv0()		const	{ return _uv0; }
 
@@ -1665,7 +1665,7 @@ class Intrinsics
 
 	const auto	xy0 = (uv - _uv0)/_flen;
 	auto		xy  = xy0;
-	
+
       // compensate distortion iteratively
 	for (int n = 0; n < MAX_ITER; ++n)
 	{
@@ -1749,13 +1749,13 @@ class Intrinsics
     {
 	return {dc.z*xy.x + dc.x, dc.z*xy.y + dc.y};
     }
-    
+
     __host__ __device__ __forceinline__ point2_type
     remove_distortion(const point2_type& xy, const dcoeffs_type& dc) const
     {
 	return {(xy.x - dc.x)/dc.z, (xy.y - dc.y)/dc.z};
     }
-    
+
     __host__ __device__ __forceinline__ dcoeffs_type
     dcoeffs(const point2_type& xy) const
     {
@@ -1776,7 +1776,7 @@ class Intrinsics
 /************************************************************************
 *  class Camera<T, WITH_DISTORTION>					*
 ************************************************************************/
-template <class T, bool WITH_DISTORTION=true>
+template <class T, bool WITH_DISTORTION=false>
 class Camera
 {
   public:

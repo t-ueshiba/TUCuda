@@ -1374,7 +1374,7 @@ class Affinity
     std::enable_if_t<DO_ == 2 && DI_ == 2, point_type>
 		operator ()(T u, T v) const
 		{
-		    return (*this)(vec<T, 2>({u, v}));
+		    return (*this)(vec<T, 2>(u, v));
 		}
 
     template <size_t DO_=DO, size_t DI_=DI> __host__ __device__

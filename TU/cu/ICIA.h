@@ -172,6 +172,8 @@ namespace icia
 	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
 	   _source(source.cbegin(), source.nrow()),
 	   _target(target),
+	   _nrow_t(_target.nrow()),
+	   _ncol_t(_target.ncol()),
 	   _sqcolor_thresh(color_thresh*color_thresh)
       {
       }
@@ -216,7 +218,8 @@ namespace icia
 	  const int	u    = i - (v * ncol());
 	  const auto	uv_t = _Mts(u, v);
 
-	  if (0 <= uv_t.x && uv_t.x < ncol() && 0 <= uv_t.y && uv_t.y < nrow())
+	  if (0 <= uv_t.x && uv_t.x < _ncol_t &&
+	      0 <= uv_t.y && uv_t.y < _nrow_t)
 	  {
 	      const auto	c   = _source[v][u];
 	      const auto	c_t = _target(uv_t.x, uv_t.y);
@@ -308,6 +311,8 @@ namespace icia
       const image_type		_edgeV;	// source vertcial gradient image
       const image_type		_source;	// source color image
       const Texture<color_type>	_target;	// target color image
+      const int			_nrow_t;
+      const int			_ncol_t;
       const value_type		_sqcolor_thresh;
   };
 }	// namespace icia

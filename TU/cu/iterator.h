@@ -350,8 +350,14 @@ class range
 		    copy<0>(r._begin, _size, _begin);
 		    return *this;
 		}
-		range(range&&)					= default;
-    range&	operator =(range&&)				= default;
+		range(range&& r)				= default;
+    __host__ __device__
+    range&	operator =(range&& r)
+		{
+		    _begin = r._begin;
+		    _size  = r._size;
+		    return *this;
+		}
 
     __host__ __device__
     int		size()	  const	{ return _size; }
@@ -376,8 +382,8 @@ class range
 		}
 
   private:
-    const ITER	_begin;
-    const int	_size;
+    ITER	_begin;
+    int		_size;
 };
 
 template <class T>
@@ -401,8 +407,14 @@ class range<thrust::device_ptr<T> >
 		    copy<0>(r._begin, _size, _begin);
 		    return *this;
 		}
-		range(range&&)					= default;
-    range&	operator =(range&&)				= default;
+		range(range&& r)				= default;
+    __host__ __device__
+    range&	operator =(range&& r)
+		{
+		    _begin = r._begin;
+		    _size  = r._size;
+		    return *this;
+		}
 
     __host__ __device__
     int		size()	  const	{ return _size; }
@@ -427,8 +439,8 @@ class range<thrust::device_ptr<T> >
 		}
 
   private:
-    T* const	_begin;
-    int const	_size;
+    T*		_begin;
+    int		_size;
 };
 
 /************************************************************************

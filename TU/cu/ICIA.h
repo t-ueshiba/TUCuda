@@ -63,8 +63,7 @@ namespace icia
     private:
       using map_type	= typename ICIA::map_type;
       using color_type	= typename ICIA::color_type;
-      using image_type	= range<range_iterator<
-				    thrust::device_ptr<const color_type> > >;
+      using slice_type	= typename ICIA::slice_type;
 
       constexpr static size_t	DOF = map_type::DOF;
 
@@ -74,10 +73,8 @@ namespace icia
       using matrix_type	= Eigen::Matrix<value_type, DOF, DOF>;
 
     public:
-      ColorMoment(const Array2<color_type>& edgeH,
-		  const Array2<color_type>& edgeV)
-	  :_edgeH(edgeH.cbegin(), edgeH.nrow()),
-	   _edgeV(edgeV.cbegin(), edgeV.nrow())
+      ColorMoment(const slice_type& edgeH, const slice_type& edgeV)
+	  :_edgeH(edgeH), _edgeV(edgeV)
       {
       }
 
@@ -140,8 +137,8 @@ namespace icia
       int	ncol()		const	{ return _edgeH.cbegin().size(); }
 
     private:
-      const image_type	_edgeH;		// source horizontal gradient image
-      const image_type	_edgeV;		// source vertcial gradient image
+      const slice_type	_edgeH;		// source horizontal gradient image
+      const slice_type	_edgeV;		// source vertcial gradient image
   };
 
   template <class ICIA>
@@ -150,8 +147,8 @@ namespace icia
     private:
       using map_type	= typename ICIA::map_type;
       using color_type	= typename ICIA::color_type;
-      using image_type	= range<range_iterator<
-				    thrust::device_ptr<const color_type> > >;
+      using image_type	= typename ICIA::image_type;
+      using slice_type	= typename ICIA::slice_type;
 
       constexpr static size_t	DOF = map_type::DOF;
 
@@ -162,15 +159,15 @@ namespace icia
 
     public:
       ColorDeviation(const map_type& Mts,
-		     const Array2<color_type>& edgeH,
-		     const Array2<color_type>& edgeV,
-		     const Array2<color_type>& source,
-		     const Array2<color_type>& target,
+		     const slice_type& edgeH,
+		     const slice_type& edgeV,
+		     const slice_type& source,
+		     const image_type& target,
 		     value_type color_thresh)
 	  :_Mts(Mts),
-	   _edgeH(edgeH.cbegin(), edgeH.nrow()),
-	   _edgeV(edgeV.cbegin(), edgeV.nrow()),
-	   _source(source.cbegin(), source.nrow()),
+	   _edgeH(edgeH),
+	   _edgeV(edgeV),
+	   _source(source),
 	   _target(target),
 	   _nrow_t(_target.nrow()),
 	   _ncol_t(_target.ncol()),
@@ -186,7 +183,8 @@ namespace icia
 	  const int	u    = i - (v * ncol());
 	  const auto	uv_t = _Mts(u, v);
 
-	  if (0 <= uv_t.x && uv_t.x < ncol() && 0 <= uv_t.y && uv_t.y < nrow())
+	  if (0 <= uv_t.x && uv_t.x < _ncol_t &&
+	      0 <= uv_t.y && uv_t.y < _nrow_t)
 	  {
 	      const auto	c   = _source[v][u];
 	      const auto	c_t = _target(uv_t.x, uv_t.y);
@@ -307,9 +305,9 @@ namespace icia
 
     private:
       const map_type		_Mts;	// map from source to destination image
-      const image_type		_edgeH;	// source horizontal gradient image
-      const image_type		_edgeV;	// source vertcial gradient image
-      const image_type		_source;	// source color image
+      const slice_type		_edgeH;	// source horizontal gradient image
+      const slice_type		_edgeV;	// source vertcial gradient image
+      const slice_type		_source;	// source color image
       const Texture<color_type>	_target;	// target color image
       const int			_nrow_t;
       const int			_ncol_t;
@@ -327,6 +325,8 @@ class ICIA : public Profiler<CLOCK>
     using map_type	= MAP;
     using color_type	= C;
     using image_type	= Array2<color_type>;
+    using slice_type	= range<range_iterator<
+			      thrust::device_ptr<const color_type> > >;
     using value_type	= typename map_type::element_type;
 
     struct Parameters
@@ -355,73 +355,123 @@ class ICIA : public Profiler<CLOCK>
   public:
 		ICIA(const Parameters& params=Parameters())
 		    :profiler_type(2), _params(params),
-		     _source(), _edgeH(), _edgeV(), _M()		{}
+		     _source_image(), _edgeH_image(), _edgeV_image(),
+		     _source(_source_image.cbegin(), _source_image.nrow()),
+		     _edgeH(_edgeH_image.cbegin(), _edgeH_image.nrow()),
+		     _edgeV(_edgeV_image.cbegin(), _edgeV_image.nrow()),
+		     _M()						{}
 
     const Parameters&
-		getParameters()			const	{ return _params; }
+		getParameters()		const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
     const image_type&
-		getSourceImage()		const	{ return _source; }
+		getSourceImage()	const	{ return _source_image; }
     const image_type&
-		getEdgeH()			const	{ return _edgeH; }
+		getEdgeH()		const	{ return _edgeH_image; }
     const image_type&
-		getEdgeV()			const	{ return _edgeV; }
+		getEdgeV()		const	{ return _edgeV_image; }
     bool	empty()						const	;
     void	clearSourceImage()					;
     void	setSourceImage(const image_type& source)		;
     void	setSourceImage(image_type&& source)			;
     void	swapSourceImage(image_type& source)			;
+    void	setSourceWindow(size_t v0, size_t winSizeV,
+				size_t u0, size_t winSizeH)	;
     value_type	operator ()(const image_type& target, MAP& Mts)	const	;
     value_type	operator ()(const image_type& source,
 			    const image_type& target, MAP& Mts)		;
 
   private:
-    void	computeEdgesAndMoment()					;
-
+    void	computeEdges()						;
+    
   private:
     Parameters	_params;
-    image_type	_source;	// current reference source image
-    image_type	_edgeH;		// horizontal derivative of source image
-    image_type	_edgeV;		// vertical derivative of source image
+    image_type	_source_image;	// current reference source image
+    image_type	_edgeH_image;	// horizontal derivative of source image
+    image_type	_edgeV_image;	// vertical derivative of source image
+    slice_type	_source;
+    slice_type	_edgeH;
+    slice_type	_edgeV;
     matrix_type	_M;		// color moment matrix
 };
 
 template <class MAP, class C, class CLOCK> bool
 ICIA<MAP, C, CLOCK>::empty() const
 {
-    return _source.nrow() == 0;
+    return _source_image.nrow() == 0;
 }
 
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::clearSourceImage()
 {
-    _source.resize(0, 0);
-    _edgeH.resize(0, 0);
-    _edgeV.resize(0, 0);
+    _source_image.resize(0, 0);
+    _edgeH_image.resize(0, 0);
+    _edgeV_image.resize(0, 0);
 }
 
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& source)
 {
-    _source = source;
+    _source_image = source;
 
-    computeEdgesAndMoment();
+    computeEdges();
+    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& source)
 {
-    _source = std::move(source);
+    _source_image = std::move(source);
 
-    computeEdgesAndMoment();
+    computeEdges();
+    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& source)
 {
-    _source.swap(source);
+    _source_image.swap(source);
 
-    computeEdgesAndMoment();
+    computeEdges();
+    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
+}
+
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
+				     size_t u0, size_t winSizeH)
+{
+    using moment_type		= icia::ColorMoment<ICIA>;
+    using moment_array_type	= typename moment_type::array_type;
+
+    if (v0 + winSizeV > _source_image.nrow() ||
+	u0 + winSizeH > _source_image.ncol())
+	throw std::runtime_error("ICIA::setSourceWindow(): illegal window size["
+				 + std::to_string(winSizeH) + 'x'
+				 + std::to_string(winSizeV) + ']');
+
+    _source = cu::slice(_source_image.cbegin(), v0, winSizeV, u0, winSizeH);
+    _edgeH  = cu::slice(_edgeH_image.cbegin(),  v0, winSizeV, u0, winSizeH);
+    _edgeV  = cu::slice(_edgeV_image.cbegin(),  v0, winSizeV, u0, winSizeH);
+
+    
+  // Compute error moment matrix by parallel reduction.
+    const moment_type		color_moment(_edgeH, _edgeV);
+    Array<moment_array_type>	tmp_moment(1);
+    size_t			tmp_size = 0;
+    cub::DeviceReduce::Sum(nullptr, tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
+    Array<uint8_t>	tmp(tmp_size);
+    cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
+			   thrust::make_transform_iterator(
+			       thrust::make_counting_iterator(0),
+			       color_moment),
+			   tmp_moment.begin(), color_moment.size());
+    gpuCheckLastError();
+
+    _M = moment_type::M(tmp_moment[0]);
 }
 
 template <class MAP, class C, class CLOCK>
@@ -509,7 +559,8 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	image_type	source(target.nrow(), target.ncol());
 	source = 0;
 	warp(target, source.begin(), Mts);
-	TU::Image<C>	diff = TU::Array2<C>(_source) - TU::Array2<C>(source);
+	TU::Image<C>	diff = TU::Array2<C>(_source_image)
+			     - TU::Array2<C>(source);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
@@ -540,35 +591,15 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::computeEdgesAndMoment()
+ICIA<MAP, C, CLOCK>::computeEdges()
 {
-    using moment_type		= icia::ColorMoment<ICIA>;
-    using moment_array_type	= typename moment_type::array_type;
-
   // Compute horizontal and vertical image derivatives.
-    _edgeH.resize(_source.nrow(), _source.ncol());
-    _edgeV.resize(_source.nrow(), _source.ncol());
+    _edgeH_image.resize(_source_image.nrow(), _source_image.ncol());
+    _edgeV_image.resize(_source_image.nrow(), _source_image.ncol());
     FIRGaussianConvolver2<>	convolver(_params.sigma);
-    convolver.diffH(_source.cbegin(), _source.cend(), _edgeH.begin(), true);
-    convolver.diffV(_source.cbegin(), _source.cend(), _edgeV.begin(), true);
-
-  // Compute error moment matrix by parallel reduction.
-    const moment_type		color_moment(_edgeH, _edgeV);
-    Array<moment_array_type>	tmp_moment(1);
-    size_t			tmp_size = 0;
-    cub::DeviceReduce::Sum(nullptr, tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_moment.begin(), color_moment.size());
-    Array<uint8_t>	tmp(tmp_size);
-    cub::DeviceReduce::Sum(tmp.data().get(), tmp_size,
-			   thrust::make_transform_iterator(
-			       thrust::make_counting_iterator(0),
-			       color_moment),
-			   tmp_moment.begin(), color_moment.size());
-    gpuCheckLastError();
-
-    _M = moment_type::M(tmp_moment[0]);
+    convolver.diffH(_source_image.cbegin(), _source_image.cend(),
+		    _edgeH_image.begin(), true);
+    convolver.diffV(_source_image.cbegin(), _source_image.cend(),
+		    _edgeV_image.begin(), true);
 }
 }	// namespace TU::cu

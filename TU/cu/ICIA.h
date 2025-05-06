@@ -346,6 +346,12 @@ class ICIA : public Profiler<CLOCK>
 	}
     };
 
+    struct result_type
+    {
+	value_type	mse;
+	size_t		npoints;
+    };
+
   private:
     constexpr static size_t	DOF = map_type::DOF;
 
@@ -377,8 +383,8 @@ class ICIA : public Profiler<CLOCK>
     void	swapSourceImage(image_type& source)			;
     void	setSourceWindow(size_t v0, size_t winSizeV,
 				size_t u0, size_t winSizeH)	;
-    value_type	operator ()(const image_type& target, MAP& Mts)	const	;
-    value_type	operator ()(const image_type& source,
+    result_type	operator ()(const image_type& target, MAP& Mts)	const	;
+    result_type	operator ()(const image_type& source,
 			    const image_type& target, MAP& Mts)		;
 
   private:
@@ -475,7 +481,7 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
 }
 
 template <class MAP, class C, class CLOCK>
-typename ICIA<MAP, C, CLOCK>::value_type
+typename ICIA<MAP, C, CLOCK>::result_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
     using deviation_type	= icia::ColorDeviation<ICIA>;
@@ -484,6 +490,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
   // Convert the error moment to a matrix and save its diagonals.
     auto		Mts_old = Mts;
     auto		mse_old = std::numeric_limits<value_type>::max();
+    size_t		npoints_old = 0;
     auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
@@ -509,34 +516,36 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	const deviation_array_type	deviation_array = tmp_deviation[0];
 
       // Evaluate residual mean square_error.
-	const auto	mse = deviation_type::mse(deviation_array);
+	const auto	mse	= deviation_type::mse(deviation_array);
+	const size_t	npoints = deviation_type::npoints(deviation_array);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old)
 		  << ", sqerr="   << deviation_type::sqerr(deviation_array)
-		  << ", npoints=" << deviation_type::npoints(deviation_array)
+		  << ", npoints=" << npoints
 		  << std::endl;
 #endif
 	if (isnan(mse))
-	    return mse;
+	    return {mse, npoints};
 
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol || lambda < 1.0e-15)
 	    {
-		return mse;
+		return {mse, npoints};
 	    }
 
-	    Mts_old = Mts;
-	    mse_old = mse;
-	    lambda *= 0.1;
+	    Mts_old	= Mts;
+	    mse_old	= mse;
+	    npoints_old = npoints;
+	    lambda     *= 0.1;
 	}
 	else
 	{
 	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-15)
 	    {
 		Mts = Mts_old;
-		return mse_old;
+		return {mse_old, npoints_old};
 	    }
 
 	    lambda *= 10.0;
@@ -568,11 +577,11 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 
     throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");
 
-    return -1.0;
+    return {-1.0, 0};
 }
 
 template <class MAP, class C, class CLOCK>
-typename ICIA<MAP, C, CLOCK>::value_type
+typename ICIA<MAP, C, CLOCK>::result_type
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 				 const image_type& target, MAP& Mts)
 {
@@ -584,10 +593,10 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
     profiler_type::start(0);
     setSourceImage(source);
     profiler_type::start(1);
-    const auto	mse = (*this)(target, Mts);
+    const auto	result = (*this)(target, Mts);
     profiler_type::nextFrame();
 
-    return mse;
+    return result;
 }
 
 template <class MAP, class C, class CLOCK> void

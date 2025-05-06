@@ -44,8 +44,8 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     MAP			Mds;
     Mds.initialize();
     registration.swapSourceImage(src_d);
-    const auto		err = registration(dst_d, Mds);
-    std::cerr << "RMS-err = " << std::sqrt(err) << std::endl;
+    const auto		mse = registration(dst_d, Mds).mse;
+    std::cerr << "RMS-err = " << std::sqrt(mse) << std::endl;
     std::cerr << Mds;
 
     registration.print(std::cerr);

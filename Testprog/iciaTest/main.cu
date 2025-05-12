@@ -43,7 +43,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     cu::ICIA<MAP, C>	registration(params);
     MAP			Mds;
     Mds.initialize();
-    registration.swapSourceImage(src_d);
+    registration.setSourceImage(src_d);
     const auto		mse = registration(dst_d, Mds).mse;
     std::cerr << "RMS-err = " << std::sqrt(mse) << std::endl;
     std::cerr << Mds;

@@ -273,10 +273,10 @@ namespace icia
 	  return v;
       }
 
-      static value_type
-      npoints(const array_type& deviation)
+      value_type
+      overlap(const array_type& deviation) const
       {
-	  return deviation[DOF+1];
+	  return deviation[DOF+1] / size();
       }
 
       static value_type
@@ -346,10 +346,38 @@ class ICIA : public Profiler<CLOCK>
 	}
     };
 
-    struct result_type
+    struct Frame
+    {
+	image_type	image;
+	image_type	edgeH;
+	image_type	edgeV;
+
+	size_t	nrow()	const	{ return image.nrow(); }
+	size_t	ncol()	const	{ return image.ncol(); }
+	void	swap(Frame& frame)
+		{
+		    image.swap(frame.image);
+		    edgeH.swap(frame.edgeH);
+		    edgeV.swap(frame.edgeV);
+		}
+	void	clear()
+		{
+		    image.resize(0, 0);
+		    edgeH.resize(0, 0);
+		    edgeV.resize(0, 0);
+		}
+	void	resize(size_t r, size_t c)
+		{
+		    image.resize(r, c);
+		    edgeH.resize(r, c);
+		    edgeV.resize(r, c);
+		}
+    };
+    
+    struct Result
     {
 	value_type	mse;
-	size_t		npoints;
+	value_type	overlap;
     };
 
   private:
@@ -360,31 +388,29 @@ class ICIA : public Profiler<CLOCK>
 
   public:
 		ICIA(const Parameters& params=Parameters())
-		    :profiler_type(2), _params(params),
-		     _source_image(), _edgeH_image(), _edgeV_image(),
-		     _source(_source_image.cbegin(), _source_image.nrow()),
-		     _edgeH(_edgeH_image.cbegin(), _edgeH_image.nrow()),
-		     _edgeV(_edgeV_image.cbegin(), _edgeV_image.nrow()),
+		    :profiler_type(2), _params(params), _source(),
+		     _image(_source.image.cbegin(), _source.image.nrow()),
+		     _edgeH(_source.edgeH.cbegin(), _source.edgeH.nrow()),
+		     _edgeV(_source.edgeV.cbegin(), _source.edgeV.nrow()),
 		     _M()						{}
 
     const Parameters&
 		getParameters()		const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
-    const image_type&
-		getSourceImage()	const	{ return _source_image; }
-    const image_type&
-		getEdgeH()		const	{ return _edgeH_image; }
-    const image_type&
-		getEdgeV()		const	{ return _edgeV_image; }
-    bool	empty()						const	;
-    void	clearSourceImage()					;
-    void	setSourceImage(const image_type& source)		;
-    void	setSourceImage(image_type&& source)			;
-    void	swapSourceImage(image_type& source)			;
+    bool	empty()			const	{ return _source.nrow() == 0; }
+    const Frame&
+		getSourceFrame()	const	{ return _source; }
+    void	clearSourceFrame()		{ _source.clear(); }
+    void	setSourceFrame(const Frame& source)			;
+    void	setSourceFrame(Frame&& source)				;
+    void	swapSourceFrame(Frame& source)				;
+    void	setSourceImage(const image_type& image)			;
+    void	setSourceImage(image_type&& image)			;
+    void	swapSourceImage(image_type& image)			;
     void	setSourceWindow(size_t v0, size_t winSizeV,
-				size_t u0, size_t winSizeH)	;
-    result_type	operator ()(const image_type& target, MAP& Mts)	const	;
-    result_type	operator ()(const image_type& source,
+				size_t u0, size_t winSizeH)		;
+    Result	operator ()(const image_type& target, MAP& Mts)	const	;
+    Result	operator ()(const image_type& source,
 			    const image_type& target, MAP& Mts)		;
 
   private:
@@ -392,54 +418,62 @@ class ICIA : public Profiler<CLOCK>
     
   private:
     Parameters	_params;
-    image_type	_source_image;	// current reference source image
-    image_type	_edgeH_image;	// horizontal derivative of source image
-    image_type	_edgeV_image;	// vertical derivative of source image
-    slice_type	_source;
+    Frame	_source;	// current reference source image
+    slice_type	_image;
     slice_type	_edgeH;
     slice_type	_edgeV;
     matrix_type	_M;		// color moment matrix
 };
 
-template <class MAP, class C, class CLOCK> bool
-ICIA<MAP, C, CLOCK>::empty() const
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::setSourceFrame(const Frame& source)
 {
-    return _source_image.nrow() == 0;
+    _source = source;
+
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::clearSourceImage()
+ICIA<MAP, C, CLOCK>::setSourceFrame(Frame&& source)
 {
-    _source_image.resize(0, 0);
-    _edgeH_image.resize(0, 0);
-    _edgeV_image.resize(0, 0);
+    _source = std::move(source);
+
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& source)
+ICIA<MAP, C, CLOCK>::swapSourceFrame(Frame& source)
 {
-    _source_image = source;
+    _source.swap(source);
+
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+}
+
+template <class MAP, class C, class CLOCK> void
+ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& image)
+{
+    _source.image = image;
 
     computeEdges();
-    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& source)
+ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& image)
 {
-    _source_image = std::move(source);
+    _source.image = std::move(image);
 
     computeEdges();
-    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
-ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& source)
+ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& image)
 {
-    _source_image.swap(source);
+    _source.image.swap(image);
 
     computeEdges();
-    setSourceWindow(0, _source_image.nrow(), 0, _source_image.ncol());
+    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -449,16 +483,15 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
     using moment_type		= icia::ColorMoment<ICIA>;
     using moment_array_type	= typename moment_type::array_type;
 
-    if (v0 + winSizeV > _source_image.nrow() ||
-	u0 + winSizeH > _source_image.ncol())
+    if (v0 + winSizeV > _source.image.nrow() ||
+	u0 + winSizeH > _source.image.ncol())
 	throw std::runtime_error("ICIA::setSourceWindow(): illegal window size["
 				 + std::to_string(winSizeH) + 'x'
 				 + std::to_string(winSizeV) + ']');
 
-    _source = cu::slice(_source_image.cbegin(), v0, winSizeV, u0, winSizeH);
-    _edgeH  = cu::slice(_edgeH_image.cbegin(),  v0, winSizeV, u0, winSizeH);
-    _edgeV  = cu::slice(_edgeV_image.cbegin(),  v0, winSizeV, u0, winSizeH);
-
+    _image = cu::slice(_source.image.cbegin(), v0, winSizeV, u0, winSizeH);
+    _edgeH = cu::slice(_source.edgeH.cbegin(), v0, winSizeV, u0, winSizeH);
+    _edgeV = cu::slice(_source.edgeV.cbegin(), v0, winSizeV, u0, winSizeH);
     
   // Compute error moment matrix by parallel reduction.
     const moment_type		color_moment(_edgeH, _edgeV);
@@ -481,7 +514,7 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
 }
 
 template <class MAP, class C, class CLOCK>
-typename ICIA<MAP, C, CLOCK>::result_type
+typename ICIA<MAP, C, CLOCK>::Result
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 {
     using deviation_type	= icia::ColorDeviation<ICIA>;
@@ -490,14 +523,14 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
   // Convert the error moment to a matrix and save its diagonals.
     auto		Mts_old = Mts;
     auto		mse_old = std::numeric_limits<value_type>::max();
-    size_t		npoints_old = 0;
+    size_t		overlap_old = 0;
     auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const deviation_type		deviation(Mts, _edgeH, _edgeV,
-						  _source, target,
+	const deviation_type		deviation(Mts, _image, _edgeH, _edgeV,
+						  target,
 						  _params.color_thresh);
 	Array<deviation_array_type>	tmp_deviation(1);
 	size_t				tmp_size = 0;
@@ -517,27 +550,27 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 
       // Evaluate residual mean square_error.
 	const auto	mse	= deviation_type::mse(deviation_array);
-	const size_t	npoints = deviation_type::npoints(deviation_array);
+	const auto	overlap = deviation.overlap(deviation_array);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
 		  << ", mse_absdiff=" << std::abs(mse - mse_old)
 		  << ", sqerr="   << deviation_type::sqerr(deviation_array)
-		  << ", npoints=" << npoints
+		  << ", overlap=" << overlap
 		  << std::endl;
 #endif
 	if (isnan(mse))
-	    return {mse, npoints};
+	    return {mse, overlap};
 
 	if (mse < mse_old)
 	{
 	    if (std::abs(mse - mse_old) <= _params.tol || lambda < 1.0e-15)
 	    {
-		return {mse, npoints};
+		return {mse, overlap};
 	    }
 
 	    Mts_old	= Mts;
 	    mse_old	= mse;
-	    npoints_old = npoints;
+	    overlap_old = overlap;
 	    lambda     *= 0.1;
 	}
 	else
@@ -545,7 +578,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	    if (std::abs(mse - mse_prev) <= _params.tol || lambda < 1.0e-15)
 	    {
 		Mts = Mts_old;
-		return {mse_old, npoints_old};
+		return {mse_old, overlap_old};
 	    }
 
 	    lambda *= 10.0;
@@ -568,7 +601,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	image_type	source(target.nrow(), target.ncol());
 	source = 0;
 	warp(target, source.begin(), Mts);
-	TU::Image<C>	diff = TU::Array2<C>(_source_image)
+	TU::Image<C>	diff = TU::Array2<C>(_source.image)
 			     - TU::Array2<C>(source);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
@@ -581,7 +614,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 }
 
 template <class MAP, class C, class CLOCK>
-typename ICIA<MAP, C, CLOCK>::result_type
+typename ICIA<MAP, C, CLOCK>::Result
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 				 const image_type& target, MAP& Mts)
 {
@@ -603,12 +636,12 @@ template <class MAP, class C, class CLOCK> void
 ICIA<MAP, C, CLOCK>::computeEdges()
 {
   // Compute horizontal and vertical image derivatives.
-    _edgeH_image.resize(_source_image.nrow(), _source_image.ncol());
-    _edgeV_image.resize(_source_image.nrow(), _source_image.ncol());
+    _source.edgeH.resize(_source.image.nrow(), _source.image.ncol());
+    _source.edgeV.resize(_source.image.nrow(), _source.image.ncol());
     FIRGaussianConvolver2<>	convolver(_params.sigma);
-    convolver.diffH(_source_image.cbegin(), _source_image.cend(),
-		    _edgeH_image.begin(), true);
-    convolver.diffV(_source_image.cbegin(), _source_image.cend(),
-		    _edgeV_image.begin(), true);
+    convolver.diffH(_source.image.cbegin(), _source.image.cend(),
+		    _source.edgeH.begin(), true);
+    convolver.diffV(_source.image.cbegin(), _source.image.cend(),
+		    _source.edgeV.begin(), true);
 }
 }	// namespace TU::cu

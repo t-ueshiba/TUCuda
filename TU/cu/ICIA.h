@@ -366,12 +366,6 @@ class ICIA : public Profiler<CLOCK>
 		    edgeH.resize(0, 0);
 		    edgeV.resize(0, 0);
 		}
-	void	resize(size_t r, size_t c)
-		{
-		    image.resize(r, c);
-		    edgeH.resize(r, c);
-		    edgeV.resize(r, c);
-		}
     };
     
     struct Result

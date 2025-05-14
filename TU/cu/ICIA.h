@@ -448,6 +448,12 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& image)
 {
     _source.image = image;
 
+#if defined(DEBUG)
+    Image<float>	diff(_source.image.ncol(), _source.image.nrow());
+    std::cout << 'M' << 1 << std::endl;
+    diff.saveHeader(std::cout, ImageFormat::FLOAT);
+#endif
+
     computeEdges();
     setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
@@ -610,11 +616,6 @@ typename ICIA<MAP, C, CLOCK>::Result
 ICIA<MAP, C, CLOCK>::operator ()(const image_type& source,
 				 const image_type& target, MAP& Mts)
 {
-#if defined(DEBUG)
-    Image<float>	diff(source.ncol(), source.nrow());
-    std::cout << 'M' << 1 << std::endl;
-    diff.saveHeader(std::cout, ImageFormat::FLOAT);
-#endif
     profiler_type::start(0);
     setSourceImage(source);
     profiler_type::start(1);

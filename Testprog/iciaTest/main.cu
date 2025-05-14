@@ -3,6 +3,7 @@
  */
 #include <cstdlib>
 #include <fstream>
+#include <algorithm>
 #include "TU/Warp.h"
 #include "TU/cu/ICIA.h"
 
@@ -22,7 +23,8 @@ createRigidity(T u0, T du, T v0, T dv, T theta)
 }	// namespace cu
 
 template <class MAP, class C, class T> void
-registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
+registerImages(const Image<C>& src, T du, T dv, T theta,
+	       size_t u0, size_t v0, size_t w, size_t h, T thresh)
 {
     using Parameters	= typename cu::ICIA<MAP, C>::Parameters;
 
@@ -45,7 +47,9 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     cu::ICIA<MAP, C>	registration(params);
     MAP			Mds;
     Mds.initialize();
-    const auto		mse = registration(src_d, dst_d, Mds).mse;
+    registration.setSourceImage(src_d);
+    registration.setSourceWindow(v0, h, u0, w);
+    const auto		mse = registration(dst_d, Mds).mse;
     std::cerr << "RMS-err = " << std::sqrt(mse) << std::endl;
     std::cerr << Mds;
 
@@ -69,6 +73,7 @@ main(int argc, char* argv[])
     Algorithm		algorithm = PROJECTIVE;
     T			du = 3.0, dv = -2.0, theta = DegToRad * 3.0,
 			thresh = 50.0;
+    size_t		u0 = 0, v0 = 0, w = 0, h = 0;
     extern char		*optarg;
     for (int c; (c = getopt(argc, argv, "PARu:v:t:T:")) != -1; )
 	switch (c)
@@ -91,6 +96,18 @@ main(int argc, char* argv[])
 	  case 't':
 	    theta = DegToRad * atof(optarg);
 	    break;
+	  case 'U':
+	    u0 = atoi(optarg);
+	    break;
+	  case 'V':
+	    v0 = atoi(optarg);
+	    break;
+	  case 'W':
+	    w = atoi(optarg);
+	    break;
+	  case 'H':
+	    h = atoi(optarg);
+	    break;
 	  case 'T':
 	    thresh = atof(optarg);
 	    break;
@@ -108,17 +125,32 @@ main(int argc, char* argv[])
 #endif
 	std::cerr << "done." << std::endl;
 
+	if (w == 0)
+	    w = src.ncol();
+	w  = std::clamp(w,  size_t(0), src.ncol());
+	u0 = std::clamp(u0, size_t(0), src.ncol() - w);
+	
+	if (h == 0)
+	    h = src.ncol();
+	h  = std::clamp(h,  size_t(0), src.nrow());
+	u0 = std::clamp(u0, size_t(0), src.nrow() - h);
+
+	std::cerr << w << 'x' << h << "@(" << u0 << ',' << v0 << ')'
+		  << std::endl;
+	
 	switch (algorithm)
 	{
 	  case RIGID:
-	    registerImages<cu::Rigidity<T, 2> >(src, du, dv, theta, thresh);
+	    registerImages<cu::Rigidity<T, 2> >(src, du, dv, theta,
+						u0, v0, w, h, thresh);
 	    break;
 	  case AFFINE:
-	    registerImages<cu::Affinity<T, 2, 2> >(src, du, dv, theta, thresh);
+	    registerImages<cu::Affinity<T, 2, 2> >(src, du, dv, theta,
+						   u0, v0, w, h, thresh);
 	    break;
 	  default:
 	    registerImages<cu::Projectivity<T, 2, 2> >(src, du, dv, theta,
-						       thresh);
+						       u0, v0, w, h, thresh);
 	    break;
 	}
     }

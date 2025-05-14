@@ -35,7 +35,9 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     Image<C>		dst(dst_d);
     src.save(std::cout);
     dst.save(std::cout);			// 結果画像をセーブ
+    return;
 #endif
+    
   // 位置合わせを実行．
     Parameters	params;
     params.color_thresh = thresh;
@@ -43,8 +45,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta, T thresh)
     cu::ICIA<MAP, C>	registration(params);
     MAP			Mds;
     Mds.initialize();
-    registration.setSourceImage(src_d);
-    const auto		mse = registration(dst_d, Mds).mse;
+    const auto		mse = registration(src_d, dst_d, Mds).mse;
     std::cerr << "RMS-err = " << std::sqrt(mse) << std::endl;
     std::cerr << Mds;
 
@@ -99,7 +100,7 @@ main(int argc, char* argv[])
     {
 	std::cerr << "Restoring image...";
 	Image<C>	src;
-#if 0
+#if 1
 	src.restore(std::cin);
 #else
 	std::ifstream	fin("../ueshiba.epbm");

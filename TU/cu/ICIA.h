@@ -389,7 +389,7 @@ class ICIA : public Profiler<CLOCK>
 		     _M()						{}
 
     const Parameters&
-		getParameters()		const	{ return _params; }
+		getParameters()			const	{ return _params; }
     void	setParameters(const Parameters& params)	{ _params = params; }
     bool	empty()			const	{ return _source.nrow() == 0; }
     const Frame&
@@ -409,10 +409,10 @@ class ICIA : public Profiler<CLOCK>
 
   private:
     void	computeEdges()						;
-    
+
   private:
     Parameters	_params;
-    Frame	_source;	// current reference source image
+    Frame	_source;
     slice_type	_image;
     slice_type	_edgeH;
     slice_type	_edgeV;
@@ -424,7 +424,7 @@ ICIA<MAP, C, CLOCK>::setSourceFrame(const Frame& source)
 {
     _source = source;
 
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -432,7 +432,7 @@ ICIA<MAP, C, CLOCK>::setSourceFrame(Frame&& source)
 {
     _source = std::move(source);
 
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -440,7 +440,7 @@ ICIA<MAP, C, CLOCK>::swapSourceFrame(Frame& source)
 {
     _source.swap(source);
 
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -449,7 +449,7 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& image)
     _source.image = image;
 
     computeEdges();
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -458,7 +458,7 @@ ICIA<MAP, C, CLOCK>::setSourceImage(image_type&& image)
     _source.image = std::move(image);
 
     computeEdges();
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -467,7 +467,7 @@ ICIA<MAP, C, CLOCK>::swapSourceImage(image_type& image)
     _source.image.swap(image);
 
     computeEdges();
-    setSourceWindow(0, _source.image.nrow(), 0, _source.image.ncol());
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -477,8 +477,7 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
     using moment_type		= icia::ColorMoment<ICIA>;
     using moment_array_type	= typename moment_type::array_type;
 
-    if (v0 + winSizeV > _source.image.nrow() ||
-	u0 + winSizeH > _source.image.ncol())
+    if (v0 + winSizeV > _source.nrow() || u0 + winSizeH > _source.ncol())
 	throw std::runtime_error("ICIA::setSourceWindow(): illegal window size["
 				 + std::to_string(winSizeH) + 'x'
 				 + std::to_string(winSizeV) + ']');
@@ -517,13 +516,13 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
   // Convert the error moment to a matrix and save its diagonals.
     auto		Mts_old = Mts;
     auto		mse_old = std::numeric_limits<value_type>::max();
-    size_t		overlap_old = 0;
+    value_type		overlap_old = 0;
     auto		mse_prev = mse_old;
     value_type		lambda  = 1.0e-3;
     for (size_t n = 0; n < _params.niter_max; ++n)
     {
       // Compute error derivation vector by parallel reduction.
-	const deviation_type		deviation(Mts, _image, _edgeH, _edgeV,
+	const deviation_type		deviation(Mts, _edgeH, _edgeV, _image,
 						  target,
 						  _params.color_thresh);
 	Array<deviation_array_type>	tmp_deviation(1);
@@ -543,7 +542,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	const deviation_array_type	deviation_array = tmp_deviation[0];
 
       // Evaluate residual mean square_error.
-	const auto	mse	= deviation_type::mse(deviation_array);
+	const auto	mse = deviation_type::mse(deviation_array);
 	const auto	overlap = deviation.overlap(deviation_array);
 #if !defined(NDEBUG)
 	std::cerr << "      mse=" << mse << ", mse_old=" << mse_old
@@ -595,8 +594,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 	image_type	source(target.nrow(), target.ncol());
 	source = 0;
 	warp(target, source.begin(), Mts);
-	TU::Image<C>	diff = TU::Array2<C>(_source.image)
-			     - TU::Array2<C>(source);
+	TU::Image<C>	diff = TU::Array2<C>(_source.image) - TU::Array2<C>(source);
 	diff.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
@@ -604,7 +602,7 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 
     throw std::runtime_error("ICIA::operator (): maximum iteration limit exceeded!");
 
-    return {-1.0, 0};
+    return {-1.0, 0.0};
 }
 
 template <class MAP, class C, class CLOCK>

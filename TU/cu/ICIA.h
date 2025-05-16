@@ -57,6 +57,30 @@ namespace TU::cu
 {
 namespace icia
 {
+  /**********************************************************************
+  *  struct point_color<C, MAP>						*
+  **********************************************************************/
+  template <class C, class MAP>
+  struct pixel_diff
+  {
+      pixel_diff(const Array2<C>& target, const MAP& Mts)
+	  :_target(target), _Mts(Mts)					{}
+
+      __device__ __forceinline__
+      C		operator ()(int x, int y, C val) const
+		{
+		    const auto	uv = _Mts({x, y});
+		    return val - _target(uv.x, uv.y);
+		}
+
+    private:
+      const Texture<C>	_target;
+      const MAP		_Mts;
+  };
+    
+  /**********************************************************************
+  *  struct ColorMoment<ICIA>						*
+  **********************************************************************/
   template <class ICIA>
   class ColorMoment
   {
@@ -141,6 +165,9 @@ namespace icia
       const slice_type	_edgeV;		// source vertcial gradient image
   };
 
+  /**********************************************************************
+  *  struct ColorDeviation<ICIA>					*
+  **********************************************************************/
   template <class ICIA>
   class ColorDeviation
   {
@@ -417,6 +444,10 @@ class ICIA : public Profiler<CLOCK>
     slice_type	_edgeH;
     slice_type	_edgeV;
     matrix_type	_M;		// color moment matrix
+#if defined(DEBUG)
+    size_t	_u0 = 0;
+    size_t	_v0 = 0;
+#endif
 };
 
 template <class MAP, class C, class CLOCK> void
@@ -448,14 +479,14 @@ ICIA<MAP, C, CLOCK>::setSourceImage(const image_type& image)
 {
     _source.image = image;
 
+    computeEdges();
+    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
+
 #if defined(DEBUG)
-    Image<float>	diff(_source.image.ncol(), _source.image.nrow());
+    Image<float>	diff(_source.ncol(), _source.nrow());
     std::cout << 'M' << 1 << std::endl;
     diff.saveHeader(std::cout, ImageFormat::FLOAT);
 #endif
-
-    computeEdges();
-    setSourceWindow(0, _source.nrow(), 0, _source.ncol());
 }
 
 template <class MAP, class C, class CLOCK> void
@@ -510,6 +541,11 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
     gpuCheckLastError();
 
     _M = moment_type::M(tmp_moment[0]);
+
+#if defined(DEBUG)
+    _u0 = u0;
+    _v0 = v0;
+#endif
 }
 
 template <class MAP, class C, class CLOCK>
@@ -597,11 +633,13 @@ ICIA<MAP, C, CLOCK>::operator ()(const image_type& target, MAP& Mts) const
 		  << ", lambda=" << lambda << std::endl;
 #endif
 #if defined(DEBUG)
-	image_type	source(target.nrow(), target.ncol());
-	source = 0;
-	warp(target, source.begin(), Mts);
-	TU::Image<C>	diff = TU::Array2<C>(_source.image) - TU::Array2<C>(source);
-	diff.saveData(std::cout, ImageFormat::FLOAT);
+	image_type	diff(_source.image);
+	auto		win = cu::slice(diff.begin(), _v0, _image.size(),
+					_u0, _image.cbegin().size());
+	transform2(_image.cbegin(), _image.cend(), win.begin(),
+		   icia::pixel_diff(target, Mts));
+	TU::Image<C>	diff_image = TU::Array2<C>(diff);
+	diff_image.saveData(std::cout, ImageFormat::FLOAT);
 	usleep(50000);
 #endif
     }

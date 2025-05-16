@@ -20,6 +20,19 @@ createRigidity(T u0, T du, T v0, T dv, T theta)
     return {{{c, -s}, {s,  c}},
 	    {(1 - c)*u0 + s*v0 + du, (1 - c)*v0 - s*u0 + dv}};
 }
+
+template <class T> void
+initializeMap(Projectivity<T, 2, 2>& map, T u0, T v0)
+{
+    map.initialize({{1, 0, u0}, {0, 1, v0}, {0, 0, 1}});
+}
+    
+template <class MAP> void
+initializeMap(MAP& map,
+	      typename MAP::element_type u0, typename MAP::element_type v0)
+{
+    map.initialize({{1, 0}, {0, 1}}, {u0, v0});
+}
 }	// namespace cu
 
 template <class MAP, class C, class T> void
@@ -27,7 +40,8 @@ registerImages(const Image<C>& src, T du, T dv, T theta,
 	       size_t u0, size_t v0, size_t w, size_t h, T thresh)
 {
     using Parameters	= typename cu::ICIA<MAP, C>::Parameters;
-
+    using element_type	= typename MAP::element_type;
+    
     cu::Array2<C>	src_d(src);
     cu::Array2<C>	dst_d(src.nrow(), src.ncol());
     const auto		tfm = cu::createRigidity(T(src.ncol()/2), du,
@@ -46,7 +60,7 @@ registerImages(const Image<C>& src, T du, T dv, T theta,
 
     cu::ICIA<MAP, C>	registration(params);
     MAP			Mds;
-    Mds.initialize();
+    initializeMap(Mds, element_type(u0), element_type(v0));
     registration.setSourceImage(src_d);
     registration.setSourceWindow(v0, h, u0, w);
     const auto		mse = registration(dst_d, Mds).mse;
@@ -75,7 +89,7 @@ main(int argc, char* argv[])
 			thresh = 50.0;
     size_t		u0 = 0, v0 = 0, w = 0, h = 0;
     extern char		*optarg;
-    for (int c; (c = getopt(argc, argv, "PARu:v:t:T:")) != -1; )
+    for (int c; (c = getopt(argc, argv, "PARu:v:t:U:V:W:H:T:")) != -1; )
 	switch (c)
 	{
 	  case 'P':
@@ -127,13 +141,13 @@ main(int argc, char* argv[])
 
 	if (w == 0)
 	    w = src.ncol();
-	w  = std::clamp(w,  size_t(0), src.ncol());
-	u0 = std::clamp(u0, size_t(0), src.ncol() - w);
+	u0 = std::clamp(u0, size_t(0), src.ncol() - 1);
+	w  = std::clamp(w,  size_t(1), src.ncol() - u0);
 	
 	if (h == 0)
 	    h = src.ncol();
-	h  = std::clamp(h,  size_t(0), src.nrow());
-	u0 = std::clamp(u0, size_t(0), src.nrow() - h);
+	v0 = std::clamp(v0, size_t(0), src.nrow() - 1);
+	h  = std::clamp(h,  size_t(1), src.nrow() - v0);
 
 	std::cerr << w << 'x' << h << "@(" << u0 << ',' << v0 << ')'
 		  << std::endl;

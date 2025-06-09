@@ -515,9 +515,14 @@ ICIA<MAP, C, CLOCK>::setSourceWindow(size_t v0, size_t winSizeV,
     using moment_array_type	= typename moment_type::array_type;
 
     if (v0 + winSizeV > _source.nrow() || u0 + winSizeH > _source.ncol())
-	throw std::runtime_error("ICIA::setSourceWindow(): illegal window size["
-				 + std::to_string(winSizeH) + 'x'
-				 + std::to_string(winSizeV) + ']');
+	throw std::invalid_argument("ICIA::setSourceWindow(): illegal "
+				    + std::to_string(winSizeH) + 'x'
+				    + std::to_string(winSizeV) + "@("
+				    + std::to_string(u0) + ','
+				    + std::to_string(v0) + ") window for "
+				    + std::to_string(_source.ncol()) + 'x'
+				    + std::to_string(_source.nrow())
+				    + " image");
 
     _image = cu::slice(_source.image.cbegin(), v0, winSizeV, u0, winSizeH);
     _edgeH = cu::slice(_source.edgeH.cbegin(), v0, winSizeV, u0, winSizeH);

@@ -8,6 +8,7 @@
 #include "TU/type_traits.h"	// for TU::any<PRED, T...> and TU::iterable<T>
 #include <cuda/std/tuple>
 #include <cuda/std/utility>
+#include <thrust/tuple.h>
 #include <thrust/iterator/zip_iterator.h>
 
 namespace TU::cu

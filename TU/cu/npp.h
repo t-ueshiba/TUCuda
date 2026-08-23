@@ -106,21 +106,6 @@ nppiFilterGauss(const T* src, int src_type, T* dst, int dst_step,
 		NppStreamContext ctx)					;
 
 template <class IN, class OUT> NppStatus
-nppiFilterGauss(IN in, IN ie, OUT out, NppiMaskSize mask_size)
-{
-    using value_t = value_t<iterator_value<IN> >;
-
-    return nppiFilterGauss<size0<value_t>()>(
-		get_element_ptr(std::cbegin(*in)),
-		stride(in)*sizeof(value_t),
-		get_element_ptr(std::begin(*out)),
-		stride(out)*sizeof(value_t),
-		{int(std::distance(std::cbegin(*in), std::cend(*in))),
-		 int(std::distance(in, ie))},
-		mask_size);
-}
-
-template <class IN, class OUT> NppStatus
 nppiFilterGauss(IN in, IN ie, OUT out,
 		NppiMaskSize mask_size, NppStreamContext ctx)
 {
@@ -137,13 +122,6 @@ nppiFilterGauss(IN in, IN ie, OUT out,
 }
 
 #define NPP_FILTER(filter, type, nchannels)				\
-    NPP_FUNC(filter<nchannels>(const type* src, int src_step,		\
-			       type* dst, int dst_step,			\
-			       NppiSize roi_size,			\
-			       NppiMaskSize mask_size),			\
-	     filter,							\
-	     (src, src_step, dst, dst_step, roi_size, mask_size),	\
-	     type, nchannels, false, true, false, false)		\
     NPP_FUNC(filter<nchannels>(const type* src, int src_step,		\
 			       type* dst, int dst_step,			\
 			       NppiSize roi_size,			\
@@ -167,15 +145,6 @@ NPP_FILTER(nppiFilterGauss, float, 3)
 NPP_FILTER(nppiFilterGauss, float, 4)
 
 #define NPP_WATERSHED(type)						\
-    NPP_FUNC(watershed(type* image, int image_step,			\
-		       uint32_t* label, int label_step,			\
-		       NppiNorm norm,					\
-		       NppiWatershedSegmentationBoundaryType boundary_type, \
-		       NppiSize roi_size, uint8_t* buffer),		\
-	     watershed,							\
-	     (image, image_step, label, label_step, norm, boundary_type, \
-	      roi_size, buffer),					\
-	     type, 1, false, true, false, false)		\
     NPP_FUNC(filter<nchannels>(const type* src, int src_step,		\
 			       type* dst, int dst_step,			\
 			       NppiSize roi_size,			\

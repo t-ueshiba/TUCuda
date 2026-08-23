@@ -25,9 +25,15 @@ main(int argc, char *argv[])
 	Image<pixel_t>	image;
 	image.restore(std::cin);		// 原画像を読み込む
 
+        cudaStream_t    stream = nullptr;
+        cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+        NppStreamContext ctx = {};
+        nppGetStreamContext(&ctx);
+        ctx.hStream = stream;
+        
 	cu::Array2<pixel_t>	in_d(image), out_d(in_d.nrow(), in_d.ncol());
 	cu::nppiFilterGauss(in_d.cbegin(), in_d.cend(), out_d.begin(),
-			    NPP_MASK_SIZE_15_X_15);
+			    NPP_MASK_SIZE_15_X_15, ctx);
 
 	Profiler<cu::clock>	cuProfiler(1);
 	constexpr size_t	NITER = 1000;

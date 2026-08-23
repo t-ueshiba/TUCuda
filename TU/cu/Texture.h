@@ -42,7 +42,7 @@
 #include "TU/cu/algorithm.h"
 #include "TU/cu/Array++.h"
 #include "TU/cu/vec.h"
-#include <cuda_texture_types.h>
+#include <texture_types.h>
 
 namespace TU
 {

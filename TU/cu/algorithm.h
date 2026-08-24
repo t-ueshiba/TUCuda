@@ -530,11 +530,25 @@ generate2(OUT out, OUT oe, GEN gen)
 /************************************************************************
 *  fill2<BLOCK_TRAITS>(OUT out, OUT oe, T val)				*
 ************************************************************************/
+namespace detail
+{
+  template <class T> struct generate_value
+  {
+      generate_value(T val)  :_val(val)      {}
+
+      __host__ __device__
+      T operator ()()           const   { return _val; }
+
+    private:
+      const T   _val;
+  };
+}
+
 template <class BLOCK_TRAITS=BlockTraits<>, class OUT, class T> void
 fill2(OUT out, OUT oe, T val)
 {
-    generate2<BLOCK_TRAITS>(out, oe,
-			    [val] __host__ __device__ (){ return val; });
+  //generate2<BLOCK_TRAITS>(out, oe, [val] __device__ (){ return val; });
+    generate2<BLOCK_TRAITS>(out, oe, detail::generate_value<T>(val));
 }
 
 }	// namespace cu

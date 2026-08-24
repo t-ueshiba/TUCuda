@@ -454,15 +454,22 @@ transform2(IN in, IN ie, OUT out, OP op)
 /************************************************************************
 *  copy2<BLOCK_TRAITS>(IN in, IN ie, OUT out)				*
 ************************************************************************/
+namespace detail
+{
+  template <class T> struct forward_value
+  {
+      __host__ __device__
+      T operator ()(const T& val)       const   { return val; }
+  };
+}
+
 template <class BLOCK_TRAITS=BlockTraits<>, class IN, class OUT> void
 copy2(IN in, IN ie, OUT out)
 {
     using value_type	= typename std::iterator_traits<IN>::value_type
 							   ::value_type;
 
-    transform2<BLOCK_TRAITS>(in, ie, out,
-			     [] __host__ __device__ (const value_type& val)
-			     { return val; });
+    transform2<BLOCK_TRAITS>(in, ie, out, detail::forward_value<value_type>());
 }
 
 /************************************************************************
